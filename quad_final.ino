@@ -5,9 +5,9 @@ Servo m2;
 Servo m3;
 Servo m4;
 
-int base_speed = 1150;
+int base_speed = 1300;
 
-int max_speed = 1400;
+int max_speed = 1800;
 int min_speed = 1100;
 
 int m1_speed;
@@ -33,6 +33,10 @@ float offset_roll = 0.00;
 float kp[3] = {0.00, 0.00, 0.00};
 float kd[3] = {0.00, 0.00, 0.00};
 float ki[3] = {0.00, 0.00, 0.00};
+
+float gyro_kp[3] = {0.00, 0.00, 0.00};
+float gyro_kd[3] = {0.00, 0.00, 0.00};
+float gyro_ki[3] = {0.00, 0.00, 0.00};
 
 String in_str, in_key, in_value, in_index;
 bool in_str_arr = false;
@@ -141,6 +145,9 @@ VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 aa_real;     // [x, y, z]            gravity-free accel sensor measurements
 VectorInt16 aaW_world;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
+int32_t gyro[3]; // [x, y, z] gyro container
+int32_t prev_gyro[3];
+int32_t sum_gyro[3];
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 float ypr_deg[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
@@ -149,6 +156,8 @@ float ypr_deg[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and
 uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 int count=0;
 int count_motor = 0;
+int count_mpu = 0;
+
 
 
 
@@ -275,6 +284,8 @@ void check_serial(){
 			enable_motors = !enable_motors; 
 		}else if(ch == 'l'){
 			in_key = in_value = in_str = in_index = "";
+			Serial.print("bs: ");
+			Serial.println(base_speed);
 			Serial.print("speed: ");
 			Serial.print(m1_speed);
 			Serial.print("\t");
@@ -283,9 +294,15 @@ void check_serial(){
 			Serial.print(m3_speed);
 			Serial.print("\t");
 			Serial.println(m4_speed);
-			Serial.print("bs: ");
-			Serial.println(base_speed);
-			Serial.print("\tkp1: ");
+			Serial.print("gyro: ");
+			Serial.print(gyro[0]);
+			Serial.print("\t");
+			Serial.print(gyro[1]);
+			Serial.print("\t");
+			Serial.println(gyro[2]);
+
+			
+			Serial.print("kp1: ");
 			Serial.print(kp[1]);
 			Serial.print("\tki1: ");
 			Serial.print(ki[1]);
@@ -341,6 +358,30 @@ void check_serial(){
 			}else if(in_key == "kd2"){
 				if(val < 1000 && val >= 0){
 					kd[2] = val;
+				}
+			}if(in_key == "gkp1"){
+				if(val < 1000 && val >= 0){
+					gyro_kp[1] = val;
+				}
+			}else if(in_key == "gki1"){
+				if(val < 1000 && val >= 0){
+					gyro_ki[1] = val;
+				}
+			}else if(in_key == "gkd1"){
+				if(val < 1000 && val >= 0){
+					gyro_kd[1] = val;
+				}
+			}else if(in_key == "gkp2"){
+				if(val < 1000 && val >= 0){
+					gyro_kp[2] = val;
+				}
+			}else if(in_key == "gki2"){
+				if(val < 1000 && val >= 0){
+					gyro_ki[2] = val;
+				}
+			}else if(in_key == "gkd2"){
+				if(val < 1000 && val >= 0){
+					gyro_kd[2] = val;
 				}
 			}else if(in_key == "or"){
 				if(val < 1000 && val >= 0){
@@ -444,10 +485,15 @@ void loop(){
 
 		
 		while (fifo_count < packetSize) {
-			Serial.print(2);
+			count_mpu++;
+			if(count_mpu > 1000){
+				Serial.print(2);
+				count_mpu = 0;	
+			}
+			
 			fifo_count = mpu.getFIFOCount();
 		}  
-		
+		count_mpu = 0;
 		// read a packet from FIFO
 		mpu.getFIFOBytes(fifo_buffer, packetSize);
 
@@ -460,6 +506,7 @@ void loop(){
 		mpu.dmpGetQuaternion(&q, fifo_buffer);
 		mpu.dmpGetGravity(&gravity, &q);
 		mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+		mpu.dmpGetGyro(gyro, fifo_buffer);
 
 
 		ypr_deg[0] = ypr[0] * 180 / M_PI;
@@ -489,6 +536,8 @@ void loop(){
 		sum_ypr_deg[1] = constrain(sum_ypr_deg[1], -300, 300);
 		sum_ypr_deg[2] = constrain(sum_ypr_deg[2], -300, 300);
 
+		
+		Serial.println(gyro[1]);
 
 		//-------------------------------------------------------------------------------------------------------------------------
 		check_serial();
@@ -497,6 +546,27 @@ void loop(){
 		speed_ypr[0]=kp[0]*ypr_deg[0] + kd[0]*(ypr_deg[0]-prev_ypr_deg[0]) + ki[0]*sum_ypr_deg[0];
 		speed_ypr[1]= ((kp[1]*ypr_deg[1])/10) + (10*kd[1]*(ypr_deg[1]-prev_ypr_deg[1])) + ((ki[1]*sum_ypr_deg[1])/10000);
 		speed_ypr[2]= ((kp[2]*ypr_deg[2])/10) + (10*kd[2]*(ypr_deg[2]-prev_ypr_deg[2])) + ((ki[2]*sum_ypr_deg[2])/10000);
+
+		/// pid eqns for yaw, pitch & roll
+		gyro[0]=speed_ypr[0]-gyro[0]/1000;
+		gyro[1]=speed_ypr[1]-gyro[1]/1000;
+		gyro[2]=speed_ypr[2]-gyro[2]/1000;
+
+		
+
+		// updating the summation values for calculating integral term
+		sum_gyro[0] += gyro[0];      
+		sum_gyro[1] += gyro[1];
+		sum_gyro[2] += gyro[2];
+
+		// restrict b/w -300 & +300
+		sum_gyro[0] = constrain(sum_gyro[0], -300, 300);
+		sum_gyro[1] = constrain(sum_gyro[1], -300, 300);
+		sum_gyro[2] = constrain(sum_gyro[2], -300, 300);
+
+		speed_ypr[0]=gyro_kp[0]*gyro[0] + gyro_kd[0]*(gyro[0]-prev_gyro[0]/1000) + gyro_ki[0]*sum_gyro[0];
+		speed_ypr[1]= ((gyro_kp[1]*gyro[1])/10) + (10*gyro_kd[1]*(gyro[1]/1000-prev_gyro[1])) + ((gyro_ki[1]*sum_gyro[1])/10000);
+		speed_ypr[2]= ((gyro_kp[2]*gyro[2])/10) + (10*gyro_kd[2]*(gyro[2]/1000-prev_gyro[2])) + ((gyro_ki[2]*sum_gyro[2])/10000);
 
 		//        	// pitch eqn
 		//			speed_ypr[1] =  ypr_deg[1] * 0.1 * 25;							// p
@@ -508,11 +578,21 @@ void loop(){
 		//			speed_ypr[2] += sum_ypr_deg[2] * 0.01 * 15.652 * 0.01;			// i
 		//			speed_ypr[2] += (ypr_deg[2] - prev_ypr_deg[2]) * 5.175;			// d
 
+
+
 		if(show_diff){
 			Serial.print("diff_pitch: ");
 			Serial.print(speed_ypr[1]);
 			Serial.print("\tdiff_roll: ");
 			Serial.println(speed_ypr[2]);
+			Serial.print("gyro_pitch: ");
+			Serial.print(gyro[0]);
+			Serial.print("\tgyro_roll: ");
+			Serial.print(gyro[1]);
+			Serial.print("\tgyro_yaw: ");
+			Serial.println(gyro[2]);
+			
+			
 		}
 
 		///calculating what value to give write to each motor
@@ -556,9 +636,9 @@ void loop(){
 		if(enable_motors){
 			//writing the values to the the motors
 			m1.writeMicroseconds(m1_speed);
-			//				m2.writeMicroseconds(0);
+			m2.writeMicroseconds(m2_speed);
 			m3.writeMicroseconds(m3_speed);
-			//				m4.writeMicroseconds(0);
+			m4.writeMicroseconds(m4_speed);
 		}else{
 			m1.writeMicroseconds(1000);
 			m2.writeMicroseconds(1000);
@@ -571,11 +651,14 @@ void loop(){
 		prev_ypr_deg[1] = ypr_deg[1];
 		prev_ypr_deg[2] = ypr_deg[2];
 
+		prev_gyro[0] = gyro[0];
+		prev_gyro[1] = gyro[1];
+		prev_gyro[2] = gyro[2];
 	}else{
 		count++;
 		if(count > 1000){
 			count = 0;
-			Serial.println(millis());
+			// Serial.println(millis());
 		}
 	}
 }
