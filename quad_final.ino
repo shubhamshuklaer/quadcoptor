@@ -25,6 +25,9 @@ unsigned long timer2 = 0;
 
 int speed_ypr[3];
 
+float serial_ratio = 0;
+float serial_enter, serial_leave, serial_count = 0;
+
 float prev_ypr_deg[3];
 float sum_ypr_deg[3];
 
@@ -64,6 +67,7 @@ bool show_diff = false;
 // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
 // AD0 high = 0x69
 MPU6050 mpu;
+MPU6050 accelgyro;  
 
 /* =========================================================================
 NOTE: In addition to connection 3.3v, GND, SDA, and SCL, this sketch
@@ -145,20 +149,24 @@ VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 aa_real;     // [x, y, z]            gravity-free accel sensor measurements
 VectorInt16 aaW_world;    // [x, y, z]            world-frame accel sensor measurements
 VectorFloat gravity;    // [x, y, z]            gravity vector
-int32_t gyro[3]; // [x, y, z] gyro container
+
+int rate_ypr[3];
+float gyroPitch;
+float gyroRoll;
 int32_t prev_gyro[3];
 int32_t sum_gyro[3];
 float euler[3];         // [psi, theta, phi]    Euler angle container
 float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 float ypr_deg[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
+int16_t gx, gy, gz;
 // packet structure for InvenSense teapot demo
 uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 int count=0;
 int count_motor = 0;
 int count_mpu = 0;
 
-
+void calcPID(void);
+void motorControl(void);
 
 
 // ================================================================
@@ -263,6 +271,8 @@ void setup() {
 }
 
 void check_serial(){
+	serial_enter = millis();
+	serial_count++;
 	if (Serial.available() > 0){
 		// read the value
 		char ch = Serial.read();
@@ -295,13 +305,13 @@ void check_serial(){
 			Serial.print("\t");
 			Serial.println(m4_speed);
 			Serial.print("gyro: ");
-			Serial.print(gyro[0]);
+			Serial.print(gx);
 			Serial.print("\t");
-			Serial.print(gyro[1]);
+			Serial.print(gy);
 			Serial.print("\t");
-			Serial.println(gyro[2]);
+			Serial.println(gz);
 
-			
+
 			Serial.print("kp1: ");
 			Serial.print(kp[1]);
 			Serial.print("\tki1: ");
@@ -319,6 +329,26 @@ void check_serial(){
 			Serial.print(kd[2]);
 			Serial.print("\tor: ");
 			Serial.println(offset_roll);
+
+			//rate pid
+			Serial.print("g_kp1: ");
+			Serial.print(gyro_kp[1]);
+			Serial.print("\tg_ki1: ");
+			Serial.print(gyro_ki[1]);
+			Serial.print("\tg_kd1: ");
+			Serial.println(gyro_kd[1]);
+
+			Serial.print("g_kp2: ");
+			Serial.print(gyro_kp[2]);
+			Serial.print("\tg_ki2: ");
+			Serial.print(gyro_ki[2]);
+			Serial.print("\tg_kd2: ");
+			Serial.println(gyro_kd[2]);
+			Serial.print("serial ratio: ");
+			Serial.print(serial_ratio);
+			Serial.print("\tserial count: ");
+			Serial.println(serial_count);
+
 		}else if(ch == ';'){
 			in_value = in_str;
 
@@ -452,7 +482,8 @@ void check_serial(){
 
 		}
 	}
-
+	serial_ratio = 0.5*serial_ratio + 0.5*(millis() - serial_enter)/(millis() - serial_leave);
+	serial_leave = millis();
 }
 
 
@@ -483,90 +514,95 @@ void loop(){
 	}else if (mpu_int_status & 0x02) {
 		// wait for correct available data length, should be a VERY short wait
 
-		
+
 		while (fifo_count < packetSize) {
-			count_mpu++;
-			if(count_mpu > 1000){
-				Serial.print(2);
-				count_mpu = 0;	
-			}
-			
+			// count_mpu++;
+			// if(count_mpu > 1000){
+			// 	Serial.print(2);
+			// 	count_mpu = 0;	
+			// }
+
 			fifo_count = mpu.getFIFOCount();
+
 		}  
-		count_mpu = 0;
+		// count_mpu = 0;
+
+		///////////////_-------------------------Y P R values --------------\\\\\\\\
+
 		// read a packet from FIFO
 		mpu.getFIFOBytes(fifo_buffer, packetSize);
 
 		// track FIFO count here in case there is > 1 packet available
 		// (this lets us immediately read more without waiting for an interrupt)
 		fifo_count -= packetSize;
-		///////////////_-------------------------Y P R values --------------\\\\\\\\
-
 		// display Euler angles in degrees
 		mpu.dmpGetQuaternion(&q, fifo_buffer);
 		mpu.dmpGetGravity(&gravity, &q);
 		mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-		mpu.dmpGetGyro(gyro, fifo_buffer);
+		accelgyro.getRotation(&gx,&gy,&gz);
 
 
-		ypr_deg[0] = ypr[0] * 180 / M_PI;
-		ypr_deg[1] = (ypr[1] * 180 / M_PI) + offset_pitch;
-		ypr_deg[2] = (ypr[2] * 180 / M_PI) + offset_roll;
+		// ypr_deg[0] = ypr[0] * 180 / M_PI;
+		// ypr_deg[1] = (ypr[1] * 180 / M_PI) + offset_pitch;
+		// ypr_deg[2] = (ypr[2] * 180 / M_PI) + offset_roll;
 
-		if (ypr_deg[2] > -2 && ypr_deg[2] < 2) {
-			ypr_deg[2] = 0;
-		}
+		// if (ypr_deg[2] > -2 && ypr_deg[2] < 2) {
+		// 	ypr_deg[2] = 0;
+		// }
 
-		if(show_ypr){
-			Serial.print(ypr[0] * 180 / M_PI);                //
-			Serial.print("\t\t");                             //
-			Serial.print(ypr[1] * 180 / M_PI);                //
-			Serial.print("\t\t");                             //
-			Serial.println(ypr[2] * 180 / M_PI);              //
-		}
+
 		//------------------------------------------------------------------------------------------------------------------------
 
 		// updating the summation values for calculating integral term
-		sum_ypr_deg[0] += ypr_deg[0];      
-		sum_ypr_deg[1] += ypr_deg[1];
-		sum_ypr_deg[2] += ypr_deg[2];
+		// sum_ypr_deg[0] += ypr_deg[0];      
+		// sum_ypr_deg[1] += ypr_deg[1];
+		// sum_ypr_deg[2] += ypr_deg[2];
 
-		// restrict b/w -300 & +300
-		sum_ypr_deg[0] = constrain(sum_ypr_deg[0], -300, 300);
-		sum_ypr_deg[1] = constrain(sum_ypr_deg[1], -300, 300);
-		sum_ypr_deg[2] = constrain(sum_ypr_deg[2], -300, 300);
+		// // restrict b/w -300 & +300
+		// sum_ypr_deg[0] = constrain(sum_ypr_deg[0], -300, 300);
+		// sum_ypr_deg[1] = constrain(sum_ypr_deg[1], -300, 300);
+		// sum_ypr_deg[2] = constrain(sum_ypr_deg[2], -300, 300);
 
-		
-		Serial.println(gyro[1]);
+
+
 
 		//-------------------------------------------------------------------------------------------------------------------------
 		check_serial();
 		///-------------------------------------------------------------------------------------------------------------------------
 		/// pid eqns for yaw, pitch & roll
-		speed_ypr[0]=kp[0]*ypr_deg[0] + kd[0]*(ypr_deg[0]-prev_ypr_deg[0]) + ki[0]*sum_ypr_deg[0];
-		speed_ypr[1]= ((kp[1]*ypr_deg[1])/10) + (10*kd[1]*(ypr_deg[1]-prev_ypr_deg[1])) + ((ki[1]*sum_ypr_deg[1])/10000);
-		speed_ypr[2]= ((kp[2]*ypr_deg[2])/10) + (10*kd[2]*(ypr_deg[2]-prev_ypr_deg[2])) + ((ki[2]*sum_ypr_deg[2])/10000);
 
-		/// pid eqns for yaw, pitch & roll
-		gyro[0]=speed_ypr[0]-gyro[0]/1000;
-		gyro[1]=speed_ypr[1]-gyro[1]/1000;
-		gyro[2]=speed_ypr[2]-gyro[2]/1000;
+		////////////////////////////////// Ours
+		///////////////////////////////////////////
+		////////////////////////////////////////
+		////////////////////////////////////////////
+		// speed_ypr[0]=kp[0]*ypr_deg[0] + kd[0]*(ypr_deg[0]-prev_ypr_deg[0]) + ki[0]*sum_ypr_deg[0];
+		// speed_ypr[1]= ((kp[1]*ypr_deg[1])/10) + (10*kd[1]*(ypr_deg[1]-prev_ypr_deg[1])) + ((ki[1]*sum_ypr_deg[1])/10000);
+		// speed_ypr[2]= ((kp[2]*ypr_deg[2])/10) + (10*kd[2]*(ypr_deg[2]-prev_ypr_deg[2])) + ((ki[2]*sum_ypr_deg[2])/10000);
 
-		
+		// /// pid eqns for yaw, pitch & roll
+		// gyro[0]=speed_ypr[0]-gyro[0]/1000;
+		// gyro[1]=speed_ypr[1]-gyro[1]/1000;
+		// gyro[2]=speed_ypr[2]-gyro[2]/1000;
 
-		// updating the summation values for calculating integral term
-		sum_gyro[0] += gyro[0];      
-		sum_gyro[1] += gyro[1];
-		sum_gyro[2] += gyro[2];
 
-		// restrict b/w -300 & +300
-		sum_gyro[0] = constrain(sum_gyro[0], -300, 300);
-		sum_gyro[1] = constrain(sum_gyro[1], -300, 300);
-		sum_gyro[2] = constrain(sum_gyro[2], -300, 300);
 
-		speed_ypr[0]=gyro_kp[0]*gyro[0] + gyro_kd[0]*(gyro[0]-prev_gyro[0]/1000) + gyro_ki[0]*sum_gyro[0];
-		speed_ypr[1]= ((gyro_kp[1]*gyro[1])/10) + (10*gyro_kd[1]*(gyro[1]/1000-prev_gyro[1])) + ((gyro_ki[1]*sum_gyro[1])/10000);
-		speed_ypr[2]= ((gyro_kp[2]*gyro[2])/10) + (10*gyro_kd[2]*(gyro[2]/1000-prev_gyro[2])) + ((gyro_ki[2]*sum_gyro[2])/10000);
+		// // updating the summation values for calculating integral term
+		// sum_gyro[0] += gyro[0];      
+		// sum_gyro[1] += gyro[1];
+		// sum_gyro[2] += gyro[2];
+
+		// // restrict b/w -300 & +300
+		// sum_gyro[0] = constrain(sum_gyro[0], -300, 300);
+		// sum_gyro[1] = constrain(sum_gyro[1], -300, 300);
+		// sum_gyro[2] = constrain(sum_gyro[2], -300, 300);
+
+		// speed_ypr[0]=gyro_kp[0]*gyro[0] + gyro_kd[0]*(gyro[0]-prev_gyro[0]/1000) + gyro_ki[0]*sum_gyro[0];
+		// speed_ypr[1]= ((gyro_kp[1]*gyro[1])/10) + (10*gyro_kd[1]*(gyro[1]/1000-prev_gyro[1])) + ((gyro_ki[1]*sum_gyro[1])/10000);
+		// speed_ypr[2]= ((gyro_kp[2]*gyro[2])/10) + (10*gyro_kd[2]*(gyro[2]/1000-prev_gyro[2])) + ((gyro_ki[2]*sum_gyro[2])/10000);
+
+		////////////////////////////////////////
+		/////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////
 
 		//        	// pitch eqn
 		//			speed_ypr[1] =  ypr_deg[1] * 0.1 * 25;							// p
@@ -578,7 +614,16 @@ void loop(){
 		//			speed_ypr[2] += sum_ypr_deg[2] * 0.01 * 15.652 * 0.01;			// i
 		//			speed_ypr[2] += (ypr_deg[2] - prev_ypr_deg[2]) * 5.175;			// d
 
+		calcPID();
+		motorControl();
 
+		if(show_ypr){
+			Serial.print(ypr[0] * 180 / M_PI);                //
+			Serial.print("\t\t");                             //
+			Serial.print(ypr[1] * 180 / M_PI);                //
+			Serial.print("\t\t");                             //
+			Serial.println(ypr[2] * 180 / M_PI);              //
+		}
 
 		if(show_diff){
 			Serial.print("diff_pitch: ");
@@ -586,29 +631,14 @@ void loop(){
 			Serial.print("\tdiff_roll: ");
 			Serial.println(speed_ypr[2]);
 			Serial.print("gyro_pitch: ");
-			Serial.print(gyro[0]);
+			Serial.print(gx);
 			Serial.print("\tgyro_roll: ");
-			Serial.print(gyro[1]);
+			Serial.print(gy);
 			Serial.print("\tgyro_yaw: ");
-			Serial.println(gyro[2]);
-			
-			
+			Serial.println(gz);
+
+
 		}
-
-		///calculating what value to give write to each motor
-
-		// based on pitch
-		m1_speed = base_speed - speed_ypr[1] + m1_speed_off;
-		m3_speed = base_speed + speed_ypr[1] + m3_speed_off ;
-
-		// based on roll
-		m2_speed = base_speed + speed_ypr[2] + m2_speed_off ;
-		m4_speed = base_speed - speed_ypr[2] + m4_speed_off ;
-
-		// m1_speed = base_speed - speed_ypr[1] + speed_ypr[0];
-		// m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
-		// m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
-		// m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
 
 		if(show_speed){
 			Serial.print("speed: ");
@@ -621,39 +651,20 @@ void loop(){
 			Serial.println(m4_speed);
 		}
 
-		//constrain to to the pulse width limit we can give to the motor
-		m1_speed = constrain(m1_speed, min_speed, max_speed);
-		m2_speed = constrain(m2_speed, min_speed, max_speed);
-		m3_speed = constrain(m3_speed, min_speed, max_speed);
-		m4_speed = constrain(m4_speed, min_speed, max_speed);
+		///calculating what value to give write to each motor
 
-		// count_motor++;
-		// if(count_motor > 1000){
-		// 	count_motor = 0;
-		// 	Serial.println(millis());
-		// }
+		// based on pitch
+		// m1_speed = base_speed - speed_ypr[1] + m1_speed_off;
+		// m3_speed = base_speed + speed_ypr[1] + m3_speed_off ;
 
-		if(enable_motors){
-			//writing the values to the the motors
-			m1.writeMicroseconds(m1_speed);
-			m2.writeMicroseconds(m2_speed);
-			m3.writeMicroseconds(m3_speed);
-			m4.writeMicroseconds(m4_speed);
-		}else{
-			m1.writeMicroseconds(1000);
-			m2.writeMicroseconds(1000);
-			m3.writeMicroseconds(1000);
-			m4.writeMicroseconds(1000);
-		}
+		// // based on roll
+		// m2_speed = base_speed + speed_ypr[2] + m2_speed_off ;
+		// m4_speed = base_speed - speed_ypr[2] + m4_speed_off ;
 
-		///-------------------------------------------------------------------------------------------------------------------------
-		prev_ypr_deg[0] = ypr_deg[0];
-		prev_ypr_deg[1] = ypr_deg[1];
-		prev_ypr_deg[2] = ypr_deg[2];
-
-		prev_gyro[0] = gyro[0];
-		prev_gyro[1] = gyro[1];
-		prev_gyro[2] = gyro[2];
+		// m1_speed = base_speed - speed_ypr[1] + speed_ypr[0];
+		// m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
+		// m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
+		// m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
 	}else{
 		count++;
 		if(count > 1000){
@@ -664,28 +675,153 @@ void loop(){
 }
 
 
+void calcPID()
+{
+	/* 
+	   PID Loop for  delta_T = 10 MS
+	 */
+	//=============Euler Angle to degree conversions======================
+	ypr_deg[0]=ypr[0] * 180/M_PI;
+	ypr_deg[1]=(ypr[1] * 180/M_PI) + offset_pitch;        // -2
+	ypr_deg[2]=(ypr[2] * 180/M_PI) + offset_roll;        //+2
+
+	gyroPitch = gx/131;
+	gyroRoll = gy/131;
+
+	//==========================ANGLE LOOP===========================================================================================
+
+	sum_ypr_deg[0] = sum_ypr_deg[0]+ypr_deg[0];        ///// updating the summation values for calculating integral term
+	sum_ypr_deg[1] = sum_ypr_deg[1]+ypr_deg[1];
+	sum_ypr_deg[2] = sum_ypr_deg[2]+ypr_deg[2];
+
+	sum_ypr_deg[0] = constrain(sum_ypr_deg[0],-200,200);
+	sum_ypr_deg[1] = constrain(sum_ypr_deg[1],-200,200);
+	sum_ypr_deg[2] = constrain(sum_ypr_deg[2],-200,200);
+
+
+	//speed_ypr[0]=0;//kp[0]*ypr_deg[0] + kd[0]*(ypr_deg[0]-prev_ypr_deg[0]) + ki[0]*sum_ypr_deg[0];      /////pid eqn for yaw
+
+	//speed_ypr[1]= (3*ypr_deg[1]) + (30*(ypr_deg[1]-prev_ypr_deg[1])) + ((sum_ypr_deg[1])/10000);      /////  for pitch  
+
+	//   speed_ypr[1] = ((kp[1]*ypr_deg[1])/10) + (10*kd[1]*(ypr_deg[1]-prev_ypr_deg[1])) + ((ki[1]*sum_ypr_deg[1])/1000);      ///// for ROLL
+	//  
+	speed_ypr[2] = ((kp[2]*ypr_deg[2])/10) + (10*kd[2]*(ypr_deg[2]-prev_ypr_deg[2])) + ((ki[2]*sum_ypr_deg[2])/1000);      ///// for PITCH 
+
+	speed_ypr[1] = ypr_deg[1] + (sum_ypr_deg[1]/100);      ///// for ROLL
+
+	//  speed_ypr[2] = ypr_deg[2] + (sum_ypr_deg[2]/100);      ///// for PITCH 
+
+	//===================================================================================================================================
+
+
+	//===================================================RATE LOOP=======================================================================
+
+	sum_gyro[1] = sum_gyro[1] + (speed_ypr[2]-gyroPitch);        ///// updating the summation values for calculating integral term
+	sum_gyro[2] = sum_gyro[2] + (speed_ypr[1]-gyroRoll);
+	// sum_gyro[2] = sum_gyro[2]+gyro[2];////____TODO yaw_____//
+
+	sum_gyro[0] = constrain(sum_gyro[0],-200,200);
+	sum_gyro[1] = constrain(sum_gyro[1],-200,200);
+	sum_gyro[2] = constrain(sum_gyro[2],-200,200);
+
+
+	//    
+	rate_ypr[1] = (gyro_kp[1]*(speed_ypr[2]-gyroPitch)/10) + (10*gyro_kd[1]*((speed_ypr[2]-gyroPitch)-prev_gyro[1])) + ((gyro_ki[1]*sum_gyro[1])/1000)   ; //PITCH
+	//    
+	//    rate_ypr[2] = (gyro_kp[2]*(speed_ypr[1]+gyroRoll)/10) + (10*gyro_kd[2]*((speed_ypr[1]+gyroRoll)-prev_gyro[2])) + ((gyro_ki[2]*sum_gyro[2])/1000)   ; //ROLL 
+	//  
+	//   rate_ypr[1] = 3.30*(speed_ypr[2]-gyroPitch); //PITCH
+
+	rate_ypr[2] = 4*(speed_ypr[1]+gyroRoll); //ROLL
+
+	//===================================================================================================================================
 
 
 
+	prev_ypr_deg[0] = ypr_deg[0];                                  
+	prev_ypr_deg[1] = ypr_deg[1]; 
+	prev_ypr_deg[2] = ypr_deg[2];  
 
-/* 
-   up [*] -ve pitch
+	prev_gyro[1] = (speed_ypr[2]-gyroPitch);                                  
+	prev_gyro[2] = (speed_ypr[1]-gyroRoll); 
+	//   prev_gyro[0] = ypr_deg[2];  //===Todo yaw===REMEMBER!!!!
 
-   M 1
 
-   ||
-   ||
-   sparkfun
-   ||
-   down [X] +ve roll    M 2 ============||============  M 4     up [*] -ve roll
-   ||
-   ||
-   ||
-   ||
 
-   M 3
+}
 
-   down [X] +ve pitch
+void motorControl()
+{
+	/*--------Only Angle------------------
+	  m1_speed = base_speed - speed_ypr[1] ;                    ////calculating what value to give write to each  m
+	  m2_speed = base_speed + speed_ypr[2] ;
+	  m3_speed = base_speed + speed_ypr[1] ;
+	  m4_speed = base_speed - speed_ypr[2] ;
+	 *///------------------------------------
+
+	/*------------Only Rate--------------
+	  m1_speed = base_speed + rate_ypr[2] ;                    ////calculating what value to give write to each  m
+	  m2_speed = base_speed - rate_ypr[1] ;
+	  m3_speed = base_speed - rate_ypr[2] ;
+	  m4_speed = base_speed + rate_ypr[1] ;
+	 *///-----------------------------------
+
+
+	// based on pitch
+	m1_speed = base_speed - rate_ypr[2] + m1_speed_off;
+	m3_speed = base_speed + rate_ypr[2] + m3_speed_off ;
+
+	// based on roll
+	m2_speed = base_speed + rate_ypr[1] + m2_speed_off ;
+	m4_speed = base_speed - rate_ypr[1] + m4_speed_off ;
+
+	//  m1_speed = base_speed - speed_ypr[1] + speed_ypr[0];                    ////calculating what value to give write to each  m
+	//  m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
+	//  m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
+	//  m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
+
+	//constrain to to the pulse width limit we can give to the motor
+	m1_speed = constrain(m1_speed, min_speed, max_speed);
+	m2_speed = constrain(m2_speed, min_speed, max_speed);
+	m3_speed = constrain(m3_speed, min_speed, max_speed);
+	m4_speed = constrain(m4_speed, min_speed, max_speed);
+
+
+
+	if(enable_motors){
+		//writing the values to the the motors
+		m1.writeMicroseconds(m1_speed);
+		m2.writeMicroseconds(m2_speed);
+		m3.writeMicroseconds(m3_speed);
+		m4.writeMicroseconds(m4_speed);
+	}else{
+		m1.writeMicroseconds(1000);
+		m2.writeMicroseconds(1000);
+		m3.writeMicroseconds(1000);
+		m4.writeMicroseconds(1000);
+	}
+
+}
+
+
+								/* 
+								     up [*] -ve pitch
+
+								     M 1
+
+								     ||
+								     ||
+								     sparkfun
+								     ||
+down [X] +ve roll    M 2 ============||============  M 4     up [*] -ve roll
+								     ||
+								     ||
+								     ||
+								     ||
+
+								     M 3
+
+								   down [X] +ve pitch
 
 
 
