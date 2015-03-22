@@ -21,8 +21,10 @@ float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 float kp[3] = {250.00, 280.00, 250.00}, kd[3] = {20.00, 20.00, 20.00}, ki[3] = {5.00, 5.00, 5.00};
 float gyro_kp[3] = {10.00, 10.00, 10.00}, gyro_kd[3] = {0.00, 0.00, 0.00}, gyro_ki[3] = {0.00, 0.00, 0.00};
 
-String in_str, in_key, in_value, in_index;
-bool in_str_arr = false, show_speed = false, show_ypr = false, enable_motors = false, enable_pitch = false, enable_roll = false, show_diff = false;
+String in_str, in_key, in_value, in_index, serial_send = "";
+
+bool in_str_arr = false, show_speed = false, show_ypr = false, enable_motors = false,
+	enable_pitch = false, enable_yaw = false, enable_roll = false, show_diff = false;
 
 int count_auto_calc=0, count_dmp_calc=0, count_motor = 0, count_mpu = 0, count_ypr = 0, count_serial = 0, count_iter = 0;
 
@@ -49,6 +51,7 @@ MPU6050 accelgyro;
 #define GYRO_RATIO 131
 #define AUTO_CYCLES 5
 #define MAX_BUFFER 5
+#define Q_RETAIN (float)0.5
 
 bool blinkState = false;
 
@@ -62,7 +65,6 @@ uint8_t fifo_buffer[64]; // FIFO storage buffer
 
 // orientation/motion vars
 Quaternion q, q_past, q_res;           // [w, x, y, z]         quaternion container
-float q_retain = 0.5;
 
 VectorInt16 aa;         // [x, y, z]            accel sensor measurements
 VectorInt16 aa_real;     // [x, y, z]            gravity-free accel sensor measurements
@@ -206,63 +208,54 @@ void loop(){
 		// get current FIFO count
 		fifo_count = mpu.getFIFOCount();
 	
-		// check for overflow (this should never happen unless our code is too inefficient)
-		if (((mpu_int_status & 0x10) || fifo_count == 1024)) {
+		// check for overflow (code is too inefficient) || actual limit = 1024
+		if (((mpu_int_status & 0x10) || fifo_count > 256)) {
 			// reset so we can continue cleanly
 			mpu.resetFIFO();
 			Serial.println(F("FIFO overflow!"));
 
-			// otherwise, check for DMP data ready interrupt (this should happen frequently)
+		// otherwise, check for DMP data ready interrupt
 		}else if ((mpu_int_status & 0x02) && (fifo_count >= packetSize)) {
 
 			// read a packet from FIFO
-			if(fifo_count > MAX_BUFFER * packetSize){
-				mpu.getFIFOBytes(fifo_buffer, (MAX_BUFFER - 1) * packetSize);
-				fifo_count -= (MAX_BUFFER - 1) * packetSize;
-
-				mpu.getFIFOBytes(fifo_buffer, packetSize);
-				fifo_count -= packetSize;
-
-				Serial.println("SLOW !!");
-			}else{
-				mpu.getFIFOBytes(fifo_buffer, packetSize);
-				fifo_count -= packetSize;
-			}
+			mpu.getFIFOBytes(fifo_buffer, packetSize);
+			fifo_count -= packetSize;
 
 			// display Euler angles in degrees
 			mpu.dmpGetQuaternion(&q, fifo_buffer);
 
 			mpu.dmpGetGravity(&gravity, &q);
 			mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+		}else{
+			interpolate();
 		}
 	
 	}else{
 		// interpolate past ypr values to assume newer
-
-		count_iter++;
-
-		ypr[1] += (1 - q_retain)*(ypr[1]-ypr_past[1]);
-		ypr[2] += (1 - q_retain)*(ypr[2]-ypr_past[2]);
-		
-		ypr_past[1] = ypr[1];
-		ypr_past[2] = ypr[2];
-		
+		interpolate();
+		count_iter++;	
 	}
 	
 	// accelgyro.getRotation(&gx,&gy,&gz);
 
 	count_serial++;
-	if(count_serial > 50){
+	if(count_serial & 0x20){
 		check_serial();
 		count_serial = 0;
 	}
-	
 
 	calc_pid();
 	motor_control();
 
 }
 
+inline void interpolate(){
+	ypr[1] += (1 - Q_RETAIN)*(ypr[1]-ypr_past[1]);
+	ypr[2] += (1 - Q_RETAIN)*(ypr[2]-ypr_past[2]);
+	
+	ypr_past[1] = ypr[1];
+	ypr_past[2] = ypr[2];
+}
 
 inline void calc_pid()
 {
@@ -372,63 +365,60 @@ inline void motor_control()
 
 
 inline void check_serial(){
-	// serial_enter = millis();
+	// serial_enter = micros();
 	// serial_count++;
+	serial_send = "";
 
 	if(show_ypr){
 		count_ypr++;
-		if(count_ypr > 100){
+		if(count_ypr & 0x10){
 			count_ypr = 0;
-			Serial.print((ypr[1] * 180/M_PI) - offset_pitch);
-			Serial.print("\t");                             //
-			Serial.print((ypr[2] * 180/M_PI) - offset_roll);
-			Serial.print("\t||\t");                          //		
-			Serial.print(sum_ypr_deg[1]);
-			Serial.print("\t");                             //
-			Serial.println(sum_ypr_deg[2]);
-
+			
+			serial_send += (ypr[1] * 180/M_PI) - offset_pitch;
+			serial_send += "\t";                         
+			serial_send += (ypr[2] * 180/M_PI) - offset_roll;
+			serial_send += "\t||\t";                          //	
+			serial_send += sum_ypr_deg[1];
+			serial_send += "\t";                       
+			serial_send += sum_ypr_deg[2];
+			Serial.println(serial_send);
 		}
-		
 	}
 
 	if(show_diff){
-		Serial.print("diff_pitch: ");
-		Serial.print(speed_ypr[1]);
-		Serial.print("\tdiff_roll: ");
-		Serial.println(speed_ypr[2]);
-		Serial.print("gyro_pitch: ");
-		Serial.print(gx);
-		Serial.print("\tgyro_roll: ");
-		Serial.print(gy);
-		Serial.print("\tgyro_yaw: ");
-		Serial.println(gz);
+		serial_send += "diff_pitch: ";
+		serial_send += speed_ypr[1];
+		serial_send += "\tdiff_roll: ";
+		serial_send += speed_ypr[2];
+		serial_send += "gyro_pitch: ";
+		serial_send += gx;
+		serial_send += "\tgyro_roll: ";
+		serial_send += gy;
+		serial_send += "\tgyro_yaw: ";
+		serial_send += gz;
+		Serial.println(serial_send);
 
 
 	}
 
 	if(show_speed){
-		Serial.print("speed: ");
-		Serial.print(m1_speed);
-		Serial.print("\t");
-		Serial.print(m2_speed);
-		Serial.print("\t");
-		Serial.print(m3_speed);
-		Serial.print("\t");
-		Serial.println(m4_speed);
+		serial_send += "speed: ";
+		serial_send += m1_speed;
+		serial_send += "\t";
+		serial_send += m2_speed;
+		serial_send += "\t";
+		serial_send += m3_speed;
+		serial_send += "\t";
+		serial_send += m4_speed;
+		Serial.println(serial_send);
 	}
 
 	if (Serial.available() > 0){
 		// read the value
 		char ch = Serial.read();
-
-
-		// If ch isn't a newline(linefeed) character,
-		// we will add the character to the in_str
+		// serial_send += ch;
 
 		if(ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
-			// Serial.print("Received: ");
-			// Serial.println(ch);
-
 			// Add the character to the in_str
 			in_str += ch;
 		}else if(ch == '='){
@@ -438,63 +428,28 @@ inline void check_serial(){
 			enable_motors = !enable_motors; 
 		}else if(ch == 'l'){
 			in_key = in_value = in_str = in_index = "";
-			Serial.println("----------------------------------------");
-			Serial.print("speed: ");
-			Serial.print(base_speed);
-			Serial.print("\t\t");
-			Serial.print(m1_speed);
-			Serial.print("\t");
-			Serial.print(m2_speed);
-			Serial.print("\t");
-			Serial.print(m3_speed);
-			Serial.print("\t");
-			Serial.println(m4_speed);
-			// Serial.print("gyro: ");
-			// Serial.print(gx);
-			// Serial.print("\t");
-			// Serial.print(gy);
-			// Serial.print("\t");
-			// Serial.println(gz);
+			serial_send += "speed: ";
+			serial_send += base_speed;
+			serial_send += "\t\t";
+			serial_send += m1_speed;
+			serial_send += "\t";
+			serial_send += m2_speed;
+			serial_send += "\t";
+			serial_send += m3_speed;
+			serial_send += "\t";
+			serial_send += m4_speed;
+			// serial_send += "gyro: ";
+			// serial_send += gx;
+			// serial_send += "\t";
+			// serial_send += gy;
+			// serial_send += "\t";
+			// serial_send += gz;
 
-
-			Serial.print("kp1: ");
-			Serial.print(kp[1]);
-			Serial.print("\tki1: ");
-			Serial.print(ki[1]);
-			Serial.print("\tkd1: ");
-			Serial.print(kd[1]);
-			Serial.print("\top: ");
-			Serial.println(offset_pitch);
-
-			Serial.print("kp2: ");
-			Serial.print(kp[2]);
-			Serial.print("\tki2: ");
-			Serial.print(ki[2]);
-			Serial.print("\tkd2: ");
-			Serial.print(kd[2]);
-			Serial.print("\tor: ");
-			Serial.println(offset_roll);
-
-			//rate pid
-			Serial.print("g_kp1: ");
-			Serial.print(gyro_kp[1]);
-			Serial.print("\tg_ki1: ");
-			Serial.print(gyro_ki[1]);
-			Serial.print("\tg_kd1: ");
-			Serial.println(gyro_kd[1]);
-
-			Serial.print("g_kp2: ");
-			Serial.print(gyro_kp[2]);
-			Serial.print("\tg_ki2: ");
-			Serial.print(gyro_ki[2]);
-			Serial.print("\tg_kd2: ");
-			Serial.println(gyro_kd[2]);
-
-			Serial.println("--------------------------------------\n");
-			// Serial.print("serial ratio: ");
-			// Serial.print(serial_ratio);
-			// Serial.print("\tserial count: ");
-			// Serial.println(serial_count);
+			// serial_send += "serial ratio: ";
+			// serial_send += serial_ratio;
+			// serial_send += "\tserial count: ";
+			// serial_send += serial_count;
+			Serial.println(serial_send);
 
 		}else if(ch == ';'){
 			in_value = in_str;
@@ -502,11 +457,12 @@ inline void check_serial(){
 
 
 			// print the incoming string
-			Serial.print("Key: ");
-			Serial.print(in_key);
-			Serial.print("\t\t");
-			Serial.print("Value: ");
-			Serial.println(in_value);
+			serial_send += "Key: ";
+			serial_send += in_key;
+			serial_send += "\t\t";
+			serial_send += "Value: ";
+			serial_send += in_value;
+			Serial.println(serial_send);
 
 
 			// Convert the string to an integer
@@ -524,6 +480,54 @@ inline void check_serial(){
 				if(val < 1000 && val >= 0){
 					ki[1] = ki[2] = val;
 				}
+			}else if(in_value == "k0"){
+				serial_send += kp[0];
+				serial_send += "\t";
+				serial_send += ki[0];
+				serial_send += "\t";
+				serial_send += kd[2];
+				serial_send += "\t";
+				serial_send += offset_yaw;
+				Serial.println(serial_send);
+			}else if(in_value == "k1"){
+				serial_send += kp[1];
+				serial_send += "\t";
+				serial_send += ki[1];
+				serial_send += "\t";
+				serial_send += kd[1];
+				serial_send += "\t";
+				serial_send += offset_pitch;
+				Serial.println(serial_send);
+			}else if(in_value == "k2"){
+				serial_send += kp[2];
+				serial_send += "\t";
+				serial_send += ki[2];
+				serial_send += "\t";
+				serial_send += kd[2];
+				serial_send += "\t";
+				serial_send += offset_roll;
+				Serial.println(serial_send);
+			}else if(in_value == "gk0"){
+				serial_send += gyro_kp[0];
+				serial_send += "\t";
+				serial_send += gyro_ki[0];
+				serial_send += "\t";
+				serial_send += gyro_kd[0];
+				Serial.println(serial_send);
+			}else if(in_value == "gk1"){
+				serial_send += gyro_kp[1];
+				serial_send += "\t";
+				serial_send += gyro_ki[1];
+				serial_send += "\t";
+				serial_send += gyro_kd[1];
+				Serial.println(serial_send);
+			}else if(in_value == "gk2"){
+				serial_send += gyro_kp[2];
+				serial_send += "\t";
+				serial_send += gyro_ki[2];
+				serial_send += "\t";
+				serial_send += gyro_kd[2];
+				Serial.println(serial_send);
 			}else if(in_key == "kp1"){
 				if(val < 1000 && val >= 0){
 					kp[1] = val;
@@ -613,13 +617,14 @@ inline void check_serial(){
 				}
 			}else if(in_key == "qr"){
 				if(val <= 1 && val >= 0){
-					q_retain = val;
+					#define Q_RETAIN val;
 				}
 			}else if(in_key == "bs"){
 				if(val < 2000 && val >= 0){
 					base_speed = (int)val;
-					Serial.print("Speed changed to: ");
-					Serial.println(base_speed);
+					serial_send += "Speed changed to: ";
+					serial_send += base_speed;
+					Serial.println(serial_send);
 				}
 			}else if(in_value == "s"){
 				show_speed = !show_speed;
@@ -633,16 +638,19 @@ inline void check_serial(){
 				enable_pitch = !enable_pitch;
 			}else if(in_value == "r"){
 				enable_roll = !enable_roll;
+			}else if(in_value == "y"){
+				enable_yaw = !enable_yaw;
 			}else{			
-				Serial.print("Error with the input ");
-				Serial.println(in_key);
+				serial_send += "Error with the input ";
+				serial_send += in_key;
+				Serial.println(serial_send);
 			}
 			in_key = in_value = in_str = in_index = "";
 
 		}
 	}
-	// serial_ratio = 0.5*serial_ratio + 0.5*(millis() - serial_enter)/(millis() - serial_leave);
-	// serial_leave = millis();
+	// serial_ratio = 0.5*serial_ratio + 0.5*(micros() - serial_enter)/(micros() - serial_leave);
+	// serial_leave = micros();
 }
 
 void stop_motors(){
