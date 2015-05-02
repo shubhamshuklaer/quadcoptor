@@ -1,0 +1,30 @@
+Terminal ready
+Connect the battery
+Initializing I2C devices...
+Testing device connections...
+MPU6050 connection successful
+Initializing DMP...
+Enabling DMP...
+Enabling interrupt on pin
+*** local echo: yes ***
+s;l;bs;bsl
+Skipping tty reset...
+Thanks for using picocom
+picocom v1.7
+
+port is        : /dev/ttyUSB0
+flowcontrol    : none
+baudrate is    : 115200
+parity is      : none
+databits are   : 8
+escape is      : C-a
+local echo is  : no
+noinit is      : no
+noreset is     : yes
+nolock is      : yes
+send_cmd is    : sz -vv
+receive_cmd is : rz -vv
+imap is        : 
+omap is        : 
+emap is        : crcrlf,delbs,
+

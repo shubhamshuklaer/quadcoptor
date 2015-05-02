@@ -141,120 +141,115 @@ void StreamPrint_progmem(Print &out,PGM_P format,...)
   out.print(ptr);
 }
  
-#define Serialprint(format, ...) StreamPrint_progmem(Serial,PSTR(format),##__VA_ARGS__)
+#define sprintf(serial_send	, format, ...) StreamPrint_progmem(Serial,PSTR(format),##__VA_ARGS__)
 #define Streamprint(stream,format, ...) StreamPrint_progmem(stream,PSTR(format),##__VA_ARGS__)
-  
+ 
 // ================================================================
 // ===                         THREADS                          ===
 // ================================================================
 
 static void Thread_Overflow(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
 	while (1) {		
-		// vPrintString("1");
 		count_thread_overflow++;
-		if(count_thread_overflow++ > 10){
-			vPrintString("check_flow\r\n");
+		if(count_thread_overflow++ > 100){
+			sprintf(serial_send, "overflow\n");
+			vPrintString(serial_send);
 			count_thread_overflow = 0;
 		}
 
-		// mpu_int_status = mpu.getIntStatus();
+		mpu_int_status = mpu.getIntStatus();
 
 		// check for overflow (code is too inefficient) || actual limit ==> 1024
 		if (mpu_int_status & 0x10) {
 			// reset so we can continue cleanly
 			mpu.resetFIFO();
-			vPrintString("overflow\r\n");
+			// serial_send = ("overflow:\t");
+			// Serial.println(serial_send);
+			sprintf(serial_send, "overflow\r\n");
+			vPrintString(serial_send);
+		}else if(mpu.getFIFOCount() > 256){
+			sprintf(serial_send, "slow\r\n");
+			vPrintString(serial_send);
 		}
-		// else if(mpu.getFIFOCount() > 256){
-		// 	// vPrintString("slow\r\n");
-		// }
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
+		sprintf(serial_send, "1");
+		vPrintString(serial_send);
+		
+		// Sleep for 200 milliseconds.
+    	vTaskDelay((200L * configTICK_RATE_HZ) / 1000L);
 	}
 }
 
 static void Thread_Serial(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
 	while (1) {
-		// vPrintString("2");
+		vPrintString("2");
 		count_thread_serial++;
-		if(count_thread_serial++ > 10){
-			vPrintString("serial\r\n");
+		if(count_thread_serial++ > 100){
+			sprintf(serial_send, "serial\r\n");
+			vPrintString(serial_send);
 			count_thread_serial = 0;
 		}
 		
 		check_serial();
 
 		
-		// sprintf(serial_send, "2");
-		// vPrintString(serial_send);
+		sprintf(serial_send, "2");
+		vPrintString(serial_send);
 		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    	vTaskDelay((200L * configTICK_RATE_HZ) / 1000L);
 	}
 }
 
 static void Thread_Auto(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
 	while (1) {
-		// // sprintf(serial_send, "%d\r\n", freeRam());
-		// vPrintString("3");
+		// sprintf(serial_send, "%d\r\n", freeRam());
+		vPrintString("3");
 		count_thread_auto++;
-		if(count_thread_auto++ > 10){
+		if(count_thread_auto++ > 100){
 			sprintf(serial_send, "auto\r\n");
 			vPrintString(serial_send);
 			count_thread_auto = 0;
 		}
 
-		// accelgyro.getRotation(&gx,&gy,&gz);	
+		accelgyro.getRotation(&gx,&gy,&gz);
 		interpolate();
 		calc_pid(false);
 		motor_control();
 		
-		// sprintf(serial_send, "3");
-		// vPrintString(serial_send);
+		sprintf(serial_send, "3");
+		vPrintString(serial_send);
 		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    	// vTaskDelay((200L * configTICK_RATE_HZ) / 1000L);
 	}
 }
 
 static void Thread_MPU(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
 	while (1) {
-		// vPrintString("4");
+		vPrintString("4");
 		count_thread_mpu++;
-		if(count_thread_mpu++ > 10){
+		if(count_thread_mpu++ > 10000){
 			sprintf(serial_send, "mpu\r\n");
 			vPrintString(serial_send);
 			count_thread_mpu = 0;
 		}
 		
-		// Serial.println(("MPU yes"));
-		mpu_interrupt = false;
-		count_auto_calc--;
-		// mpu_read();
-		calc_pid(true);
-		motor_control();
-		
-		// sprintf(serial_send, "4");
-		// vPrintString(serial_send);
+		if(mpu_interrupt){
+			// Serial.println(("MPU yes"));
+			mpu_interrupt = false;
+			count_auto_calc--;
+			mpu_read();
+			calc_pid(true);
+			motor_control();
+		}else{
+			// Serial.println(("MPU no"));
+			// Serial.println("4");
+			
+			// Sleep for 200 milliseconds.
+			vTaskDelay((200L * configTICK_RATE_HZ) / 1000L);
+		}
+		sprintf(serial_send, "4");
+		vPrintString(serial_send);
 		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    	vTaskDelay((200L * configTICK_RATE_HZ) / 1000L);
 	}
 }
 
@@ -303,24 +298,24 @@ void setup() {
 
 	// initialize device
 	sprintf(serial_send, "Initializing I2C devices...\r\n");
-	// // vPrintString(serial_send);
-	sprintf(serial_send, "%d\r\n", freeRam());
-	// // vPrintString(serial_send);
+	vPrintString(serial_send);
+	sprintf(serial_send, "%d\n", freeRam());
+	vPrintString(serial_send);
 
 	accelgyro.initialize();
-	accelgyro.setI2CBypassEnabled(true);
+	// accelgyro.setI2CBypassEnabled(true);
 	mpu.initialize();
 	mpu.setRate(0);
 
 	// verify connection
 	sprintf(serial_send, "Testing device connections...\r\n");
-	// // vPrintString(serial_send);
+	vPrintString(serial_send);
 	if(mpu.testConnection()){
 		sprintf(serial_send, "MPU6050 connection successful\r\n");
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 	}else{
 		sprintf(serial_send, "MPU6050 connection failed\r\n");
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 	}
 
 /*
@@ -333,25 +328,25 @@ void setup() {
 
 	// load and configure the DMP
 	sprintf(serial_send, "%s\r\n", ("Initializing DMP..."));
-	// // vPrintString(serial_send);
+	vPrintString(serial_send);
 	devStatus = mpu.dmpInitialize();
 
 	// make sure it worked (returns 0 if so)
 	if (devStatus == 0) {
 		// turn on the DMP, now that it's ready
 		sprintf(serial_send, "%s\r\n", ("Enabling DMP..."));
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 		mpu.setDMPEnabled(true);
 
 		// enable Arduino interrupt detection
 		sprintf(serial_send, "Enabling interrupt on pin 0...\r\n");
-		// // vPrintString(serial_send);
-		// attachInterrupt(0, dmpDataReady, RISING);
+		vPrintString(serial_send);
+		attachInterrupt(0, dmpDataReady, RISING);
 		mpu_int_status = mpu.getIntStatus();
 
 		// set our DMP Ready flag so the main loop() function knows it's okay to use it
 		sprintf(serial_send, "DMP ready! Waiting for interrupt...\r\n");
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 		dmp_ready = true;
 
 		// get expected DMP packet size for later comparison
@@ -362,7 +357,7 @@ void setup() {
 		// 2 => DMP configuration updates failed
 		// (if it's going to break, usually the code will be 1)
 		sprintf(serial_send, "DMP Initialization failed. Code: %d\r\n", devStatus);
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 
 		asm volatile ("  jmp 0");  
 	}
@@ -376,24 +371,24 @@ void setup() {
 	pid_enter = pid_leave = micros();
 	interpolate_enter = interpolate_leave = micros();
 
-	// // vPrintString("declaring threads\r\n");
+	vPrintString("declaring threads\r\n");
 	delay(2);
 
 	portBASE_TYPE s1, s2, s3, s4;
 
-	s1 = xTaskCreate(Thread_Overflow, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s2 = xTaskCreate(Thread_Serial, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s3 = xTaskCreate(Thread_Auto, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s4 = xTaskCreate(Thread_MPU, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	s1 = xTaskCreate(Thread_Auto, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	s2 = xTaskCreate(Thread_MPU, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	s3 = xTaskCreate(Thread_Serial, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	s4 = xTaskCreate(Thread_Overflow, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 	
 	if (s1 != pdPASS || s2 != pdPASS || s3 != pdPASS || s4 != pdPASS ) {
 		sprintf(serial_send, "Creation problem");
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 		while(1);
 	}
 	
 	sprintf(serial_send, "starting scheduler\r\n");
-	// // vPrintString(serial_send);
+	vPrintString(serial_send);
 
 	// start scheduler
 	vTaskStartScheduler();
@@ -407,11 +402,10 @@ void setup() {
 // ================================================================
 
 void loop(){
-	// vPrintString("loop\r\n");
+	vPrintString("loop\n");
 }
 
 inline void mpu_read(){
-
 	// read a packet from FIFO
 	mpu.getFIFOBytes(fifo_buffer, packetSize);
 	
@@ -572,7 +566,7 @@ inline void check_serial(){
 			// strcat(serial_send, sum_ypr_deg[2]);
 			// Serial.println(serial_send);
 			sprintf(serial_send, "%f\t%f\t||\t%f\t%f\n", (ypr[1] * 180/M_PI) - offset_pitch, (ypr[2] * 180/M_PI) - offset_roll, sum_ypr_deg[1], sum_ypr_deg[2]);
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 		}
 	}
 
@@ -589,7 +583,7 @@ inline void check_serial(){
 		// strcat(serial_send, gz);
 		// Serial.println(serial_send);
 		sprintf(serial_send, "diff_pitch: %ld\tdiff_roll: %ld, gyro_pitch: %d\tgyro_roll: %d\tgyro_yaw: %d\n", speed_ypr[1], speed_ypr[2], gx, gy, gz);
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 
 	}
 
@@ -604,14 +598,14 @@ inline void check_serial(){
 		// strcat(serial_send, m4_speed);
 		// Serial.println(serial_send);
 		sprintf(serial_send, "speed: %d\t%d\t%d\t%d\t%d\n", base_speed, m1_speed, m2_speed, m3_speed, m4_speed);
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 	}
 
 	if (Serial.available() > 0){
 		// read the value
 		char ch = Serial.read();
 		sprintf(serial_send, "%c", ch);
-		// // vPrintString(serial_send);
+		vPrintString(serial_send);
 		// strcat(serial_send, ch;
 
 		if(ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
@@ -632,7 +626,7 @@ inline void check_serial(){
 			in_index[0] = '\0';
 
 			sprintf(serial_send, "fds");
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 			// strcat(serial_send, "speed: ");
 			// strcat(serial_send, base_speed);
 			// strcat(serial_send, "\t\t");
@@ -670,12 +664,12 @@ inline void check_serial(){
 			// Serial.println(serial_send);
 
 			sprintf(serial_send, "speed: %d\t%d\t%d\t%d\t%d\n", base_speed, m1_speed, m2_speed, m3_speed, m4_speed);
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 			// sprintf(serial_send, "gyro: %d\t%d\t%d\n", gx, gy, gz);
 			sprintf(serial_send, "serial ratio: %f\tloop ratio: %f\pid ratio: %f\tmpu ratio: %f\tmotor ratio: %f\tinterpolate ratio: ", serial_ratio, loop_ratio, pid_ratio, mpu_ratio, motor_ratio, interpolate_ratio);
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 			sprintf(serial_send, "\tserial count: %d\n", serial_count);
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 
 		}else if(ch == ';'){
 			strcpy(in_value, in_str);
@@ -690,7 +684,7 @@ inline void check_serial(){
 			// strcat(serial_send, in_value);
 			// Serial.println(serial_send);
 			sprintf(serial_send, "Key: %s\t\t%s\r\n", in_key, in_value);
-			// // vPrintString(serial_send);
+			vPrintString(serial_send);
 			serial_send[0] = '\0';
 
 			// Convert the string to an integer
@@ -718,7 +712,7 @@ inline void check_serial(){
 				// strcat(serial_send, offset_yaw;
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[0], ki[0], kd[0], offset_yaw);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_value == "k1"){
 				// strcat(serial_send, kp[1];
 				// strcat(serial_send, "\t";
@@ -729,7 +723,7 @@ inline void check_serial(){
 				// strcat(serial_send, offset_pitch;
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[1], ki[1], kd[1], offset_pitch);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_value == "k2"){
 				// strcat(serial_send, kp[2];
 				// strcat(serial_send, "\t";
@@ -740,7 +734,7 @@ inline void check_serial(){
 				// strcat(serial_send, offset_roll;
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[2], ki[2], kd[2], offset_roll);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_value == "gk0"){
 				// strcat(serial_send, gyro_kp[0];
 				// strcat(serial_send, "\t";
@@ -749,7 +743,7 @@ inline void check_serial(){
 				// strcat(serial_send, gyro_kd[0];
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[0], gyro_ki[0], gyro_kd[0]);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_value == "gk1"){
 				// strcat(serial_send, gyro_kp[1];
 				// strcat(serial_send, "\t";
@@ -759,7 +753,7 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[1], gyro_ki[1], gyro_kd[1]);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_value == "gk2"){
 				// strcat(serial_send, gyro_kp[2];
 				// strcat(serial_send, "\t";
@@ -768,7 +762,7 @@ inline void check_serial(){
 				// strcat(serial_send, gyro_kd[2];
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[2], gyro_ki[2], gyro_kd[2]);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}else if(in_key == "kp1"){
 				if(val < 1000 && val >= 0){
 					kp[1] = val;
@@ -867,7 +861,7 @@ inline void check_serial(){
 					// strcat(serial_send, base_speed;
 					// Serial.println(serial_send);
 					sprintf(serial_send, "Speed changed to: %d\n", base_speed);
-					// // vPrintString(serial_send);
+					vPrintString(serial_send);
 				}
 			}else if(in_value == "s"){
 				show_speed = !show_speed;
@@ -888,7 +882,7 @@ inline void check_serial(){
 				// strcat(serial_send, in_key;
 				// Serial.println(serial_send);
 				sprintf(serial_send, "Error with the input %s", in_key);
-				// // vPrintString(serial_send);
+				vPrintString(serial_send);
 			}
 			in_key[0] = '\0';
 			in_value[0] = '\0';

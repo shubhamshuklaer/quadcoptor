@@ -158,7 +158,7 @@ static void Thread_Overflow(void* arg) {
 		// vPrintString("1");
 		count_thread_overflow++;
 		if(count_thread_overflow++ > 10){
-			vPrintString("check_flow\r\n");
+			vPrintString("overflow\r\n");
 			count_thread_overflow = 0;
 		}
 
@@ -168,7 +168,7 @@ static void Thread_Overflow(void* arg) {
 		if (mpu_int_status & 0x10) {
 			// reset so we can continue cleanly
 			mpu.resetFIFO();
-			vPrintString("overflow\r\n");
+			// vPrintString("overflow\r\n");
 		}
 		// else if(mpu.getFIFOCount() > 256){
 		// 	// vPrintString("slow\r\n");

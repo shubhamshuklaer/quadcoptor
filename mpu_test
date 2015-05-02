@@ -20,7 +20,7 @@
 // AD0 low = 0x68 (default for SparkFun breakout and InvenSense evaluation board)
 // AD0 high = 0x69
 MPU6050 mpu;
-MPU6050 accelgyro;  
+MPU6050 accelgyro;
 
 Servo m1, m2, m3, m4;
 
@@ -56,7 +56,7 @@ long motor_enter, motor_leave, motor_count = 0;
 float mpu_ratio = 0;
 long mpu_enter, mpu_leave, mpu_count = 0;
 float interpolate_ratio = 0;
-long interpolate_enter=0, interpolate_leave=0, interpolate_count = 0;
+long interpolate_enter = 0, interpolate_leave = 0, interpolate_count = 0;
 
 float prev_ypr_deg[3], prev_ypr[3], sum_ypr_deg[3], sum_ypr[3];
 long sum_ypr_int[3], prev_ypr_int[3];
@@ -73,9 +73,9 @@ long gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0
 char in_str[50], in_key[30], in_value[30], in_index[30], serial_send[100], err_str[100], tmp_str[30];
 
 bool in_str_arr = false, show_speed = false, show_ypr = false, enable_motors = false,
-	enable_pitch = false, enable_yaw = false, enable_roll = false, show_diff = false;
+     enable_pitch = false, enable_yaw = false, enable_roll = false, show_diff = false;
 
-int count_auto_calc=0, count_dmp_calc=0, count_motor = 0, count_mpu = 0, count_ypr = 0;
+int count_auto_calc = 0, count_dmp_calc = 0, count_motor = 0, count_mpu = 0, count_ypr = 0;
 int count_thread_auto = 0, count_thread_overflow = 0, count_thread_serial = 0, count_thread_mpu = 0;
 int count_serial = 0, count_iter = 0, count_check_overflow = 0;
 
@@ -99,10 +99,10 @@ int rate_ypr[3];
 float gyroPitch, gyroRoll;
 int32_t prev_gyro_diff[3], sum_gyro[3];
 float euler[3];										// [psi, theta, phi]    Euler angle container
-float ypr[3], ypr_deg[3], ypr_past[3],orig_ypr[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+float ypr[3], ypr_deg[3], ypr_past[3], orig_ypr[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 long ypr_int[3];
 int16_t gx, gy, gz;
-int error_print_count=0;
+int error_print_count = 0;
 
 int eeprom_addr = 0;
 
@@ -119,144 +119,34 @@ void dmpDataReady() {
 }
 
 int freeRam () {
-  extern int __heap_start, *__brkval;
-  int v;
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
+	extern int __heap_start, *__brkval;
+	int v;
+	return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval);
 }
- 
-void StreamPrint_progmem(Print &out,PGM_P format,...)
+
+void StreamPrint_progmem(Print &out, PGM_P format, ...)
 {
-  // program memory version of printf - copy of format string and result share a buffer
-  // so as to avoid too much memory use
-  char formatString[128], *ptr;
-  strncpy_P( formatString, format, sizeof(formatString) ); // copy in from program mem
-  // null terminate - leave last char since we might need it in worst case for result's \0
-  formatString[ sizeof(formatString)-2 ]='\0'; 
-  ptr=&formatString[ strlen(formatString)+1 ]; // our result buffer...
-  va_list args;
-  va_start (args,format);
-  vsnprintf(ptr, sizeof(formatString)-1-strlen(formatString), formatString, args );
-  va_end (args);
-  formatString[ sizeof(formatString)-1 ]='\0'; 
-  out.print(ptr);
+	// program memory version of printf - copy of format string and result share a buffer
+	// so as to avoid too much memory use
+	char formatString[128], *ptr;
+	strncpy_P( formatString, format, sizeof(formatString) ); // copy in from program mem
+	// null terminate - leave last char since we might need it in worst case for result's \0
+	formatString[ sizeof(formatString) - 2 ] = '\0';
+	ptr = &formatString[ strlen(formatString) + 1 ]; // our result buffer...
+	va_list args;
+	va_start (args, format);
+	vsnprintf(ptr, sizeof(formatString) - 1 - strlen(formatString), formatString, args );
+	va_end (args);
+	formatString[ sizeof(formatString) - 1 ] = '\0';
+	out.print(ptr);
 }
- 
+
 #define Serialprint(format, ...) StreamPrint_progmem(Serial,PSTR(format),##__VA_ARGS__)
 #define Streamprint(stream,format, ...) StreamPrint_progmem(stream,PSTR(format),##__VA_ARGS__)
-  
+
 // ================================================================
 // ===                         THREADS                          ===
 // ================================================================
-
-static void Thread_Overflow(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
-	while (1) {		
-		// vPrintString("1");
-		count_thread_overflow++;
-		if(count_thread_overflow++ > 10){
-			vPrintString("check_flow\r\n");
-			count_thread_overflow = 0;
-		}
-
-		// mpu_int_status = mpu.getIntStatus();
-
-		// check for overflow (code is too inefficient) || actual limit ==> 1024
-		if (mpu_int_status & 0x10) {
-			// reset so we can continue cleanly
-			mpu.resetFIFO();
-			vPrintString("overflow\r\n");
-		}
-		// else if(mpu.getFIFOCount() > 256){
-		// 	// vPrintString("slow\r\n");
-		// }
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
-	}
-}
-
-static void Thread_Serial(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
-	while (1) {
-		// vPrintString("2");
-		count_thread_serial++;
-		if(count_thread_serial++ > 10){
-			vPrintString("serial\r\n");
-			count_thread_serial = 0;
-		}
-		
-		check_serial();
-
-		
-		// sprintf(serial_send, "2");
-		// vPrintString(serial_send);
-		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
-	}
-}
-
-static void Thread_Auto(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
-	while (1) {
-		// // sprintf(serial_send, "%d\r\n", freeRam());
-		// vPrintString("3");
-		count_thread_auto++;
-		if(count_thread_auto++ > 10){
-			sprintf(serial_send, "auto\r\n");
-			vPrintString(serial_send);
-			count_thread_auto = 0;
-		}
-
-		// accelgyro.getRotation(&gx,&gy,&gz);	
-		interpolate();
-		calc_pid(false);
-		motor_control();
-		
-		// sprintf(serial_send, "3");
-		// vPrintString(serial_send);
-		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
-	}
-}
-
-static void Thread_MPU(void* arg) {
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 10000;
-
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount ();
-	while (1) {
-		// vPrintString("4");
-		count_thread_mpu++;
-		if(count_thread_mpu++ > 10){
-			sprintf(serial_send, "mpu\r\n");
-			vPrintString(serial_send);
-			count_thread_mpu = 0;
-		}
-		
-		// Serial.println(("MPU yes"));
-		mpu_interrupt = false;
-		count_auto_calc--;
-		// mpu_read();
-		calc_pid(true);
-		motor_control();
-		
-		// sprintf(serial_send, "4");
-		// vPrintString(serial_send);
-		// Sleep for 200 milliseconds.
-    	// // vTaskDelayUntil( &xLastWakeTime, xFrequency );
-	}
-}
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
@@ -271,10 +161,10 @@ void setup() {
 	m1.attach(4);            //////pins to which motors are connected
 	m2.attach(5);
 	m3.attach(6);
-	m4.attach(7);	
+	m4.attach(7);
 
 	sprintf(serial_send, "Connect the battery\r\n");
-	
+
 	//Initial motor speed -> 1000
 	m1.writeMicroseconds(1000);
 	m2.writeMicroseconds(1000);
@@ -299,7 +189,7 @@ void setup() {
 	// 38400 or slower in these cases, or use some kind of external separate
 	// crystal solution for the UART timer.
 
-	
+
 
 	// initialize device
 	sprintf(serial_send, "Initializing I2C devices...\r\n");
@@ -315,21 +205,21 @@ void setup() {
 	// verify connection
 	sprintf(serial_send, "Testing device connections...\r\n");
 	// // vPrintString(serial_send);
-	if(mpu.testConnection()){
+	if (mpu.testConnection()) {
 		sprintf(serial_send, "MPU6050 connection successful\r\n");
 		// // vPrintString(serial_send);
-	}else{
+	} else {
 		sprintf(serial_send, "MPU6050 connection failed\r\n");
 		// // vPrintString(serial_send);
 	}
 
-/*
-	// wait for ready
-	sprintf(serial_send, "%s\r\n", ("\nSend any character to begin DMP programming and demo: "));
-	while (Serial.available() && Serial.read()); // empty buffer
-	while (!Serial.available());                 // wait for data
-	while (Serial.available() && Serial.read()); // empty buffer again
-*/
+	/*
+		// wait for ready
+		sprintf(serial_send, "%s\r\n", ("\nSend any character to begin DMP programming and demo: "));
+		while (Serial.available() && Serial.read()); // empty buffer
+		while (!Serial.available());                 // wait for data
+		while (Serial.available() && Serial.read()); // empty buffer again
+	*/
 
 	// load and configure the DMP
 	sprintf(serial_send, "%s\r\n", ("Initializing DMP..."));
@@ -364,7 +254,7 @@ void setup() {
 		sprintf(serial_send, "DMP Initialization failed. Code: %d\r\n", devStatus);
 		// // vPrintString(serial_send);
 
-		asm volatile ("  jmp 0");  
+		asm volatile ("  jmp 0");
 	}
 
 	// configure LED for output
@@ -376,29 +266,6 @@ void setup() {
 	pid_enter = pid_leave = micros();
 	interpolate_enter = interpolate_leave = micros();
 
-	// // vPrintString("declaring threads\r\n");
-	delay(2);
-
-	portBASE_TYPE s1, s2, s3, s4;
-
-	s1 = xTaskCreate(Thread_Overflow, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s2 = xTaskCreate(Thread_Serial, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s3 = xTaskCreate(Thread_Auto, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	s4 = xTaskCreate(Thread_MPU, NULL, configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	
-	if (s1 != pdPASS || s2 != pdPASS || s3 != pdPASS || s4 != pdPASS ) {
-		sprintf(serial_send, "Creation problem");
-		// // vPrintString(serial_send);
-		while(1);
-	}
-	
-	sprintf(serial_send, "starting scheduler\r\n");
-	// // vPrintString(serial_send);
-
-	// start scheduler
-	vTaskStartScheduler();
-	Serial.println(F("Insufficient RAM"));
-	while(1);
 }
 
 
@@ -406,64 +273,69 @@ void setup() {
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
 
-void loop(){
-	// vPrintString("loop\r\n");
+void loop() {
+	vPrintString("loop\r\n");
+	mpu_read();
+	accelgyro.getRotation(&gx, &gy, &gz);
 }
 
-inline void mpu_read(){
+inline void mpu_read() {
+	fifo_count = mpu.getFIFOCount();
+	if (fifo_count > 42) {
+		// read a packet from FIFO
+		mpu.getFIFOBytes(fifo_buffer, packetSize);
 
-	// read a packet from FIFO
-	mpu.getFIFOBytes(fifo_buffer, packetSize);
-	
-	// display Euler angles in degrees
-	mpu.dmpGetQuaternion(&q, fifo_buffer);
-	mpu.dmpGetGravity(&gravity, &q);
-	mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+		// display Euler angles in degrees
+		mpu.dmpGetQuaternion(&q, fifo_buffer);
+		mpu.dmpGetGravity(&gravity, &q);
+		mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
+	}
+
 
 }
 
-inline void interpolate(){
+inline void interpolate() {
 	interpolate_enter = micros();
 
 	// ypr[1] += (1 - Q_RETAIN)*(ypr[1]-ypr_past[1]);
 	// ypr[2] += (1 - Q_RETAIN)*(ypr[2]-ypr_past[2]);
-	
+
 	// ypr_past[1] = ypr[1];
 	// ypr_past[2] = ypr[2];
 
-	ypr_int[1] += gy*((micros() - interpolate_leave)>>18);
+	ypr_int[1] += gy * ((micros() - interpolate_leave) >> 18);
 
 
-	interpolate_ratio = 0.9*interpolate_ratio + 0.1*(micros() - interpolate_enter)/(micros() - interpolate_leave);
+	interpolate_ratio = 0.9 * interpolate_ratio + 0.1 * (micros() - interpolate_enter) / (micros() - interpolate_leave);
 	interpolate_leave = micros();
 }
 
 inline void calc_pid(bool inter)
 {
 	pid_enter = micros();
-	
+
 	//==============================		YPR 		==============================
-	if(inter){
-		temp=ypr[1] * 128;
+	if (inter) {
+		temp = ypr[1] * 128;
 		max_err = max(abs(temp - ypr_int[1]), max_err);
 		ypr_int[1] = temp;
 		ypr_int[2] = ypr[2] * 128;
 	}
-	
+
 	sum_ypr_int[1] += ypr_int[1];
 	sum_ypr_int[2] += ypr_int[2];
 
-	sum_ypr_int[1] = constrain(sum_ypr_int[1],-256,256);
-	sum_ypr_int[2] = constrain(sum_ypr_int[2],-256,256);
+	sum_ypr_int[1] = constrain(sum_ypr_int[1], -256, 256);
+	sum_ypr_int[2] = constrain(sum_ypr_int[2], -256, 256);
 
-	speed_ypr[1] = kp[1]*ypr_int[1];// + kd[1]*(ypr_int[1]-prev_ypr_int[1]) + ki[1]*sum_ypr_int[1];
-	speed_ypr[2] = kp[2]*ypr_int[2];// + kd[2]*(ypr_int[2]-prev_ypr_int[2]) + ki[2]*sum_ypr_int[2];
-	
-	prev_ypr_int[0] = ypr_int[0];                                  
-	prev_ypr_int[1] = ypr_int[1]; 
-	prev_ypr_int[2] = ypr_int[2];  
-	
-	
+	speed_ypr[1] = kp[1] * ypr_int[1]; // + kd[1]*(ypr_int[1]-prev_ypr_int[1]) + ki[1]*sum_ypr_int[1];
+	speed_ypr[2] = kp[2] * ypr_int[2]; // + kd[2]*(ypr_int[2]-prev_ypr_int[2]) + ki[2]*sum_ypr_int[2];
+
+	prev_ypr_int[0] = ypr_int[0];
+	prev_ypr_int[1] = ypr_int[1];
+	prev_ypr_int[2] = ypr_int[2];
+
+
 
 	//==============================		RATE 		==============================
 
@@ -476,14 +348,14 @@ inline void calc_pid(bool inter)
 	// sum_gyro[1] = constrain(sum_gyro[1],-2000000,2000000);
 	// sum_gyro[2] = constrain(sum_gyro[2],-2000000,2000000);
 
-	// rate_ypr[1] = gyro_kp[1]*(speed_ypr[1] - gyroPitch) + gyro_kd[1]*((speed_ypr[1]-gyroPitch)-prev_gyro_diff[1]) + gyro_ki[1]*sum_gyro[1]; 
-	// rate_ypr[2] = gyro_kp[2]*(speed_ypr[2] - gyroRoll) + gyro_kd[2]*((speed_ypr[2]+gyroRoll)-prev_gyro_diff[2]) + gyro_ki[2]*sum_gyro[2]; 
+	// rate_ypr[1] = gyro_kp[1]*(speed_ypr[1] - gyroPitch) + gyro_kd[1]*((speed_ypr[1]-gyroPitch)-prev_gyro_diff[1]) + gyro_ki[1]*sum_gyro[1];
+	// rate_ypr[2] = gyro_kp[2]*(speed_ypr[2] - gyroRoll) + gyro_kd[2]*((speed_ypr[2]+gyroRoll)-prev_gyro_diff[2]) + gyro_ki[2]*sum_gyro[2];
 
-	// prev_gyro_diff[1] = (speed_ypr[1] - gyroPitch);                                  
-	// prev_gyro_diff[2] = (speed_ypr[2] - gyroRoll); 
-	
-	
-	pid_ratio = 0.9*pid_ratio + 0.1*(micros() - pid_enter)/(micros() - pid_leave);
+	// prev_gyro_diff[1] = (speed_ypr[1] - gyroPitch);
+	// prev_gyro_diff[2] = (speed_ypr[2] - gyroRoll);
+
+
+	pid_ratio = 0.9 * pid_ratio + 0.1 * (micros() - pid_enter) / (micros() - pid_leave);
 	pid_leave = micros();
 }
 
@@ -500,7 +372,7 @@ inline void motor_control()
 	m4_speed = base_speed - (speed_ypr[2] >> 7) + m4_speed_off;
 	// Serial.println(rate_ypr[2]);
 	// Serial.println(rate_ypr[1]);
-	
+
 
 	// // based on pitch
 	// m1_speed = base_speed - rate_ypr[1]/10000 + m1_speed_off;
@@ -510,10 +382,10 @@ inline void motor_control()
 	// m2_speed = base_speed + rate_ypr[2]/10000 + m2_speed_off ;
 	// m4_speed = base_speed - rate_ypr[2]/10000 + m4_speed_off ;
 
-	 // m1_speed = base_speed - speed_ypr[1] + speed_ypr[0]; 
-	 // m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
-	 // m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
-	 // m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
+	// m1_speed = base_speed - speed_ypr[1] + speed_ypr[0];
+	// m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
+	// m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
+	// m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
 
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -523,60 +395,60 @@ inline void motor_control()
 
 
 
-	if(enable_motors && enable_pitch){
+	if (enable_motors && enable_pitch) {
 		m1.writeMicroseconds(m1_speed);
 		m3.writeMicroseconds(m3_speed);
-	}else{
+	} else {
 		m1.writeMicroseconds(1000);
 		m3.writeMicroseconds(1000);
 	}
-	
-	if(enable_motors && enable_roll){
+
+	if (enable_motors && enable_roll) {
 		m4.writeMicroseconds(m4_speed);
 		m2.writeMicroseconds(m2_speed);
-	}else{
+	} else {
 		m4.writeMicroseconds(1000);
 		m2.writeMicroseconds(1000);
 	}
 
-	motor_ratio = 0.9*motor_ratio + 0.1*(micros() - motor_enter)/(micros() - motor_leave);
+	motor_ratio = 0.9 * motor_ratio + 0.1 * (micros() - motor_enter) / (micros() - motor_leave);
 	motor_leave = micros();
 
 }
 
 
-inline void check_serial(){	
+inline void check_serial() {
 	serial_enter = micros();
 	// serial_count++;
 	serial_send[0] = '\0';
 
-	if(blinkState){
+	if (blinkState) {
 		blinkState = false;
 		digitalWrite(LED_PIN, LOW);
-	}else{
+	} else {
 		blinkState = true;
 		digitalWrite(LED_PIN, HIGH);
 	}
 
-	if(show_ypr){
+	if (show_ypr) {
 		count_ypr++;
-		if(count_ypr & 0x10){
+		if (count_ypr & 0x10) {
 			count_ypr = 0;
-			
+
 			// strcat(serial_send, (ypr[1] * 180/M_PI) - offset_pitch);
 			// strcat(serial_send, "\t");
 			// strcat(serial_send, (ypr[2] * 180/M_PI) - offset_roll);
 			// strcat(serial_send, "\t||\t");
 			// strcat(serial_send, sum_ypr_deg[1]);
-			// strcat(serial_send, "\t");                  
+			// strcat(serial_send, "\t");
 			// strcat(serial_send, sum_ypr_deg[2]);
 			// Serial.println(serial_send);
-			sprintf(serial_send, "%f\t%f\t||\t%f\t%f\n", (ypr[1] * 180/M_PI) - offset_pitch, (ypr[2] * 180/M_PI) - offset_roll, sum_ypr_deg[1], sum_ypr_deg[2]);
+			sprintf(serial_send, "%f\t%f\t||\t%f\t%f\n", (ypr[1] * 180 / M_PI) - offset_pitch, (ypr[2] * 180 / M_PI) - offset_roll, sum_ypr_deg[1], sum_ypr_deg[2]);
 			// // vPrintString(serial_send);
 		}
 	}
 
-	if(show_diff){
+	if (show_diff) {
 		// strcat(serial_send, "diff_pitch: ");
 		// strcat(serial_send, speed_ypr[1]);
 		// strcat(serial_send, "\tdiff_roll: ");
@@ -593,7 +465,7 @@ inline void check_serial(){
 
 	}
 
-	if(show_speed){
+	if (show_speed) {
 		// strcat(serial_send, "speed: ");
 		// strcat(serial_send, m1_speed);
 		// strcat(serial_send, "\t");
@@ -607,25 +479,25 @@ inline void check_serial(){
 		// // vPrintString(serial_send);
 	}
 
-	if (Serial.available() > 0){
+	if (Serial.available() > 0) {
 		// read the value
 		char ch = Serial.read();
 		sprintf(serial_send, "%c", ch);
 		// // vPrintString(serial_send);
 		// strcat(serial_send, ch;
 
-		if(ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
+		if (ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
 			// Add the character to the in_str
 			size_t len = strlen(in_str);
 			in_str[len] = ch;
-			in_str[len+1] = '\0';
+			in_str[len + 1] = '\0';
 			// in_str += ch;
-		}else if(ch == '='){
+		} else if (ch == '=') {
 			strcpy(in_key, in_str);
 			in_str[0] = '\0';
-		}else if(ch == ' '){
-			enable_motors = !enable_motors; 
-		}else if(ch == 'l'){
+		} else if (ch == ' ') {
+			enable_motors = !enable_motors;
+		} else if (ch == 'l') {
 			in_key[0] = '\0';
 			in_value[0] = '\0';
 			in_str[0] = '\0';
@@ -662,9 +534,9 @@ inline void check_serial(){
 			// strcat(serial_send, motor_ratio);
 			// strcat(serial_send, "interpolate ratio: \t");
 			// strcat(serial_send, interpolate_ratio);
-			
 
-			
+
+
 			// strcat(serial_send, "\tserial count: ");
 			// strcat(serial_send, serial_count);
 			// Serial.println(serial_send);
@@ -677,7 +549,7 @@ inline void check_serial(){
 			sprintf(serial_send, "\tserial count: %d\n", serial_count);
 			// // vPrintString(serial_send);
 
-		}else if(ch == ';'){
+		} else if (ch == ';') {
 			strcpy(in_value, in_str);
 
 
@@ -696,19 +568,19 @@ inline void check_serial(){
 			// Convert the string to an integer
 			float val = atof(in_value);
 
-			if(in_key == "kd"){
-				if(val < 1000 && val >= 0){
+			if (in_key == "kd") {
+				if (val < 1000 && val >= 0) {
 					kd[1] = kd[2] = val;
 				}
-			}else if(in_key == "kp"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "kp") {
+				if (val < 1000 && val >= 0) {
 					kp[1] = kp[2] = val;
 				}
-			}else if(in_key == "ki"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "ki") {
+				if (val < 1000 && val >= 0) {
 					ki[1] = ki[2] = val;
 				}
-			}else if(in_value == "k0"){
+			} else if (in_value == "k0") {
 				// strcat(serial_send, kp[0];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, ki[0];
@@ -719,7 +591,7 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[0], ki[0], kd[0], offset_yaw);
 				// // vPrintString(serial_send);
-			}else if(in_value == "k1"){
+			} else if (in_value == "k1") {
 				// strcat(serial_send, kp[1];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, ki[1];
@@ -730,7 +602,7 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[1], ki[1], kd[1], offset_pitch);
 				// // vPrintString(serial_send);
-			}else if(in_value == "k2"){
+			} else if (in_value == "k2") {
 				// strcat(serial_send, kp[2];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, ki[2];
@@ -741,7 +613,7 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%d\t%d\t%d\t%f\n", kp[2], ki[2], kd[2], offset_roll);
 				// // vPrintString(serial_send);
-			}else if(in_value == "gk0"){
+			} else if (in_value == "gk0") {
 				// strcat(serial_send, gyro_kp[0];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, gyro_ki[0];
@@ -750,7 +622,7 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[0], gyro_ki[0], gyro_kd[0]);
 				// // vPrintString(serial_send);
-			}else if(in_value == "gk1"){
+			} else if (in_value == "gk1") {
 				// strcat(serial_send, gyro_kp[1];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, gyro_ki[1];
@@ -760,7 +632,7 @@ inline void check_serial(){
 
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[1], gyro_ki[1], gyro_kd[1]);
 				// // vPrintString(serial_send);
-			}else if(in_value == "gk2"){
+			} else if (in_value == "gk2") {
 				// strcat(serial_send, gyro_kp[2];
 				// strcat(serial_send, "\t";
 				// strcat(serial_send, gyro_ki[2];
@@ -769,99 +641,99 @@ inline void check_serial(){
 				// Serial.println(serial_send);
 				sprintf(serial_send, "%ld\t%ld\t%ld\n", gyro_kp[2], gyro_ki[2], gyro_kd[2]);
 				// // vPrintString(serial_send);
-			}else if(in_key == "kp1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "kp1") {
+				if (val < 1000 && val >= 0) {
 					kp[1] = val;
 				}
-			}else if(in_key == "ki1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "ki1") {
+				if (val < 1000 && val >= 0) {
 					ki[1] = val;
 				}
-			}else if(in_key == "kd1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "kd1") {
+				if (val < 1000 && val >= 0) {
 					kd[1] = val;
 				}
-			}else if(in_key == "kp2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "kp2") {
+				if (val < 1000 && val >= 0) {
 					kp[2] = val;
 				}
-			}else if(in_key == "ki2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "ki2") {
+				if (val < 1000 && val >= 0) {
 					ki[2] = val;
 				}
-			}else if(in_key == "kd2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "kd2") {
+				if (val < 1000 && val >= 0) {
 					kd[2] = val;
 				}
-			}else if(in_key == "gkp"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkp") {
+				if (val < 1000 && val >= 0) {
 					gyro_kp[1] = val;
 					gyro_kp[2] = val;
 				}
-			}else if(in_key == "gkd"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkd") {
+				if (val < 1000 && val >= 0) {
 					gyro_kd[1] = val;
 					gyro_kd[2] = val;
 				}
-			}else if(in_key == "gki"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gki") {
+				if (val < 1000 && val >= 0) {
 					gyro_ki[1] = val;
 					gyro_ki[2] = val;
 				}
-			}else if(in_key == "gkp1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkp1") {
+				if (val < 1000 && val >= 0) {
 					gyro_kp[1] = val;
 				}
-			}else if(in_key == "gki1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gki1") {
+				if (val < 1000 && val >= 0) {
 					gyro_ki[1] = val;
 				}
-			}else if(in_key == "gkd1"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkd1") {
+				if (val < 1000 && val >= 0) {
 					gyro_kd[1] = val;
 				}
-			}else if(in_key == "gkp2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkp2") {
+				if (val < 1000 && val >= 0) {
 					gyro_kp[2] = val;
 				}
-			}else if(in_key == "gki2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gki2") {
+				if (val < 1000 && val >= 0) {
 					gyro_ki[2] = val;
 				}
-			}else if(in_key == "gkd2"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "gkd2") {
+				if (val < 1000 && val >= 0) {
 					gyro_kd[2] = val;
 				}
-			}else if(in_key == "or"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "or") {
+				if (val < 1000 && val >= 0) {
 					offset_roll = val;
 				}
-			}else if(in_key == "op"){
-				if(val < 1000 && val >= 0){
+			} else if (in_key == "op") {
+				if (val < 1000 && val >= 0) {
 					offset_pitch = val;
 				}
-			}else if(in_key == "o1"){
-				if(val < 600 && val >= 0){
+			} else if (in_key == "o1") {
+				if (val < 600 && val >= 0) {
 					m1_speed_off = val;
 				}
-			}else if(in_key == "o2"){
-				if(val < 600 && val >= 0){
+			} else if (in_key == "o2") {
+				if (val < 600 && val >= 0) {
 					m2_speed_off = val;
 				}
-			}else if(in_key == "o3"){
-				if(val < 600 && val >= 0){
+			} else if (in_key == "o3") {
+				if (val < 600 && val >= 0) {
 					m3_speed_off = val;
 				}
-			}else if(in_key == "o4"){
-				if(val < 600 && val >= 0){
+			} else if (in_key == "o4") {
+				if (val < 600 && val >= 0) {
 					m4_speed_off = val;
 				}
-			}else if(in_key == "qr"){
-				if(val <= 1 && val >= 0){
-					#define Q_RETAIN val;
+			} else if (in_key == "qr") {
+				if (val <= 1 && val >= 0) {
+#define Q_RETAIN val;
 				}
-			}else if(in_key == "bs"){
-				if(val < 2000 && val >= 0){
+			} else if (in_key == "bs") {
+				if (val < 2000 && val >= 0) {
 					base_speed = (int)val;
 					// strcat(serial_send, "Speed changed to: ";
 					// strcat(serial_send, base_speed;
@@ -869,21 +741,21 @@ inline void check_serial(){
 					sprintf(serial_send, "Speed changed to: %d\n", base_speed);
 					// // vPrintString(serial_send);
 				}
-			}else if(in_value == "s"){
+			} else if (in_value == "s") {
 				show_speed = !show_speed;
-			}else if(in_value == "ypr"){
+			} else if (in_value == "ypr") {
 				show_ypr = !show_ypr;
-			}else if(in_value == "diff"){
+			} else if (in_value == "diff") {
 				show_diff = !show_diff;
-			}else if(in_value == "m"){
+			} else if (in_value == "m") {
 				enable_motors = !enable_motors;
-			}else if(in_value == "p"){
+			} else if (in_value == "p") {
 				enable_pitch = !enable_pitch;
-			}else if(in_value == "r"){
+			} else if (in_value == "r") {
 				enable_roll = !enable_roll;
-			}else if(in_value == "y"){
+			} else if (in_value == "y") {
 				enable_yaw = !enable_yaw;
-			}else{			
+			} else {
 				// strcat(serial_send, "Error with the input ";
 				// strcat(serial_send, in_key;
 				// Serial.println(serial_send);
@@ -897,11 +769,11 @@ inline void check_serial(){
 
 		}
 	}
-	serial_ratio = 0.9*serial_ratio + 0.1*(micros() - serial_enter)/(micros() - serial_leave);
+	serial_ratio = 0.9 * serial_ratio + 0.1 * (micros() - serial_enter) / (micros() - serial_leave);
 	serial_leave = micros();
 }
 
-void stop_motors(){
+void stop_motors() {
 	m1.writeMicroseconds(1000);
 	m3.writeMicroseconds(1000);
 	m2.writeMicroseconds(1000);
@@ -913,38 +785,38 @@ void stop_motors(){
 
 
 
-								/* 
-								     up [*] -ve pitch
+/*
+     up [*] -ve pitch
 
-								     M 1
+     M 1
 
-								     ||
-								     ||
-								  sparkfun
-								     ||
+     ||
+     ||
+  sparkfun
+     ||
 down [X] +ve roll    M 2 ============||============  M 4     up [*] -ve roll
-								     ||
-								     ||
-								     ||
-								     ||
+     ||
+     ||
+     ||
+     ||
 
-								     M 3
+     M 3
 
-								   down [X] +ve pitch
-
-
-
-                               _______\     
-                                      /
-                               (  yaw  )     clockwise +ve
-                               /______
-                               \
+   down [X] +ve pitch
 
 
-   roll values
+
+_______\
+      /
+(  yaw  )     clockwise +ve
+/______
+\
 
 
-   1500  27.00  25.00  5.00
+roll values
 
- */
+
+1500  27.00  25.00  5.00
+
+*/
 
