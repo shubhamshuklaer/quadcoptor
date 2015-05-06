@@ -22,3 +22,18 @@ in file arduino-1.6.1/libraries/MPU6050/ma20.h
 
 
 arduino quad_final.ino --upload && picocom /dev/ttyUSB0 -b 115200 -r -l 
+
+
+****************************Not Working****************************
+Using the bootloader stk500v2 instead of atmega because of bootloader problem
+go to arduino-1.6.1/hardware/arduino/avr/boards.txt and search for Arduino Mega 
+now for mega1280 change the bootloader file to correct one
+We will have to build the bootloader
+sudo apt-get install gcc-avr avr-libc
+go into stk500v2 folder and uncomment line 38 saying MCU = atmega128
+then do make clean and make
+
+
+*********************************************diylc circuit designer
+sudo sh -c 'echo "deb http://www.diy-fever.com/diylc_repository binary/">/etc/apt/sources.list.d/diylc.list'
+sudo apt-get install diylc
