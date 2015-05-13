@@ -35,7 +35,7 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-long kp[3] = {0, 0, 0}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
+long kp[3] = {0, 80, 80}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
 long gyro_kp[3] = {0, 0,0 }, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* long kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* long gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
@@ -62,6 +62,7 @@ const int CH3_PIN=11;
 const int CH4_PIN=10;
 const int CH5_PIN=50;
 const int CH6_PIN=52;
+const int DMP_INT_PIN=2;
 
 const int CH_MAX=2000;
 const int CH_MIN=1000;
@@ -223,7 +224,7 @@ void loop(){
 
     update_rc();
     update_ypr();
-    /* calc_pid(); */
+    calc_pid();
     motor_control();
 
 }
@@ -266,7 +267,7 @@ void mpu_init(){
 
         // enable Arduino interrupt detection
         Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
-        enableInterrupt(0, dmp_data_ready, RISING);
+        enableInterrupt(DMP_INT_PIN, dmp_data_ready, RISING);
         mpu_int_status = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
@@ -552,12 +553,12 @@ inline void motor_control()
 	motor_enter = micros();
 
 	// based on pitch
-	m1_speed = base_speed -ch2 +ch1 - (speed_ypr[1] >> 7) + m1_speed_off;
-	m3_speed = base_speed +ch2 +ch1 + (speed_ypr[1] >> 7) + m3_speed_off;
+	m1_speed = base_speed -ch2 -ch1 - (speed_ypr[1] >> 7) + m1_speed_off;
+	m3_speed = base_speed +ch2 -ch1 + (speed_ypr[1] >> 7) + m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 -ch1 + (speed_ypr[2] >> 7) + m2_speed_off;
-	m4_speed = base_speed -ch4 - (speed_ypr[2] >> 7) + m4_speed_off;
+	m2_speed = base_speed +ch4 +ch1 + (speed_ypr[2] >> 7) + m2_speed_off;
+	m4_speed = base_speed -ch4 +ch1 - (speed_ypr[2] >> 7) + m4_speed_off;
 	// Serial.println(rate_ypr[2]);
 	// Serial.println(rate_ypr[1]);
 	
