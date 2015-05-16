@@ -1,19 +1,22 @@
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps20.h"
 #include <EEPROM.h>
+#include <EnableInterrupt.h>
+#include <I2Cdev.h>
+#include <MPU6050_6Axis_MotionApps20.h>
+#include <PID_v1.h>
 #include <Servo.h>
 #include <avr/pgmspace.h>
-#include <EnableInterrupt.h>
+#include <MemoryFree.h>
 
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-    #include "Wire.h"
+    #include <Wire.h>
 #endif
 #define OUTPUT_READABLE_YAWPITCHROLL
 
+
 Servo m1, m2, m3, m4;
 
-int base_speed = 1330, max_speed = 1800, min_speed = 1100;
+int base_speed = 1330, max_speed = 1800, min_speed = 1000;
 
 int m1_speed, m2_speed, m3_speed, m4_speed;
 
@@ -21,7 +24,9 @@ int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 
 unsigned long timer = 0, timer2 = 0;
 
+int gyro_ypr[3];
 int speed_ypr[3];
+int desired_ypr[3]={0,0,0};
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
 float loop_ratio = 0, loop_enter, loop_leave, loop_count = 0;
@@ -35,10 +40,10 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-long kp[3] = {0, 80, 80}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
-long gyro_kp[3] = {0, 0,0 }, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
-/* long kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
-/* long gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
+int kp[3] = {0, 10, 10}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
+int gyro_kp[3] = {0, 0,0 }, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
+/* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
+/* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
 
 String in_str, in_key, in_value, in_index, serial_send = "";
 
@@ -67,22 +72,26 @@ const int DMP_INT_PIN=2;
 const int CH_MAX=2000;
 const int CH_MIN=1000;
 const int CH_MID=(CH_MIN+CH_MAX)/2;
-const int CH1_EFFECT=100;
-const int CH2_EFFECT=100;
-const int CH3_MIN_EFFECT=1000;
+const int CH1_EFFECT=200;
+const int CH2_EFFECT=200;
+const int CH3_MIN_EFFECT=1100;
 const int CH3_MAX_EFFECT=1700;
-const int CH4_EFFECT=100;
-const int CH5_EFFECT=100;
-const int CH6_EFFECT=100;
+const int CH4_EFFECT=200;
+const int CH5_EFFECT=200;
+const int CH6_EFFECT=200;
+
+const int MAX_R_PID_EFFECT=100;
+const int MAX_S_PID_EFFECT=1000;
 
 byte sregRestore;
 
+
 /* #define LED_PIN 13// (Arduino is 13, Teensy is 11, Teensy++ is 6) */
-#define PID 1
-#define GYRO_RATIO 76
-#define AUTO_CYCLES 5
-#define MAX_BUFFER 5
-#define Q_RETAIN (float)0.5
+const int GYRO_RATIO=1;
+const int YPR_RATIO=128;
+const int AUTO_CYCLES=5;
+const int MAX_BUFFER=5;
+const float Q_RETAIN=0.5;
 
 bool blinkState = false;
 
@@ -108,6 +117,7 @@ int32_t prev_gyro_diff[3], sum_gyro[3];
 float euler[3];										// [psi, theta, phi]    Euler angle container
 float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 int ypr_int[3];
+int gyro_int[3];
 int16_t gx, gy, gz;
 
 // packet structure for InvenSense teapot demo
@@ -138,14 +148,103 @@ void mpu_init();
 void xbee_init();
 void esc_init();
 void rc_init();
+void pid_init();
 void reset_motor();
 
 //Loop functions
 void update_rc();
 void update_ypr();
 void check_serial();
+
+void ch1_change();
+void ch2_change();
+void ch3_change();
+void ch4_change();
+void ch5_change();
+void ch6_change();
+
+
+
+//Stablize pid
+PID s_yaw_pid(&ypr_int[0],&gyro_ypr[0],&desired_ypr[0],kp[0],ki[0],kd[0],DIRECT);
+PID s_pitch_pid(&ypr_int[1],&gyro_ypr[1],&desired_ypr[1],kp[1],ki[1],kd[1],DIRECT);
+PID s_roll_pid(&ypr_int[2],&gyro_ypr[2],&desired_ypr[2],kp[2],ki[2],kd[2],DIRECT);
+
+//Rate pid
+PID r_yaw_pid(&gyro_int[0],&speed_ypr[0],&gyro_ypr[0],gyro_kp[0],gyro_ki[0],gyro_kd[0],DIRECT);
+PID r_pitch_pid(&gyro_int[1],&speed_ypr[1],&gyro_ypr[1],gyro_kp[1],gyro_ki[1],gyro_kd[1],DIRECT);
+PID r_roll_pid(&gyro_int[2],&speed_ypr[2],&gyro_ypr[2],gyro_kp[2],gyro_ki[2],gyro_kd[2],DIRECT);
+
+void setup(){
+    Serial.begin(115200);
+    while (!Serial); // wait for Leonardo enumeration, others continue immediately
+    mpu_init();
+    /* xbee_init(); */
+    esc_init();
+    rc_init();
+    pid_init();
+	// configure LED for output
+	/* pinMode(LED_PIN, OUTPUT); */
+
+	mpu_enter = mpu_leave = micros();
+	serial_enter = serial_leave = micros();
+	loop_enter = loop_leave = micros();
+	pid_enter = pid_leave = micros();
+	interpolate_enter = interpolate_leave = micros();
+    enable_pitch=true;
+    enable_roll=true;
+}
+
+
+void loop(){
+
+    if(count_serial & 0x40){
+        check_serial();
+        count_serial = 0;
+    }else{
+        count_serial=count_serial+1;
+    }
+
+    update_rc();
+    update_ypr();
+    calc_pid();
+    motor_control();
+    Serial.println(getFreeMemory());
+    Serial.println("sdafasdfasdjfhaslkdfhaklsjdfhajskdhfjksadhfkjsadhfjksdhfkjsahdfjsadh");
+
+}
+
+void pid_init(){
+    s_yaw_pid.SetMode(AUTOMATIC);
+    s_pitch_pid.SetMode(AUTOMATIC);
+    s_roll_pid.SetMode(AUTOMATIC);
+
+
+    r_yaw_pid.SetMode(AUTOMATIC);
+    r_pitch_pid.SetMode(AUTOMATIC);
+    r_roll_pid.SetMode(AUTOMATIC);
+
+
+    s_yaw_pid.SetSampleTime(10);
+    s_pitch_pid.SetSampleTime(10);
+    s_roll_pid.SetSampleTime(10);
+
+    s_yaw_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
+    s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
+    s_roll_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
+
+    r_yaw_pid.SetSampleTime(10);
+    r_pitch_pid.SetSampleTime(10);
+    r_roll_pid.SetSampleTime(10);
+
+    r_yaw_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+    r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+    r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+}
+
+
 void ch1_change(){
-    if(digitalRead(CH1_PIN) == HIGH){ 
+    if(digitalRead(CH1_PIN) == HIGH){
         ch1_prev = micros();
     }else{
         ch1_val=micros()-ch1_prev;
@@ -191,42 +290,6 @@ void ch6_change(){
         ch6_val=micros()-ch6_prev;
         ch_changed=true;
     }
-}
-
-void setup(){
-    Serial.begin(115200);
-    while (!Serial); // wait for Leonardo enumeration, others continue immediately
-    mpu_init();
-    /* xbee_init(); */
-    esc_init();
-    rc_init();
-	// configure LED for output
-	/* pinMode(LED_PIN, OUTPUT); */
-
-	mpu_enter = mpu_leave = micros();
-	serial_enter = serial_leave = micros();
-	loop_enter = loop_leave = micros();
-	pid_enter = pid_leave = micros();
-	interpolate_enter = interpolate_leave = micros();
-    enable_pitch=true;
-    enable_roll=true;
-}
-
-
-void loop(){
-
-    if(count_serial & 0x40){
-        check_serial();
-        count_serial = 0;
-    }else{
-        count_serial=count_serial+1;
-    }
-
-    update_rc();
-    update_ypr();
-    calc_pid();
-    motor_control();
-
 }
 
 void mpu_init(){
@@ -369,68 +432,15 @@ void update_ypr(){
         }
     }
 	
-	/* accelgyro.getRotation(&gx,&gy,&gz); */
+    accelgyro.getRotation(&gx,&gy,&gz);
+    gyro_int[0]=gz*GYRO_RATIO;
+    gyro_int[1]=gx*GYRO_RATIO;
+    gyro_int[2]=gy*GYRO_RATIO;
+
+    ypr_int[0]=ypr[0]*YPR_RATIO;
+    ypr_int[1]=ypr[1]*YPR_RATIO;
+    ypr_int[2]=ypr[2]*YPR_RATIO;
 }
-/* void update_ypr(){ */
-	/* // go via sensor once in every 8 iterations */
-	/* if((count_iter & 0x08)|| mpu_interrupt){ */
-		/* count_iter = 0; */
-		/* count_check_overflow++; */
-
-		/* mpu_enter = micros(); */
-
-
-		/* if(count_check_overflow & 0x40){ */
-			/* count_check_overflow = 0; */
-
-			/* // reset interrupt flag and get INT_STATUS byte */
-			
-			/* mpu_int_status = mpu.getIntStatus(); */
-
-			/* // check for overflow (code is too inefficient) || actual limit ==> 1024 */
-			/* if (mpu_int_status & 0x10) { */
-				/* // reset so we can continue cleanly */
-				/* mpu.resetFIFO(); */
-				/* serial_send = "overflow:\t"; */
-				/* Serial.println(serial_send); */
-			/* }else if(mpu.getFIFOCount() > 256){ */
-				/* Serial.println("Slow !!"); */
-			/* } */
-		/* } */
-
-		/* // otherwise, check for DMP data ready interrupt */
-		/* if (mpu_interrupt){ */
-			/* mpu_interrupt = false; */
-
-			/* count_auto_calc--; */
-			/* // read a packet from FIFO */
-			/* mpu.getFIFOBytes(fifo_buffer, packet_size); */
-			
-			/* // display Euler angles in degrees */
-			/* mpu.dmpGetQuaternion(&q, fifo_buffer); */
-			/* mpu.dmpGetGravity(&gravity, &q); */
-			/* mpu.dmpGetYawPitchRoll(ypr, &q, &gravity); */
-			
-		/* }else{ */
-			/* count_auto_calc++; */
-			/* interpolate(); */
-		/* } */
-
-		/* if(count_auto_calc > 100 || count_auto_calc < -100){ */
-			/* Serial.println(count_auto_calc); */
-			/* count_auto_calc = 0; */
-		/* } */
-
-		/* mpu_ratio = 0.5*mpu_ratio + 0.5*(micros() - mpu_enter)/(micros() - mpu_leave); */
-		/* mpu_leave = micros(); */
-
-	/* }else{ */
-		/* // interpolate past ypr values to assume newer */
-		/* interpolate(); */
-		/* count_iter++;	 */
-	/* } */
-	/* // accelgyro.getRotation(&gx,&gy,&gz); */
-/* } */
 
 void update_rc(){
     if(ch_changed){
@@ -502,80 +512,35 @@ inline void interpolate(){
 	interpolate_leave = micros();
 }
 
-inline void calc_pid()
-{
-	pid_enter = micros();
-	
-	//==============================		YPR 		==============================
-	
-	ypr_int[1] = ypr[1] * 128;
-	ypr_int[2] = ypr[2] * 128;
-	
-	sum_ypr_int[1] += ypr_int[1];
-	sum_ypr_int[2] += ypr_int[2];
+inline void calc_pid(){
 
-	sum_ypr_int[1] = constrain(sum_ypr_int[1],-256,256);
-	sum_ypr_int[2] = constrain(sum_ypr_int[2],-256,256);
+    bool ret_val=true;
+    ret_val= s_yaw_pid.Compute();
+    s_pitch_pid.Compute();
+    s_roll_pid.Compute();
 
-	speed_ypr[1] = kp[1]*ypr_int[1] + kd[1]*(ypr_int[1]-prev_ypr_int[1]) + ki[1]*sum_ypr_int[1];
-	speed_ypr[2] = kp[2]*ypr_int[2] + kd[2]*(ypr_int[2]-prev_ypr_int[2]) + ki[2]*sum_ypr_int[2];
-	
-	prev_ypr_int[0] = ypr_int[0];                                  
-	prev_ypr_int[1] = ypr_int[1]; 
-	prev_ypr_int[2] = ypr_int[2];  
-	
-	
-
-	//==============================		RATE 		==============================
-
-	// gyroPitch = gx*GYRO_RATIO;
-	// gyroRoll = gy*GYRO_RATIO;
-
-	// sum_gyro[1] = sum_gyro[1] + (speed_ypr[1]-gyroPitch);
-	// sum_gyro[2] = sum_gyro[2] + (speed_ypr[2]-gyroRoll);
-
-	// sum_gyro[1] = constrain(sum_gyro[1],-2000000,2000000);
-	// sum_gyro[2] = constrain(sum_gyro[2],-2000000,2000000);
-
-	// rate_ypr[1] = gyro_kp[1]*(speed_ypr[1] - gyroPitch) + gyro_kd[1]*((speed_ypr[1]-gyroPitch)-prev_gyro_diff[1]) + gyro_ki[1]*sum_gyro[1]; 
-	// rate_ypr[2] = gyro_kp[2]*(speed_ypr[2] - gyroRoll) + gyro_kd[2]*((speed_ypr[2]+gyroRoll)-prev_gyro_diff[2]) + gyro_ki[2]*sum_gyro[2]; 
-
-	// prev_gyro_diff[1] = (speed_ypr[1] - gyroPitch);                                  
-	// prev_gyro_diff[2] = (speed_ypr[2] - gyroRoll); 
-	
-	
-	pid_ratio = 0.5*pid_ratio + 0.5*(micros() - pid_enter)/(micros() - pid_leave);
-	pid_leave = micros();
+    r_yaw_pid.Compute();
+    r_pitch_pid.Compute();
+    r_roll_pid.Compute();
+    /* if(ret_val) */
+        /* Serial.println("Hello"); */
+    /* else */
+        /* Serial.println("hoooo"); */
 }
+
 
 inline void motor_control()
 {
 	motor_enter = micros();
 
 	// based on pitch
-	m1_speed = base_speed -ch2 -ch1 - (speed_ypr[1] >> 7) + m1_speed_off;
-	m3_speed = base_speed +ch2 -ch1 + (speed_ypr[1] >> 7) + m3_speed_off;
+	m1_speed = base_speed -ch2 -ch1 - speed_ypr[0] - speed_ypr[1]+ m1_speed_off;
+	m3_speed = base_speed +ch2 -ch1 -speed_ypr[0] + speed_ypr[1]+ m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 +ch1 + (speed_ypr[2] >> 7) + m2_speed_off;
-	m4_speed = base_speed -ch4 +ch1 - (speed_ypr[2] >> 7) + m4_speed_off;
-	// Serial.println(rate_ypr[2]);
-	// Serial.println(rate_ypr[1]);
+	m2_speed = base_speed +ch4 +ch1 +speed_ypr[0] + speed_ypr[2]+ m2_speed_off;
+	m4_speed = base_speed -ch4 +ch1 +speed_ypr[0] - speed_ypr[2]+ m4_speed_off;
 	
-
-	// // based on pitch
-	// m1_speed = base_speed - rate_ypr[1]/10000 + m1_speed_off;
-	// m3_speed = base_speed + rate_ypr[1]/10000 + m3_speed_off ;
-
-	// // based on roll
-	// m2_speed = base_speed + rate_ypr[2]/10000 + m2_speed_off ;
-	// m4_speed = base_speed - rate_ypr[2]/10000 + m4_speed_off ;
-
-	 // m1_speed = base_speed - speed_ypr[1] + speed_ypr[0]; 
-	 // m2_speed = base_speed + speed_ypr[2] - speed_ypr[0];
-	 // m3_speed = base_speed + speed_ypr[1] + speed_ypr[0];
-	 // m4_speed = base_speed - speed_ypr[2] - speed_ypr[0];
-
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
 	m2_speed = constrain(m2_speed, min_speed, max_speed);
@@ -611,19 +576,49 @@ inline void check_serial(){
 	// serial_count++;
 	serial_send = "";
 
+    
+
 	if(show_ypr){
+
+        Serial.print("y: ");
+        Serial.print(ypr_int[0]);
+        Serial.print(" p: ");
+        Serial.print(ypr_int[1]);
+        Serial.print(" r: ");
+        Serial.print(ypr_int[2]);
+        Serial.print(" gz: ");
+        Serial.print(gyro_int[0]);
+        Serial.print(" gx: ");
+        Serial.print(gyro_int[1]);
+        Serial.print(" gy: ");
+        Serial.print(gyro_int[2]);
+        Serial.print("\t");
+
+        Serial.print("y: ");
+        Serial.print(gyro_ypr[0]);
+        Serial.print(" p: ");
+        Serial.print(gyro_ypr[1]);
+        Serial.print(" r: ");
+        Serial.print(gyro_ypr[2]);
+        Serial.print(" gz: ");
+        Serial.print(speed_ypr[0]);
+        Serial.print(" gx: ");
+        Serial.print(speed_ypr[1]);
+        Serial.print(" gy: ");
+        Serial.print(speed_ypr[2]);
+        Serial.println("");
 		/* count_ypr++; */
 		/* if(count_ypr & 0x10){ */
 			/* count_ypr = 0; */
 			
-			serial_send += (ypr[1] * 180/M_PI) - offset_pitch;
-			serial_send += "\t";                         
-			serial_send += (ypr[2] * 180/M_PI) - offset_roll;
-			serial_send += "\t||\t";                          //	
-			serial_send += sum_ypr_deg[1];
-			serial_send += "\t";                       
-			serial_send += sum_ypr_deg[2];
-			Serial.println(serial_send);
+			/* serial_send += (ypr[1] * 180/M_PI) - offset_pitch; */
+			/* serial_send += "\t";                          */
+			/* serial_send += (ypr[2] * 180/M_PI) - offset_roll; */
+			/* serial_send += "\t||\t";                          //	 */
+			/* serial_send += sum_ypr_deg[1]; */
+			/* serial_send += "\t";                        */
+			/* serial_send += sum_ypr_deg[2]; */
+			/* Serial.println(serial_send); */
 		/* } */
 	}
 
@@ -895,13 +890,21 @@ inline void check_serial(){
 				enable_roll = !enable_roll;
 			}else if(in_value == "y"){
 				enable_yaw = !enable_yaw;
-			}else{			
+			}else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
 				Serial.println(serial_send);
 			}
 			in_key = in_value = in_str = in_index = "";
 
+
+            s_yaw_pid.SetTunings(kp[0],ki[0],kd[0]);
+            s_pitch_pid.SetTunings(kp[1],ki[1],kd[1]);
+            s_roll_pid.SetTunings(kp[2],ki[2],kd[2]);
+
+            r_yaw_pid.SetTunings(gyro_kp[0],gyro_ki[0],gyro_kd[0]);
+            r_pitch_pid.SetTunings(gyro_kp[1],gyro_ki[1],gyro_kd[1]);
+            r_roll_pid.SetTunings(gyro_kp[2],gyro_ki[2],gyro_kd[2]);
 		}
 	}
 	serial_ratio = 0.5*serial_ratio + 0.5*(micros() - serial_enter)/(micros() - serial_leave);
