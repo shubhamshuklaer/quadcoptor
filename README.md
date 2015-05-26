@@ -43,3 +43,24 @@ except for the ratio variable in SetSampleTime
 
 **********************************String library has memory leaks
 use char array instead
+
+*****************************
+http://www.megunolink.com/how-to-detect-lockups-using-the-arduino-watchdog/
+using library from https://github.com/Megunolink/ArduinoCrashMonitor
+just put the ApplicationMonitor.h and ApplicationMonitor.cpp files into a folder named ApplicationMonitor
+and put that into the library folder
+
+
+***********************************
+THE default twi library is problamatic there are while loops which can run in infinite loop
+if there is a problem with the communication
+so uning a edited library from (Actualy the library there did not work cause the wire library works with the original twi library so I adapted the original twi library according to the post)
+http://forum.arduino.cc/index.php/topic,19624.0.html
+http://liken.otsoa.net/pub/ntwi/twi.c
+http://liken.otsoa.net/pub/ntwi/twi.c
+this adds time out to each while loop
+on top of that I am changing twi_init to accept a bool paramater telling should you
+enable pullup register too... changing the wire library too to reflect this change in twi_init1
+
+**********************************Dissassembly
+avr-objdump -d -S -j .text quad_summer.cpp.elf > Disassembly.txt

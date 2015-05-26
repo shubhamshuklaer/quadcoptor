@@ -1,3 +1,4 @@
+#include <ApplicationMonitor.h>
 #include <EEPROM.h>
 #include <EnableInterrupt.h>
 #include <I2Cdev.h>
@@ -13,6 +14,7 @@
 #endif
 #define OUTPUT_READABLE_YAWPITCHROLL
 
+Watchdog::CApplicationMonitor ApplicationMonitor;
 
 Servo m1, m2, m3, m4;
 
@@ -40,8 +42,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {0, 10, 10}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
-int gyro_kp[3] = {0, 0,0 }, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
+int kp[3] = {2, 2, 2}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
+int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
 
@@ -81,7 +83,7 @@ const int CH5_EFFECT=200;
 const int CH6_EFFECT=200;
 
 const int MAX_R_PID_EFFECT=100;
-const int MAX_S_PID_EFFECT=1000;
+const int MAX_S_PID_EFFECT=500;
 
 byte sregRestore;
 
@@ -166,16 +168,18 @@ void ch6_change();
 
 
 //Stablize pid
-PID s_yaw_pid(&ypr_int[0],&gyro_ypr[0],&desired_ypr[0],kp[0],ki[0],kd[0],DIRECT);
+PID s_yaw_pid(&ypr_int[0],&gyro_ypr[0],&desired_ypr[0],kp[0],ki[0],kd[0],REVERSE);
 PID s_pitch_pid(&ypr_int[1],&gyro_ypr[1],&desired_ypr[1],kp[1],ki[1],kd[1],DIRECT);
-PID s_roll_pid(&ypr_int[2],&gyro_ypr[2],&desired_ypr[2],kp[2],ki[2],kd[2],DIRECT);
+PID s_roll_pid(&ypr_int[2],&gyro_ypr[2],&desired_ypr[2],kp[2],ki[2],kd[2],REVERSE);
 
 //Rate pid
-PID r_yaw_pid(&gyro_int[0],&speed_ypr[0],&gyro_ypr[0],gyro_kp[0],gyro_ki[0],gyro_kd[0],DIRECT);
-PID r_pitch_pid(&gyro_int[1],&speed_ypr[1],&gyro_ypr[1],gyro_kp[1],gyro_ki[1],gyro_kd[1],DIRECT);
-PID r_roll_pid(&gyro_int[2],&speed_ypr[2],&gyro_ypr[2],gyro_kp[2],gyro_ki[2],gyro_kd[2],DIRECT);
+PID r_yaw_pid(&gyro_int[0],&speed_ypr[0],&gyro_ypr[0],gyro_kp[0],gyro_ki[0],gyro_kd[0],REVERSE);
+PID r_pitch_pid(&gyro_int[1],&speed_ypr[1],&gyro_ypr[1],gyro_kp[1],gyro_ki[1],gyro_kd[1],REVERSE);
+PID r_roll_pid(&gyro_int[3],&speed_ypr[2],&gyro_ypr[2],gyro_kp[2],gyro_ki[2],gyro_kd[2],REVERSE);
+
 
 void setup(){
+    ApplicationMonitor.DisableWatchdog();
     Serial.begin(115200);
     while (!Serial); // wait for Leonardo enumeration, others continue immediately
     mpu_init();
@@ -183,24 +187,59 @@ void setup(){
     esc_init();
     rc_init();
     pid_init();
-	// configure LED for output
-	/* pinMode(LED_PIN, OUTPUT); */
 
-	mpu_enter = mpu_leave = micros();
-	serial_enter = serial_leave = micros();
-	loop_enter = loop_leave = micros();
-	pid_enter = pid_leave = micros();
-	interpolate_enter = interpolate_leave = micros();
+	/* mpu_enter = mpu_leave = micros(); */
+	/* serial_enter = serial_leave = micros(); */
+	/* loop_enter = loop_leave = micros(); */
+	/* pid_enter = pid_leave = micros(); */
+	/* interpolate_enter = interpolate_leave = micros(); */
     enable_pitch=true;
     enable_roll=true;
+    /* ApplicationMonitor.Dump(Serial); */
+    ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
 }
+
 
 
 void loop(){
 
-    if(count_serial & 0x40){
+    // earlier it was 0x40 but for processing graph I increased it
+    // 0x40 is hex of 64 decimal i.e 01000000 and hence the bitwise and works
+    if(count_serial & 0x100){
         check_serial();
         count_serial = 0;
+        /* Serial.print(ypr_int[1]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[1]); */
+        /* Serial.print(" "); */
+        /* Serial.print(ypr_int[2]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[2]); */
+        /* Serial.print(" "); */
+        /* Serial.print(ypr_int[0]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[0]); */
+        /* Serial.println(" "); */
+
+        /* Serial.print(gyro_ypr[1]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[1]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_ypr[2]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[2]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_ypr[0]); */
+        /* Serial.print(" "); */
+        /* Serial.print(gyro_int[0]); */
+        /* Serial.println(" "); */
+
+        /* Serial.print(speed_ypr[0]); */
+        /* Serial.print(" "); */
+        Serial.print(speed_ypr[1]);
+        Serial.print(" ");
+        Serial.print(speed_ypr[2]);
+        Serial.println(" ");
     }else{
         count_serial=count_serial+1;
     }
@@ -209,8 +248,22 @@ void loop(){
     update_ypr();
     calc_pid();
     motor_control();
-    Serial.println(getFreeMemory());
-    Serial.println("sdafasdfasdjfhaslkdfhaklsjdfhajskdhfjksadhfkjsadhfjksdhfkjsahdfjsadh");
+    ApplicationMonitor.IAmAlive();
+
+    /* Serial.print(gyro_ypr[0]); */
+    /* Serial.print("\t"); */
+    /* Serial.print(gyro_ypr[1]); */
+    /* Serial.print("\t"); */
+    /* Serial.println(gyro_ypr[2]); */
+    /* Serial.println(i2c_reset_count); */
+    
+    /* Serial.print(gx); */
+    /* Serial.print(" "); */
+    /* Serial.print(gy); */
+    /* Serial.print(" "); */
+    /* Serial.print(gz); */
+    /* Serial.print('\r'); */
+
 
 }
 
@@ -225,17 +278,17 @@ void pid_init(){
     r_roll_pid.SetMode(AUTOMATIC);
 
 
-    s_yaw_pid.SetSampleTime(10);
-    s_pitch_pid.SetSampleTime(10);
-    s_roll_pid.SetSampleTime(10);
+    s_yaw_pid.SetSampleTime(5);
+    s_pitch_pid.SetSampleTime(5);
+    s_roll_pid.SetSampleTime(5);
 
     s_yaw_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
     s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
     s_roll_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
 
-    r_yaw_pid.SetSampleTime(10);
-    r_pitch_pid.SetSampleTime(10);
-    r_roll_pid.SetSampleTime(10);
+    r_yaw_pid.SetSampleTime(5);
+    r_pitch_pid.SetSampleTime(5);
+    r_roll_pid.SetSampleTime(5);
 
     r_yaw_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
     r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
@@ -295,46 +348,54 @@ void ch6_change(){
 void mpu_init(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-        Wire.begin();
+        Wire.begin(true);
         TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
     #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
         Fastwire::setup(400, true);
     #endif
 
+
     // initialize device
-    Serial.println(F("Initializing I2C devices..."));
-	accelgyro.initialize();
-	accelgyro.setI2CBypassEnabled(true);
+    /* Serial.println(F("Initializing I2C devices...")); */
+	/* accelgyro.initialize(); */
+	/* accelgyro.setI2CBypassEnabled(true); */
     mpu.initialize();
     mpu.setRate(0);
+    mpu.setFullScaleGyroRange(250);
 
     // verify connection
-    Serial.println(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
+    /* Serial.println(F("Testing device connections...")); */
+    if(!mpu.testConnection())
+        Serial.println(F("MPU connection failed"));
 
     // load and configure the DMP
-    Serial.println(F("Initializing DMP..."));
+    /* Serial.println(F("Initializing DMP...")); */
     dev_status = mpu.dmpInitialize();
 
     // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(220);
-    mpu.setYGyroOffset(76);
-    mpu.setZGyroOffset(-85);
-    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
+
+    /* mpu.setXGyroOffset(15); */
+    /* mpu.setYGyroOffset(-15); */
+    /* mpu.setZGyroOffset(-20); */
+
+    /* mpu.setXGyroOffset(220); */
+    /* mpu.setYGyroOffset(76); */
+    /* mpu.setZGyroOffset(-85); */
+    /* mpu.setZAccelOffset(1788); // 1688 factory default for my test chip */
 
     // make sure it worked (returns 0 if so)
     if (dev_status == 0) {
         // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
+        /* Serial.println(F("Enabling DMP...")); */
         mpu.setDMPEnabled(true);
 
         // enable Arduino interrupt detection
-        Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
+        /* Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)...")); */
         enableInterrupt(DMP_INT_PIN, dmp_data_ready, RISING);
         mpu_int_status = mpu.getIntStatus();
 
         // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
+        /* Serial.println(F("DMP ready! Waiting for first interrupt...")); */
         dmp_ready = true;
 
         // get expected DMP packet size for later comparison
@@ -432,10 +493,12 @@ void update_ypr(){
         }
     }
 	
-    accelgyro.getRotation(&gx,&gy,&gz);
+    mpu.getRotation(&gx,&gy,&gz);
     gyro_int[0]=gz*GYRO_RATIO;
-    gyro_int[1]=gx*GYRO_RATIO;
-    gyro_int[2]=gy*GYRO_RATIO;
+    // x and y are reversed to match pitch and roll.
+    // pitch is about y axis and roll about x axis
+    gyro_int[1]=gy*GYRO_RATIO;
+    gyro_int[2]=gx*GYRO_RATIO;
 
     ypr_int[0]=ypr[0]*YPR_RATIO;
     ypr_int[1]=ypr[1]*YPR_RATIO;
@@ -522,6 +585,12 @@ inline void calc_pid(){
     r_yaw_pid.Compute();
     r_pitch_pid.Compute();
     r_roll_pid.Compute();
+
+    speed_ypr[0]=0;
+
+    /* speed_ypr[0]=gyro_ypr[0]; */
+    /* speed_ypr[1]=gyro_ypr[1]; */
+    /* speed_ypr[2]=gyro_ypr[2]; */
     /* if(ret_val) */
         /* Serial.println("Hello"); */
     /* else */
@@ -538,8 +607,8 @@ inline void motor_control()
 	m3_speed = base_speed +ch2 -ch1 -speed_ypr[0] + speed_ypr[1]+ m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 +ch1 +speed_ypr[0] + speed_ypr[2]+ m2_speed_off;
-	m4_speed = base_speed -ch4 +ch1 +speed_ypr[0] - speed_ypr[2]+ m4_speed_off;
+	m2_speed = base_speed +ch4 +ch1 +speed_ypr[0] - speed_ypr[2]+ m2_speed_off;
+	m4_speed = base_speed -ch4 +ch1 +speed_ypr[0] + speed_ypr[2]+ m4_speed_off;
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -572,7 +641,7 @@ inline void motor_control()
 
 
 inline void check_serial(){
-	serial_enter = micros();
+    serial_enter = micros();
 	// serial_count++;
 	serial_send = "";
 
