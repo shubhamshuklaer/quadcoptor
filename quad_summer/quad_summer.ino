@@ -27,6 +27,7 @@ int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 unsigned long timer = 0, timer2 = 0;
 
 int gyro_ypr[3];
+int gyro_ypr_temp[3];
 int speed_ypr_raw[3];
 int speed_ypr[3];
 int desired_ypr[3]={0,0,0};
@@ -43,8 +44,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 20, 20}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
-int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
+int kp[3] = {4, 100, 100}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
+int gyro_kp[3] = {1, 2, 2}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
 
@@ -84,9 +85,9 @@ const int CH5_EFFECT=200;
 const int CH6_EFFECT=200;
 
 const int MAX_R_PID_EFFECT=1000;
-const int MAX_yaw_R_PID_EFFECT=40;
+const int MAX_yaw_R_PID_EFFECT=10;
 const int MAX_S_PID_EFFECT=1000;
-const int MAX_yaw_S_PID_EFFECT=40;
+const int MAX_yaw_S_PID_EFFECT=10;
 
 byte sregRestore;
 
@@ -121,6 +122,7 @@ float gyroPitch, gyroRoll;
 int32_t prev_gyro_diff[3], sum_gyro[3];
 float euler[3];										// [psi, theta, phi]    Euler angle container
 float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+int ypr_int_offset[3]={0,-5,0};
 int ypr_int[3];
 int gyro_int[3];
 int gyro_int_raw[3];
@@ -178,9 +180,9 @@ PID s_pitch_pid(&ypr_int[1],&gyro_ypr[1],&desired_ypr[1],kp[1],ki[1],kd[1],DIREC
 PID s_roll_pid(&ypr_int[2],&gyro_ypr[2],&desired_ypr[2],kp[2],ki[2],kd[2],REVERSE);
 
 //Rate pid
-PID r_yaw_pid(&gyro_int[0],&speed_ypr_raw[0],&gyro_ypr[0],gyro_kp[0],gyro_ki[0],gyro_kd[0],REVERSE);
-PID r_pitch_pid(&gyro_int[1],&speed_ypr_raw[1],&gyro_ypr[1],gyro_kp[1],gyro_ki[1],gyro_kd[1],REVERSE);
-PID r_roll_pid(&gyro_int[3],&speed_ypr_raw[2],&gyro_ypr[2],gyro_kp[2],gyro_ki[2],gyro_kd[2],REVERSE);
+PID r_yaw_pid(&gyro_int[0],&speed_ypr_raw[0],&gyro_ypr_temp[0],gyro_kp[0],gyro_ki[0],gyro_kd[0],REVERSE);
+PID r_pitch_pid(&gyro_int[1],&speed_ypr_raw[1],&gyro_ypr_temp[1],gyro_kp[1],gyro_ki[1],gyro_kd[1],REVERSE);
+PID r_roll_pid(&gyro_int[3],&speed_ypr_raw[2],&gyro_ypr_temp[2],gyro_kp[2],gyro_ki[2],gyro_kd[2],REVERSE);
 
 //
 // Don't edit the output var of the PID it causes problem
@@ -311,8 +313,8 @@ void pid_init(){
     r_roll_pid.SetSampleTime(5);
 
     r_yaw_pid.SetOutputLimits(-MAX_yaw_R_PID_EFFECT,MAX_yaw_R_PID_EFFECT);
-    r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
-    r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+    Serial.println(r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT));
+    Serial.println(r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT));
 }
 
 
@@ -524,9 +526,9 @@ void update_ypr(){
     gyro_int[1]=gyro_int[1]*(1-gyro_retain[1])+gyro_retain[1]*gyro_int_raw[1];
     gyro_int[2]=gyro_int[2]*(1-gyro_retain[2])+gyro_retain[2]*gyro_int_raw[2];
 
-    ypr_int[0]=ypr[0]*YPR_RATIO;
-    ypr_int[1]=ypr[1]*YPR_RATIO;
-    ypr_int[2]=ypr[2]*YPR_RATIO;
+    ypr_int[0]=ypr[0]*YPR_RATIO+ypr_int_offset[0];
+    ypr_int[1]=ypr[1]*YPR_RATIO+ypr_int_offset[1];
+    ypr_int[2]=ypr[2]*YPR_RATIO+ypr_int_offset[2];
 }
 
 void update_rc(){
@@ -604,6 +606,10 @@ inline void calc_pid(){
     s_yaw_pid.Compute();
     s_pitch_pid.Compute();
     s_roll_pid.Compute();
+
+    gyro_ypr_temp[0]=gyro_ypr[0];
+    gyro_ypr_temp[1]=gyro_ypr[1];
+    gyro_ypr_temp[2]=gyro_ypr[2];
 
     // Rate pid on yaw axis not necessary
     /* r_yaw_pid.Compute(); */
