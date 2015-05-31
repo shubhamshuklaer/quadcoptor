@@ -84,7 +84,15 @@ const int CH4_EFFECT=200;
 const int CH5_EFFECT=200;
 const int CH6_EFFECT=200;
 
-const int MAX_R_PID_EFFECT=800;
+int take_off_count=0;
+int take_down_count=0;
+unsigned long take_down_start=0;
+int take_down_diff=0;
+const int take_down_cutoff=1400;
+const int take_off_gradient=100;
+const int take_down_gradient=15;
+
+const int MAX_R_PID_EFFECT=2000;
 const int MAX_yaw_R_PID_EFFECT=10;
 const int MAX_S_PID_EFFECT=1000;
 const int MAX_yaw_S_PID_EFFECT=10;
@@ -482,6 +490,7 @@ void update_ypr(){
 
         // get current FIFO count
         fifo_count = mpu.getFIFOCount();
+        /* loop_leave=fifo_count; */
 
         // check for overflow (this should never happen unless our code is too inefficient)
         if ((mpu_int_status & 0x10) || fifo_count == 1024) {
@@ -506,13 +515,17 @@ void update_ypr(){
                 // track FIFO count here in case there is > 1 packet available
                 // (this lets us immediately read more without waiting for an interrupt)
                 fifo_count -= packet_size;
+                while(fifo_count>packet_size){
+                    mpu.getFIFOBytes(fifo_buffer, packet_size);
+                    fifo_count -= packet_size;
+                }
                 // display Euler angles in degrees
                 mpu.dmpGetQuaternion(&q, fifo_buffer);
                 // q = add(mult(q, q_retain), mult(q_past, (1 - q_retain)));
 
                 mpu.dmpGetGravity(&gravity, &q);
                 mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-            }  
+            }
         }
     }
 	
@@ -568,22 +581,47 @@ void update_rc(){
         ch5=map(ch5,CH_MIN,CH_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH_MIN,CH_MAX,-CH6_EFFECT,CH6_EFFECT);
 
-        base_speed=ch3;
-        if(ch6>0)
-            enable_motors=true;
-        else
-            enable_motors=false;
-
-        if(ch5>CH5_EFFECT/2){
-            show_ypr=true;
-            show_speed=false;
-        }else if(ch5<-CH5_EFFECT/2){
-            show_ypr=false;
-            show_speed=true;
+        if(ch6>0){
+            if(ch5>CH5_EFFECT/2){
+                if(millis()-take_down_start>=take_down_gradient){
+                    take_down_start=millis();
+                    if(base_speed>take_down_cutoff){
+                        base_speed--;
+                    }else{
+                        base_speed=ESC_MIN;
+                        enable_motors=false;
+                    }
+                }
+            }else if(ch5<-CH5_EFFECT/2){
+                if(take_off_count>=take_off_gradient){
+                    take_off_count=0;
+                    if(base_speed<ch3)
+                        base_speed++;
+                }else{
+                    take_off_count++;
+                }
+                take_down_start=millis();
+            }else{
+                enable_motors=true;
+                take_down_count=0;
+                take_off_count=0;
+                base_speed=ch3;
+                take_down_start=millis();
+            }
         }else{
-            show_ypr=false;
-            show_speed=false;
+            enable_motors=false;
+            if(ch5>CH5_EFFECT/2){
+                show_ypr=true;
+                show_speed=false;
+            }else if(ch5<-CH5_EFFECT/2){
+                show_ypr=false;
+                show_speed=true;
+            }else{
+                show_ypr=false;
+                show_speed=false;
+            }
         }
+
     }
 
     /* Serial.print("ch1 "); */
@@ -629,8 +667,8 @@ inline void calc_pid(){
     r_roll_pid.Compute();
 
     speed_ypr[0]=gyro_ypr[0];
-    speed_ypr[1]=speed_ypr_raw[1]/10;
-    speed_ypr[2]=speed_ypr_raw[2]/10;
+    speed_ypr[1]=speed_ypr_raw[1]/20;
+    speed_ypr[2]=speed_ypr_raw[2]/20;
 
     /* speed_ypr[0]=speed_ypr_raw[0]; */
     /* speed_ypr[1]=speed_ypr_raw[1]/2; */
@@ -692,6 +730,8 @@ inline void check_serial(){
     serial_enter = micros();
 	// serial_count++;
 	serial_send = "";
+
+    /* Serial.println(loop_leave); */
 
     
 
