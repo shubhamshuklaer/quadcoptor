@@ -44,7 +44,7 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 24, 24}, kd[3] = {0, 0, 0}, ki[3] = {0, 0, 0};
+int kp[3] = {4, 85, 85}, kd[3] = {0, 0, 0}, ki[3] = {0, 25, 25};
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
@@ -93,9 +93,9 @@ const int take_off_gradient=100;
 const int take_down_gradient=15;
 
 const int MAX_R_PID_EFFECT=2000;
-const int MAX_yaw_R_PID_EFFECT=10;
+const int MAX_yaw_R_PID_EFFECT=20;
 const int MAX_S_PID_EFFECT=1000;
-const int MAX_yaw_S_PID_EFFECT=10;
+const int MAX_yaw_S_PID_EFFECT=20;
 
 byte sregRestore;
 
@@ -667,8 +667,8 @@ inline void calc_pid(){
     r_roll_pid.Compute();
 
     speed_ypr[0]=gyro_ypr[0];
-    speed_ypr[1]=speed_ypr_raw[1]/20;
-    speed_ypr[2]=speed_ypr_raw[2]/20;
+    speed_ypr[1]=speed_ypr_raw[1]/16;
+    speed_ypr[2]=speed_ypr_raw[2]/16;
 
     /* speed_ypr[0]=speed_ypr_raw[0]; */
     /* speed_ypr[1]=speed_ypr_raw[1]/2; */
