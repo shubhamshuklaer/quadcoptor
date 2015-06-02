@@ -44,8 +44,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 85, 85}, kd[3] = {0, 0, 0}, ki[3] = {0, 25, 25};
-int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
+int kp[3] = {4, 10, 10}, kd[3] = {0, 0, 0}, ki[3] = {0, 10, 10};
+int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 1, 1};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
 
@@ -73,16 +73,26 @@ const int CH5_PIN=50;
 const int CH6_PIN=52;
 const int DMP_INT_PIN=2;
 
-const int CH_MAX=2000;
-const int CH_MIN=1000;
-const int CH_MID=(CH_MIN+CH_MAX)/2;
-const int CH1_EFFECT=200;
-const int CH2_EFFECT=200;
-const int CH3_MIN_EFFECT=1100;
+const int CH1_MAX=1808;
+const int CH1_MIN=1208;
+const int CH2_MAX=1820;
+const int CH2_MIN=1216;
+const int CH3_MAX=2020;
+const int CH3_MIN=1016;
+const int CH4_MAX=1808;
+const int CH4_MIN=1208;
+const int CH5_MAX=2000;
+const int CH5_MIN=1000;
+const int CH6_MAX=2000;
+const int CH6_MIN=1000;
+
+const int CH1_EFFECT=10;
+const int CH2_EFFECT=50;
+const int CH3_MIN_EFFECT=1400;
 const int CH3_MAX_EFFECT=1700;
-const int CH4_EFFECT=200;
-const int CH5_EFFECT=200;
-const int CH6_EFFECT=200;
+const int CH4_EFFECT=50;
+const int CH5_EFFECT=100;
+const int CH6_EFFECT=100;
 
 int take_off_count=0;
 int take_down_count=0;
@@ -94,8 +104,14 @@ const int take_down_gradient=15;
 
 const int MAX_R_PID_EFFECT=2000;
 const int MAX_yaw_R_PID_EFFECT=20;
-const int MAX_S_PID_EFFECT=1000;
+const int MAX_S_PID_EFFECT=2000;
 const int MAX_yaw_S_PID_EFFECT=20;
+const int MAX_S_PID_I_EFFECT=300;
+const int MAX_yaw_S_PID_I_EFFECT=20;
+const int MAX_R_PID_I_EFFECT=300;
+const int MAX_yaw_R_PID_I_EFFECT=20;
+
+const int RAW_RATIO=16;
 
 byte sregRestore;
 
@@ -309,21 +325,29 @@ void pid_init(){
     r_roll_pid.SetMode(AUTOMATIC);
 
 
-    s_yaw_pid.SetSampleTime(1);
-    s_pitch_pid.SetSampleTime(1);
-    s_roll_pid.SetSampleTime(1);
+    s_yaw_pid.SetSampleTime(5);
+    s_pitch_pid.SetSampleTime(5);
+    s_roll_pid.SetSampleTime(5);
 
     s_yaw_pid.SetOutputLimits(-MAX_yaw_S_PID_EFFECT,MAX_yaw_S_PID_EFFECT);
     s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
     s_roll_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
 
-    r_yaw_pid.SetSampleTime(1);
-    r_pitch_pid.SetSampleTime(1);
-    r_roll_pid.SetSampleTime(1);
+    s_yaw_pid.SetILimits(-MAX_yaw_S_PID_I_EFFECT,MAX_yaw_S_PID_I_EFFECT);
+    s_pitch_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
+    s_roll_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
+
+    r_yaw_pid.SetSampleTime(5);
+    r_pitch_pid.SetSampleTime(5);
+    r_roll_pid.SetSampleTime(5);
 
     r_yaw_pid.SetOutputLimits(-MAX_yaw_R_PID_EFFECT,MAX_yaw_R_PID_EFFECT);
     r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
     r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+
+    r_yaw_pid.SetILimits(-MAX_yaw_R_PID_I_EFFECT,MAX_yaw_R_PID_I_EFFECT);
+    r_pitch_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
+    r_roll_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
 }
 
 
@@ -558,28 +582,40 @@ void update_rc(){
         ch6=ch6_val;
         SREG = sregRestore; // restore the status register to its previous value
 
+        /* Serial.print("ch1 "); */
+        /* Serial.print(ch1); */
+        /* Serial.print("\tch2 "); */
+        /* Serial.print(ch2); */
+        /* Serial.print("\tch3 "); */
+        /* Serial.print(ch3); */
+        /* Serial.print("\tch4 "); */
+        /* Serial.print(ch4); */
+        /* Serial.print("\tch5 "); */
+        /* Serial.print(ch5); */
+        /* Serial.print("\tch6 "); */
+        /* Serial.println(ch6); */
 
-        ch1 = (ch1==0)?CH_MID:ch1;
-        ch2 = (ch2==0)?CH_MID:ch2;
+        ch1 = (ch1==0)?(CH1_MAX+CH1_MIN)/2:ch1;
+        ch2 = (ch2==0)?(CH2_MAX+CH2_MIN)/2:ch2;
         ch3 = (ch3==0)?CH3_MIN_EFFECT:ch3;
-        ch4 = (ch4==0)?CH_MID:ch4;
-        ch5 = (ch5==0)?CH_MID:ch5;
-        ch6 = (ch6==0)?CH_MID:ch6;
+        ch4 = (ch4==0)?(CH4_MAX+CH4_MIN)/2:ch4;
+        ch5 = (ch5==0)?(CH5_MAX+CH5_MIN)/2:ch5;
+        ch6 = (ch6==0)?(CH6_MAX+CH6_MIN)/2:ch6;
 
 
-        ch1=constrain(ch1,CH_MIN,CH_MAX);
-        ch2=constrain(ch2,CH_MIN,CH_MAX);
-        ch3=constrain(ch3,CH_MIN,CH_MAX);
-        ch4=constrain(ch4,CH_MIN,CH_MAX);
-        ch5=constrain(ch5,CH_MIN,CH_MAX);
-        ch6=constrain(ch6,CH_MIN,CH_MAX);
+        ch1=constrain(ch1,CH1_MIN,CH1_MAX);
+        ch2=constrain(ch2,CH2_MIN,CH2_MAX);
+        ch3=constrain(ch3,CH3_MIN,CH3_MAX);
+        ch4=constrain(ch4,CH4_MIN,CH4_MAX);
+        ch5=constrain(ch5,CH5_MIN,CH5_MAX);
+        ch6=constrain(ch6,CH6_MIN,CH6_MAX);
 
-        ch1=map(ch1,CH_MIN,CH_MAX,-CH1_EFFECT,CH1_EFFECT);
-        ch2=map(ch2,CH_MIN,CH_MAX,-CH2_EFFECT,CH2_EFFECT);
-        ch3=map(ch3,CH_MIN,CH_MAX,CH3_MIN_EFFECT,CH3_MAX_EFFECT);
-        ch4=map(ch4,CH_MIN,CH_MAX,-CH4_EFFECT,CH4_EFFECT);
-        ch5=map(ch5,CH_MIN,CH_MAX,-CH5_EFFECT,CH5_EFFECT);
-        ch6=map(ch6,CH_MIN,CH_MAX,-CH6_EFFECT,CH6_EFFECT);
+        ch1=map(ch1,CH1_MIN,CH1_MAX,-CH1_EFFECT,CH1_EFFECT);
+        ch2=map(ch2,CH2_MIN,CH2_MAX,-CH2_EFFECT,CH2_EFFECT);
+        ch3=map(ch3,CH3_MIN,CH3_MAX,CH3_MIN_EFFECT,CH3_MAX_EFFECT);
+        ch4=map(ch4,CH4_MIN,CH4_MAX,-CH4_EFFECT,CH4_EFFECT);
+        ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
+        ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
 
         if(ch6>0){
             if(ch5>CH5_EFFECT/2){
@@ -667,8 +703,8 @@ inline void calc_pid(){
     r_roll_pid.Compute();
 
     speed_ypr[0]=gyro_ypr[0];
-    speed_ypr[1]=speed_ypr_raw[1]/16;
-    speed_ypr[2]=speed_ypr_raw[2]/16;
+    speed_ypr[1]=speed_ypr_raw[1]/RAW_RATIO;
+    speed_ypr[2]=speed_ypr_raw[2]/RAW_RATIO;
 
     /* speed_ypr[0]=speed_ypr_raw[0]; */
     /* speed_ypr[1]=speed_ypr_raw[1]/2; */
@@ -750,8 +786,6 @@ inline void check_serial(){
         Serial.print(" gr: ");
         Serial.print(gyro_int[2]);
         Serial.print("\t");
-        Serial.print("\t");
-        Serial.print("\t");
 
         Serial.print("p-y: ");
         Serial.print(gyro_ypr[0]);
@@ -765,7 +799,20 @@ inline void check_serial(){
         Serial.print(speed_ypr[1]);
         Serial.print(" p-gr: ");
         Serial.print(speed_ypr[2]);
-        Serial.println("");
+        /* Serial.println(""); */
+        Serial.print("\t");
+
+        Serial.print("m1: ");
+        Serial.print(m1_speed);
+        Serial.print(" m2: ");
+        Serial.print(m2_speed);
+        Serial.print(" m3: ");
+        Serial.print(m3_speed);
+        Serial.print(" m4: ");
+        Serial.print(m4_speed);
+        Serial.print(" bs: ");
+        Serial.print(base_speed);
+        Serial.println(" ");
 		/* count_ypr++; */
 		/* if(count_ypr & 0x10){ */
 			/* count_ypr = 0; */
