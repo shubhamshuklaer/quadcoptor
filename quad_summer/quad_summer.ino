@@ -44,7 +44,7 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 10, 10}, kd[3] = {0, 0, 0}, ki[3] = {0, 10, 10};
+int kp[3] = {4, 24, 24}, kd[3] = {0, 0, 0}, ki[3] = {0, 1, 1};
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 1, 1};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
@@ -102,13 +102,13 @@ const int take_down_cutoff=1400;
 const int take_off_gradient=100;
 const int take_down_gradient=15;
 
-const int MAX_R_PID_EFFECT=2000;
+const int MAX_R_PID_EFFECT=800;
 const int MAX_yaw_R_PID_EFFECT=20;
-const int MAX_S_PID_EFFECT=2000;
+const int MAX_S_PID_EFFECT=1000;
 const int MAX_yaw_S_PID_EFFECT=20;
-const int MAX_S_PID_I_EFFECT=300;
+const int MAX_S_PID_I_EFFECT=40;
 const int MAX_yaw_S_PID_I_EFFECT=20;
-const int MAX_R_PID_I_EFFECT=300;
+const int MAX_R_PID_I_EFFECT=40;
 const int MAX_yaw_R_PID_I_EFFECT=20;
 
 const int RAW_RATIO=16;
