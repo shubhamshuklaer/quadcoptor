@@ -19,6 +19,7 @@ Watchdog::CApplicationMonitor ApplicationMonitor;
 Servo m1, m2, m3, m4;
 
 int base_speed = 1330, max_speed = 1900, min_speed = 1000;
+int base_speed_old=base_speed;
 
 int m1_speed, m2_speed, m3_speed, m4_speed;
 
@@ -44,8 +45,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 24, 24}, kd[3] = {0, 0, 0}, ki[3] = {0, 1, 1};
-int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 1, 1};
+int kp[3] = {1, 24, 24}, kd[3] = {0, 0, 0}, ki[3] = {0, 1, 1};
+int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
 
@@ -60,6 +61,7 @@ MPU6050 mpu;
 MPU6050 accelgyro;
 
 int ch1=0,ch2=0,ch3=0,ch4=0,ch5=0,ch6=0;
+int ch3_old=0;
 volatile int count_ch5=0;
 volatile int ch1_val=0,ch2_val=0,ch3_val=0,ch4_val=0,ch5_val=0,ch6_val=0;
 volatile int ch1_prev=0,ch2_prev=0,ch3_prev=0,ch4_prev=0,ch5_prev=0,ch6_prev=0;
@@ -86,35 +88,39 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-const int CH1_EFFECT=10;
-const int CH2_EFFECT=50;
+const int CH1_EFFECT=20;
+const int CH2_EFFECT=100;
 const int CH3_MIN_EFFECT=1400;
-const int CH3_MAX_EFFECT=1700;
-const int CH4_EFFECT=50;
+const int CH3_MAX_EFFECT=1600;
+const int CH4_EFFECT=100;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 
 int take_off_count=0;
 int take_down_count=0;
 unsigned long take_down_start=0;
-int take_down_diff=0;
-const int take_down_cutoff=1400;
+const int take_down_cutoff=1450;
 const int take_off_gradient=100;
-const int take_down_gradient=15;
+const int take_down_gradient=14;
+const int take_down_diff=50;
 
 const int MAX_R_PID_EFFECT=800;
-const int MAX_yaw_R_PID_EFFECT=20;
+const int MAX_yaw_R_PID_EFFECT=120;
 const int MAX_S_PID_EFFECT=1000;
-const int MAX_yaw_S_PID_EFFECT=20;
+const int MAX_yaw_S_PID_EFFECT=120;
 const int MAX_S_PID_I_EFFECT=40;
 const int MAX_yaw_S_PID_I_EFFECT=20;
 const int MAX_R_PID_I_EFFECT=40;
 const int MAX_yaw_R_PID_I_EFFECT=20;
 
 const int RAW_RATIO=16;
+const int PID_SAMPLE_TIME=120;
 
 byte sregRestore;
 
+const int YAW_AVERAGE_COUNT=40;
+const unsigned long PROPER_YAW_TIME=20000000UL;
+const float YAW_AVERAGE_RETAIN=0.3;
 
 /* #define LED_PIN 13// (Arduino is 13, Teensy is 11, Teensy++ is 6) */
 const int GYRO_RATIO=1;
@@ -149,7 +155,7 @@ float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll
 int ypr_int_offset[3]={0,-5,0};
 int ypr_int[3];
 int gyro_int[3];
-int gyro_int_offset[3]={-21,-6,8};
+int gyro_int_offset[3]={-21,-8,8};
 int gyro_int_raw[3];
 float gyro_retain[3]={0.3,0.3,0.3};
 int16_t gx, gy, gz;
@@ -325,9 +331,9 @@ void pid_init(){
     r_roll_pid.SetMode(AUTOMATIC);
 
 
-    s_yaw_pid.SetSampleTime(5);
-    s_pitch_pid.SetSampleTime(5);
-    s_roll_pid.SetSampleTime(5);
+    s_yaw_pid.SetSampleTime(PID_SAMPLE_TIME);
+    s_pitch_pid.SetSampleTime(PID_SAMPLE_TIME);
+    s_roll_pid.SetSampleTime(PID_SAMPLE_TIME);
 
     s_yaw_pid.SetOutputLimits(-MAX_yaw_S_PID_EFFECT,MAX_yaw_S_PID_EFFECT);
     s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
@@ -337,9 +343,9 @@ void pid_init(){
     s_pitch_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
     s_roll_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
 
-    r_yaw_pid.SetSampleTime(5);
-    r_pitch_pid.SetSampleTime(5);
-    r_roll_pid.SetSampleTime(5);
+    r_yaw_pid.SetSampleTime(PID_SAMPLE_TIME);
+    r_pitch_pid.SetSampleTime(PID_SAMPLE_TIME);
+    r_roll_pid.SetSampleTime(PID_SAMPLE_TIME);
 
     r_yaw_pid.SetOutputLimits(-MAX_yaw_R_PID_EFFECT,MAX_yaw_R_PID_EFFECT);
     r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
@@ -348,6 +354,20 @@ void pid_init(){
     r_yaw_pid.SetILimits(-MAX_yaw_R_PID_I_EFFECT,MAX_yaw_R_PID_I_EFFECT);
     r_pitch_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
     r_roll_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
+
+    unsigned long yaw_tune_start=micros();
+    while(micros()-yaw_tune_start<PROPER_YAW_TIME)
+        update_ypr();
+    
+    int desired_yaw;
+    int yaw_average_count_copy=YAW_AVERAGE_COUNT;
+    while(yaw_average_count_copy>0){
+        update_ypr();
+        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0];
+        yaw_average_count_copy--;
+    }
+
+    desired_ypr[0]=desired_yaw;
 }
 
 
@@ -617,16 +637,18 @@ void update_rc(){
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
 
+
         if(ch6>0){
             if(ch5>CH5_EFFECT/2){
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
-                    if(base_speed>take_down_cutoff){
-                        base_speed--;
+                    if(base_speed_old>take_down_cutoff){
+                        base_speed_old--;
                     }else{
-                        base_speed=ESC_MIN;
+                        base_speed_old=ESC_MIN;
                         enable_motors=false;
                     }
+                    base_speed=base_speed_old;
                 }
             }else if(ch5<-CH5_EFFECT/2){
                 if(take_off_count>=take_off_gradient){
@@ -642,6 +664,8 @@ void update_rc(){
                 take_down_count=0;
                 take_off_count=0;
                 base_speed=ch3;
+                if(base_speed==CH3_MIN_EFFECT || base_speed-base_speed_old<take_down_diff)
+                    base_speed_old=base_speed;
                 take_down_start=millis();
             }
         }else{
@@ -657,6 +681,8 @@ void update_rc(){
                 show_speed=false;
             }
         }
+
+
 
     }
 

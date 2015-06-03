@@ -46,32 +46,33 @@ PID::PID(int* Input, int* Output, int* Setpoint,
  **********************************************************************************/ 
 bool PID::Compute()
 {
-   if(!inAuto) return false;
-   unsigned long now = millis();
-   unsigned long timeChange = (now - lastTime);
-   if(timeChange>=SampleTime)
-   {
-      /*Compute all the working error variables*/
-	  int input = *myInput;
-      int error = *mySetpoint - input;
-      ITerm+= (ki * error);
-      if(ITerm > I_outMax) ITerm= I_outMax;
-      else if(ITerm < I_outMin) ITerm= I_outMin;
-      int dInput = (input - lastInput);
- 
-      /*Compute PID Output*/
-      int output = kp * error + ITerm- kd * dInput;
-      
-	  if(output > outMax) output = outMax;
-      else if(output < outMin) output = outMin;
-	  *myOutput = output;
-	  
-      /*Remember some variables for next time*/
-      lastInput = input;
-      lastTime = now;
-	  return true;
-   }
-   else return false;
+    if(!inAuto) return false;
+    unsigned long now = millis();
+    unsigned long timeChange = (now - lastTime);
+    int input = *myInput;
+    int error = *mySetpoint - input;
+    int dInput=last_dInput;
+    if(timeChange>=SampleTime)
+    {
+        ITerm+= (ki * error);
+        if(ITerm > I_outMax) ITerm= I_outMax;
+        else if(ITerm < I_outMin) ITerm= I_outMin;
+        dInput = (input - lastInput);
+    }
+    /*Compute all the working error variables*/
+
+    /*Compute PID Output*/
+    int output = kp * error + ITerm- kd * dInput;
+
+    if(output > outMax) output = outMax;
+    else if(output < outMin) output = outMin;
+    *myOutput = output;
+
+    /*Remember some variables for next time*/
+    lastInput = input;
+    lastTime = now;
+    last_dInput=dInput;
+    return true;
 }
 
 
@@ -106,10 +107,11 @@ void PID::SetSampleTime(int NewSampleTime)
 {
    if (NewSampleTime > 0)
    {
-      double ratio  = (int)NewSampleTime
-                      / (int)SampleTime;
-      ki *= ratio;
-      kd /= ratio;
+       //Not needed for our code
+      // double ratio  = (int)NewSampleTime
+                      // / (int)SampleTime;
+      // ki *= ratio;
+      // kd /= ratio;
       SampleTime = (unsigned long)NewSampleTime;
    }
 }

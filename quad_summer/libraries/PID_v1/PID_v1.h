@@ -71,7 +71,7 @@ class PID
                                   //   what these values are.  with pointers we'll just know.
 			  
 	unsigned long lastTime;
-	int ITerm, lastInput;
+	int ITerm, lastInput,last_dInput;
 
 	unsigned long SampleTime;
 	int outMin, outMax,I_outMax,I_outMin;
