@@ -1,38 +1,80 @@
 package com.quad.shubham.quad_app;
 
-import android.support.v7.app.ActionBarActivity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.support.v7.app.AppCompatActivity;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+
+import com.ipaulpro.afilechooser.FileChooserActivity;
+import com.ipaulpro.afilechooser.utils.FileUtils;
+
+import java.io.File;
 
 
-public class Home extends ActionBarActivity {
+public class Home extends AppCompatActivity {
 
+    String[] activity_list={"Tuner","Data Logs","Show History","Select Config"};
+    ListView activity_list_view;
+    String config_path;
+    private static final int REQUEST_CHOOSER = 1234;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_home);
+        config_path=null;
+        activity_list_view = new ListView(this);
+        ArrayAdapter<String> list_adapter = new ArrayAdapter<String>(this,
+                android.R.layout.simple_list_item_1, android.R.id.text1, activity_list);
+        activity_list_view.setAdapter(list_adapter);
+        activity_list_view.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent intent;
+                switch (position) {
+                    case 0:
+                        intent =new Intent(Home.this,Tuner.class);
+                        intent.putExtra("config_file_path",config_path);
+                        startActivity(intent);
+                        break;
+                    case 1:
+                        intent =new Intent(Home.this,Data_logs.class);
+                        startActivity(intent);
+                        break;
+                    case 2:
+                        intent =new Intent(Home.this,Show_history.class);
+                        startActivity(intent);
+                        break;
+                    case 3:
+                        // Create the ACTION_GET_CONTENT Intent
+//                        Intent getContentIntent = FileUtils.createGetContentIntent();
+//                        intent = Intent.createChooser(getContentIntent, "Select a file");
+                        intent = new Intent(Home.this,FileChooserActivity.class);
+                        startActivityForResult(intent, REQUEST_CHOOSER);
+                        break;
+                }
+            }
+        });
+        setContentView(activity_list_view);
     }
 
     @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_home, menu);
-        return true;
-    }
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQUEST_CHOOSER:
+                if (resultCode == RESULT_OK) {
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+                    final Uri uri = data.getData();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+                    // Get the File path from the Uri
+                    config_path = FileUtils.getPath(this, uri);
+                    Toast toast=Toast.makeText(getApplicationContext(), config_path, Toast.LENGTH_LONG);
+                    toast.show();
+                }
+                break;
         }
-
-        return super.onOptionsItemSelected(item);
     }
 }
