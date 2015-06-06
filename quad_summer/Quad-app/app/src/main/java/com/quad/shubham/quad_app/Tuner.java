@@ -2,6 +2,7 @@ package com.quad.shubham.quad_app;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.widget.Toast;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -19,6 +20,7 @@ import java.io.InputStreamReader;
  */
 public class Tuner extends AppCompatActivity{
     String config_path;
+    Toast toast;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,19 +32,19 @@ public class Tuner extends AppCompatActivity{
         if (extras != null) {
             config_path = extras.getString("config_file_path");
             if(config_path==null){
-                Toast toast=Toast.makeText(getApplicationContext(),"Empty config path", Toast.LENGTH_SHORT);
+                toast=Toast.makeText(getApplicationContext(),"Empty config path", Toast.LENGTH_SHORT);
                 toast.show();
                 Tuner.this.finish();
                 return;
             }
         }else{
-            Toast toast=Toast.makeText(getApplicationContext(),"Config file path not sent", Toast.LENGTH_SHORT);
+            toast=Toast.makeText(getApplicationContext(),"Config file path not sent", Toast.LENGTH_SHORT);
             toast.show();
             Tuner.this.finish();
             return;
         }
-        Toast toast1=Toast.makeText(getApplicationContext(),"Hello", Toast.LENGTH_SHORT);
-        toast1.show();
+        toast=Toast.makeText(getApplicationContext(),"Hello", Toast.LENGTH_SHORT);
+        toast.show();
 
         try {
             xmlFactoryObject = XmlPullParserFactory.newInstance();
@@ -53,18 +55,18 @@ public class Tuner extends AppCompatActivity{
             myparser.setInput(new InputStreamReader(fis));
             int event_type=myparser.getEventType();
             while(event_type!=XmlPullParser.END_DOCUMENT){
-                if(event_type==XmlPullParser.START_TAG){
-                    System.out.print(myparser.getName());
+                if(event_type==XmlPullParser.START_TAG || event_type==XmlPullParser.END_TAG){
+                    Log.d(getString(R.string.default_tag_name), myparser.getName());
                 }
                 event_type=myparser.next();
             }
         } catch(XmlPullParserException e){
-            Toast toast=Toast.makeText(getApplicationContext(),"XmlPullParserException", Toast.LENGTH_SHORT);
+            toast=Toast.makeText(getApplicationContext(),"XmlPullParserException", Toast.LENGTH_SHORT);
             toast.show();
             Tuner.this.finish();
             return;
         } catch(IOException e){
-            Toast toast=Toast.makeText(getApplicationContext(),"IOException", Toast.LENGTH_SHORT);
+            toast=Toast.makeText(getApplicationContext(),"IOException", Toast.LENGTH_SHORT);
             toast.show();
             Tuner.this.finish();
             return;

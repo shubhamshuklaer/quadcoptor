@@ -3,4 +3,6 @@
 
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="default_tag_name">normal</string>
+    <string name="config_file_path_setting">config_file_path</string>
 </resources>

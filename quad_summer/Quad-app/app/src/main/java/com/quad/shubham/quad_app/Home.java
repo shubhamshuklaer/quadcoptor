@@ -1,6 +1,8 @@
 package com.quad.shubham.quad_app;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -22,6 +24,7 @@ public class Home extends AppCompatActivity {
     ListView activity_list_view;
     String config_path;
     private static final int REQUEST_CHOOSER = 1234;
+    SharedPreferences sharedPref;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,28 +39,30 @@ public class Home extends AppCompatActivity {
                 Intent intent;
                 switch (position) {
                     case 0:
-                        intent =new Intent(Home.this,Tuner.class);
-                        intent.putExtra("config_file_path",config_path);
+                        intent = new Intent(Home.this, Tuner.class);
+                        intent.putExtra("config_file_path", config_path);
                         startActivity(intent);
                         break;
                     case 1:
-                        intent =new Intent(Home.this,Data_logs.class);
+                        intent = new Intent(Home.this, Data_logs.class);
                         startActivity(intent);
                         break;
                     case 2:
-                        intent =new Intent(Home.this,Show_history.class);
+                        intent = new Intent(Home.this, Show_history.class);
                         startActivity(intent);
                         break;
                     case 3:
                         // Create the ACTION_GET_CONTENT Intent
 //                        Intent getContentIntent = FileUtils.createGetContentIntent();
 //                        intent = Intent.createChooser(getContentIntent, "Select a file");
-                        intent = new Intent(Home.this,FileChooserActivity.class);
+                        intent = new Intent(Home.this, FileChooserActivity.class);
                         startActivityForResult(intent, REQUEST_CHOOSER);
                         break;
                 }
             }
         });
+        sharedPref = Home.this.getPreferences(Context.MODE_PRIVATE);
+        config_path=sharedPref.getString(getString(R.string.config_file_path_setting),null);
         setContentView(activity_list_view);
     }
 
@@ -71,6 +76,9 @@ public class Home extends AppCompatActivity {
 
                     // Get the File path from the Uri
                     config_path = FileUtils.getPath(this, uri);
+                    SharedPreferences.Editor editor = sharedPref.edit();
+                    editor.putString(getString(R.string.config_file_path_setting),config_path);
+                    editor.commit();
                     Toast toast=Toast.makeText(getApplicationContext(), config_path, Toast.LENGTH_LONG);
                     toast.show();
                 }
