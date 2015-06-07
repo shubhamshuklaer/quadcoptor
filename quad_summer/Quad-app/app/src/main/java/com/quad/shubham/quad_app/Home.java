@@ -1,5 +1,6 @@
 package com.quad.shubham.quad_app;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -18,7 +19,7 @@ import com.ipaulpro.afilechooser.utils.FileUtils;
 import java.io.File;
 
 
-public class Home extends AppCompatActivity {
+public class Home extends Activity {
 
     String[] activity_list={"Tuner","Data Logs","Show History","Select Config"};
     ListView activity_list_view;

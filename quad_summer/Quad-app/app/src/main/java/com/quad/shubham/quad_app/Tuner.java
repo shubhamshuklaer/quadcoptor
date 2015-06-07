@@ -10,6 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -37,8 +38,10 @@ public class Tuner extends FragmentActivity{
     NodeList tab_list;
     PagerSlidingTabStrip tab_strip;
     LinearLayout layout;
-    int tab_strip_v_pad=20;
-    int tab_strip_h_pad=10;
+    final int tab_strip_text_size=30;
+    final int tab_strip_h_pad=10;
+    final int pager_id=10;
+    final int tab_strip_id=20;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,15 +68,13 @@ public class Tuner extends FragmentActivity{
         toast.show();
 
         pager=new ViewPager(this);
-        pager.setId(10);
+        pager.setId(pager_id);
         pager_adapter=new My_pager_adapter(getSupportFragmentManager());
         layout=new LinearLayout(this);
         tab_strip=new PagerSlidingTabStrip(this);
-        tab_strip.setId(20);
-        tab_strip.setLayoutParams(new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT));
-        tab_strip.setPadding(tab_strip_h_pad,tab_strip_v_pad,tab_strip_h_pad,tab_strip_v_pad);
-
-
+        tab_strip.setId(tab_strip_id);
+        tab_strip.setTabPaddingLeftRight(tab_strip_h_pad);
+        tab_strip.setTextSize(tab_strip_text_size);
         try {
             d_builder_factory_obj = DocumentBuilderFactory.newInstance();
             d_builder = d_builder_factory_obj.newDocumentBuilder();
@@ -93,6 +94,7 @@ public class Tuner extends FragmentActivity{
         } catch(SAXException e){
             toast = Toast.makeText(getApplicationContext(), "SAXException", Toast.LENGTH_SHORT);
             toast.show();
+            Log.d(getString(R.string.default_tag_name),e.getMessage());
             Tuner.this.finish();
             return;
         } catch(IOException e){
@@ -105,29 +107,6 @@ public class Tuner extends FragmentActivity{
         pager.setAdapter(pager_adapter);
         tab_strip.setViewPager(pager);
 
-        tab_strip.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
-
-            // This method will be invoked when a new page becomes selected.
-            @Override
-            public void onPageSelected(int position) {
-                Toast.makeText(Tuner.this,
-                        "Selected page position: " + position, Toast.LENGTH_SHORT).show();
-            }
-
-            // This method will be invoked when the current page is scrolled
-            @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-                // Code goes here
-            }
-
-            // Called when the scroll state changes:
-            // SCROLL_STATE_IDLE, SCROLL_STATE_DRAGGING, SCROLL_STATE_SETTLING
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                // Code goes here
-            }
-        });
-
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.addView(tab_strip);
         layout.addView(pager);
@@ -135,5 +114,9 @@ public class Tuner extends FragmentActivity{
         setContentView(layout);
 
 
+    }
+
+    Node get_tab_node(int position){
+        return tab_list.item(position);
     }
 }

@@ -1,47 +1,49 @@
 package com.quad.shubham.quad_app;
 
+
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.app.FragmentStatePagerAdapter;
 
 import org.w3c.dom.Node;
+import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.os.Bundle;
+
 /**
  * Created by shubham on 6/6/15.
  */
-public class My_pager_adapter extends FragmentPagerAdapter {
+public class My_pager_adapter extends FragmentStatePagerAdapter {
 
-    ArrayList<My_fragment> fragment_list;
+    NodeList node_list;
 
     public My_pager_adapter(FragmentManager fragmentManager) {
         super(fragmentManager);
-        fragment_list=new ArrayList<My_fragment>();
     }
 
-    public void set_fragments(NodeList node_list){
-        for(int i=0;i<node_list.getLength();i++){
-            My_fragment temp_fragment=My_fragment.newInstance(node_list.item(i));
-            fragment_list.add(temp_fragment);
-        }
+    public void set_fragments(NodeList _node_list){
+        node_list=_node_list;
     }
 
     @Override
     public Fragment getItem(int position) {
-        return fragment_list.get(position);
+        return My_fragment.newInstance(position);
     }
 
     @Override
     public int getCount() {
-        return fragment_list.size();
+        return node_list.getLength();
     }
 
     @Override
     public CharSequence getPageTitle(int position) {
-        return fragment_list.get(position).get_title();
+        Element temp_element=(Element)node_list.item(position);
+        return temp_element.getAttribute("name");
     }
 }
