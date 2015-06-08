@@ -74,12 +74,14 @@ public class My_fragment extends Fragment {
         layout.setColumnCount(num_columns);
         layout.setRowCount(num_rows);
 
-        layout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener(){
+        //Using solution from http://stackoverflow.com/a/24035591
+        //The getWidth() and getHeight() functions will return 0 inside the Fragment's onCreateView
+        //cause parent's view is not created until all the things are added to the view
+        layout.post(new Runnable() {
             @Override
-            public void onGlobalLayout() {
+            public void run() {
                 Activity parent_activity = getActivity();
                 if (parent_activity != null) {
-                    Log.d("normal","Create "+title);
                     NodeList childs = node.getChildNodes();
                     int full_width = ((Tuner) parent_activity).pager.getWidth();
                     int full_height = ((Tuner) parent_activity).pager.getHeight();
@@ -113,12 +115,9 @@ public class My_fragment extends Fragment {
                             }
                         }
                     }
-                }else{
-                    Log.d("normal","Destroy "+title);
                 }
             }
         });
-//        layout.set
 
         return layout;
     }
