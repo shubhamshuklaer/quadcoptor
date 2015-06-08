@@ -11,6 +11,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
@@ -36,6 +37,8 @@ public class My_fragment extends Fragment {
     private int position;
     GridLayout layout;
     String title;
+    int num_columns;
+    int num_rows;
 
     public static My_fragment newInstance(int _position){
         My_fragment fragment=new My_fragment();
@@ -64,68 +67,67 @@ public class My_fragment extends Fragment {
         node=(Element)((Tuner)parent_activity).get_tab_node(position);
         title=node.getAttribute("name");
 
-        NodeList childs=node.getChildNodes();
-
-        int num_columns=Integer.parseInt(node.getAttribute("num_cols"));
-        int num_rows=Integer.parseInt(node.getAttribute("num_rows"));
+        num_columns=Integer.parseInt(node.getAttribute("num_cols"));
+        num_rows=Integer.parseInt(node.getAttribute("num_rows"));
 
         layout=new GridLayout(parent_activity);
         layout.setColumnCount(num_columns);
         layout.setRowCount(num_rows);
-//        layout.set
 
-        ViewGroup.LayoutParams grid_layout_params=new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-        int full_width=((Tuner) parent_activity).pager.getWidth();
-        int full_height=((Tuner) parent_activity).pager.getHeight();
+        layout.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener(){
+            @Override
+            public void onGlobalLayout() {
+                Activity parent_activity=getActivity();
+                NodeList childs=node.getChildNodes();
+//                ViewGroup.LayoutParams grid_layout_params=new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+                int full_width=((Tuner) parent_activity).pager.getWidth();
+                int full_height=((Tuner) parent_activity).pager.getHeight();
 //        Log.d("normal",Integer.toString(full_height));
 //        Log.d("normal",Integer.toString(full_width));
-        layout.setLayoutParams(grid_layout_params);
+//                layout.setLayoutParams(grid_layout_params);
 
 
-        for(int i=0;i<childs.getLength();i++){
-            Node temp_node=childs.item(i);
-            if(temp_node.getNodeType()==Node.ELEMENT_NODE) {
-                Element temp_element = (Element) temp_node;
-                int element_start_cols = Integer.parseInt(temp_element.getAttribute("start_col"));
-                int element_start_rows = Integer.parseInt(temp_element.getAttribute("start_row"));
-                int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
-                int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
-                GridLayout.LayoutParams element_layout_params=new GridLayout.LayoutParams(
-                        GridLayout.spec(element_start_cols,element_num_cols,GridLayout.FILL), GridLayout.spec(element_start_rows,element_num_rows,GridLayout.FILL));
-                element_layout_params.setGravity(Gravity.FILL);
-                element_layout_params.height=full_height*element_num_cols/num_columns;
-                element_layout_params.width=full_width*element_num_rows/num_rows;
+                for(int i=0;i<childs.getLength();i++){
+                    Node temp_node=childs.item(i);
+                    if(temp_node.getNodeType()==Node.ELEMENT_NODE) {
+                        Element temp_element = (Element) temp_node;
+                        int element_start_cols = Integer.parseInt(temp_element.getAttribute("start_col"));
+                        int element_start_rows = Integer.parseInt(temp_element.getAttribute("start_row"));
+                        int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
+                        int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
+                        GridLayout.LayoutParams element_layout_params=new GridLayout.LayoutParams(
+                                GridLayout.spec(element_start_cols,element_num_cols,GridLayout.FILL), GridLayout.spec(element_start_rows,element_num_rows,GridLayout.FILL));
+                        element_layout_params.setGravity(Gravity.FILL);
+                        element_layout_params.height=full_height*element_num_cols/num_columns;
+                        element_layout_params.width=full_width*element_num_rows/num_rows;
 //  element_layout_params.
-                if("graph".equals(temp_element.getNodeName())){
-                    GraphView temp_graph_view=new GraphView(parent_activity);
-                    LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
-                            new DataPoint(0, 1),
-                            new DataPoint(1, 5),
-                            new DataPoint(2, 3),
-                            new DataPoint(3, 2),
-                            new DataPoint(4, 6)
-                    });
+                        if("graph".equals(temp_element.getNodeName())){
+                            GraphView temp_graph_view=new GraphView(parent_activity);
+                            LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
+                                    new DataPoint(0, 1),
+                                    new DataPoint(1, 5),
+                                    new DataPoint(2, 3),
+                                    new DataPoint(3, 2),
+                                    new DataPoint(4, 6)
+                            });
 //                    element_layout_params.height=200;
 //                    element_layout_params.width=200;
-                    temp_graph_view.setLayoutParams(element_layout_params);
-                    temp_graph_view.addSeries(series);
+                            temp_graph_view.setLayoutParams(element_layout_params);
+                            temp_graph_view.addSeries(series);
 //                    temp_graph_view.set`;
 //                    temp_graph_view.set
-                    layout.addView(temp_graph_view, element_layout_params);
+                            layout.addView(temp_graph_view, element_layout_params);
 
+                        }
+                    }
                 }
             }
-        }
-//        Button btn=new Button(parent_activity);
-//        btn.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                My_fragment.this.getView().invalidate();
-//            }
-//        });
+        });
+//        layout.set
 
         return layout;
     }
 
 
 }
+
