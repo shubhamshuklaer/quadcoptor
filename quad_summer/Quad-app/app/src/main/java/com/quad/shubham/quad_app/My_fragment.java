@@ -5,11 +5,13 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.Layout;
+import android.util.LayoutDirection;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -38,7 +40,7 @@ public class My_fragment extends Fragment {
     public static My_fragment newInstance(int _position){
         My_fragment fragment=new My_fragment();
         Bundle args = new Bundle();
-        args.putInt("position",_position);
+        args.putInt("position", _position);
         fragment.setArguments(args);
         return fragment;
     }
@@ -70,9 +72,13 @@ public class My_fragment extends Fragment {
         layout=new GridLayout(parent_activity);
         layout.setColumnCount(num_columns);
         layout.setRowCount(num_rows);
+//        layout.set
 
-        ViewGroup.LayoutParams grid_layout_params=new ViewGroup.LayoutParams(container.getWidth(), container.getHeight());
-        Log.d("normal",Integer.toString(container.getWidth()));
+        ViewGroup.LayoutParams grid_layout_params=new ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        int full_width=((Tuner) parent_activity).pager.getWidth();
+        int full_height=((Tuner) parent_activity).pager.getHeight();
+//        Log.d("normal",Integer.toString(full_height));
+//        Log.d("normal",Integer.toString(full_width));
         layout.setLayoutParams(grid_layout_params);
 
 
@@ -85,8 +91,11 @@ public class My_fragment extends Fragment {
                 int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
                 int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
                 GridLayout.LayoutParams element_layout_params=new GridLayout.LayoutParams(
-                        GridLayout.spec(element_start_cols,element_num_cols), GridLayout.spec(element_start_rows,element_num_rows));
-
+                        GridLayout.spec(element_start_cols,element_num_cols,GridLayout.FILL), GridLayout.spec(element_start_rows,element_num_rows,GridLayout.FILL));
+                element_layout_params.setGravity(Gravity.FILL);
+                element_layout_params.height=full_height*element_num_cols/num_columns;
+                element_layout_params.width=full_width*element_num_rows/num_rows;
+//  element_layout_params.
                 if("graph".equals(temp_element.getNodeName())){
                     GraphView temp_graph_view=new GraphView(parent_activity);
                     LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
@@ -96,13 +105,27 @@ public class My_fragment extends Fragment {
                             new DataPoint(3, 2),
                             new DataPoint(4, 6)
                     });
+//                    element_layout_params.height=200;
+//                    element_layout_params.width=200;
                     temp_graph_view.setLayoutParams(element_layout_params);
                     temp_graph_view.addSeries(series);
-                    layout.addView(temp_graph_view,element_layout_params);
+//                    temp_graph_view.set`;
+//                    temp_graph_view.set
+                    layout.addView(temp_graph_view, element_layout_params);
+
                 }
             }
         }
+//        Button btn=new Button(parent_activity);
+//        btn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                My_fragment.this.getView().invalidate();
+//            }
+//        });
 
         return layout;
     }
+
+
 }
