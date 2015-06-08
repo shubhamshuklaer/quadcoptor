@@ -1,0 +1,28 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res/com.quad.shubham.quad_app"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <com.quad.shubham.quad_app.MyView android:background="#ccc" android:layout_width="569dp"
+        android:layout_height="714dp" android:paddingLeft="20dp" android:paddingBottom="40dp"
+        app:exampleDimension="24sp" app:exampleColor="#33b5e5" app:exampleString="Hello, MyView"
+        app:exampleDrawable="@android:drawable/ic_menu_add" />
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_gravity="left|top">
+
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/editText"
+            android:layout_row="16"
+            android:layout_column="25"
+            android:layout_columnSpan="25"
+            android:layout_columnWeight="15"
+            android:layout_rowSpan="20"
+            android:layout_rowWeight="15"
+            android:gravity="center_vertical" />
+    </GridLayout>
+
+</FrameLayout>

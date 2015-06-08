@@ -64,8 +64,6 @@ public class Tuner extends FragmentActivity{
             Tuner.this.finish();
             return;
         }
-        toast=Toast.makeText(getApplicationContext(),"Hello", Toast.LENGTH_SHORT);
-        toast.show();
 
         pager=new ViewPager(this);
         pager.setId(pager_id);

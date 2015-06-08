@@ -6,6 +6,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.text.Layout;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +19,12 @@ import android.widget.Toast;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import android.view.ViewGroup.LayoutParams;
+
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 /**
  * Created by shubham on 6/6/15.
@@ -53,9 +60,7 @@ public class My_fragment extends Fragment {
         }
 
         node=(Element)((Tuner)parent_activity).get_tab_node(position);
-        title=node.getNodeName();
-
-        ScrollView view=new ScrollView(parent_activity);
+        title=node.getAttribute("name");
 
         NodeList childs=node.getChildNodes();
 
@@ -66,18 +71,38 @@ public class My_fragment extends Fragment {
         layout.setColumnCount(num_columns);
         layout.setRowCount(num_rows);
 
+        ViewGroup.LayoutParams grid_layout_params=new ViewGroup.LayoutParams(container.getWidth(), container.getHeight());
+        Log.d("normal",Integer.toString(container.getWidth()));
+        layout.setLayoutParams(grid_layout_params);
+
+
         for(int i=0;i<childs.getLength();i++){
             Node temp_node=childs.item(i);
             if(temp_node.getNodeType()==Node.ELEMENT_NODE) {
                 Element temp_element = (Element) temp_node;
-                int element_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
-                int element_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
-                TextView temp_text_view = new TextView(parent_activity);
-                temp_text_view.setText(title);
-                layout.addView(temp_text_view);
+                int element_start_cols = Integer.parseInt(temp_element.getAttribute("start_col"));
+                int element_start_rows = Integer.parseInt(temp_element.getAttribute("start_row"));
+                int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
+                int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
+                GridLayout.LayoutParams element_layout_params=new GridLayout.LayoutParams(
+                        GridLayout.spec(element_start_cols,element_num_cols), GridLayout.spec(element_start_rows,element_num_rows));
+
+                if("graph".equals(temp_element.getNodeName())){
+                    GraphView temp_graph_view=new GraphView(parent_activity);
+                    LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[] {
+                            new DataPoint(0, 1),
+                            new DataPoint(1, 5),
+                            new DataPoint(2, 3),
+                            new DataPoint(3, 2),
+                            new DataPoint(4, 6)
+                    });
+                    temp_graph_view.setLayoutParams(element_layout_params);
+                    temp_graph_view.addSeries(series);
+                    layout.addView(temp_graph_view,element_layout_params);
+                }
             }
         }
-        view.addView(layout);
-        return view;
+
+        return layout;
     }
 }
