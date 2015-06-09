@@ -29,6 +29,8 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+
+
 /**
  * Created by shubham on 6/6/15.
  */
@@ -95,7 +97,8 @@ public class My_fragment extends Fragment {
                             int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
                             int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
                             GridLayout.LayoutParams element_layout_params = new GridLayout.LayoutParams(
-                                    GridLayout.spec(element_start_cols, element_num_cols, GridLayout.FILL), GridLayout.spec(element_start_rows, element_num_rows, GridLayout.FILL));
+                                    GridLayout.spec(element_start_cols, element_num_cols), GridLayout.spec(element_start_rows, element_num_rows));
+
                             element_layout_params.height = full_height * element_num_cols / num_columns;
                             element_layout_params.width = full_width * element_num_rows / num_rows;
 
@@ -112,6 +115,11 @@ public class My_fragment extends Fragment {
                                 temp_graph_view.addSeries(series);
                                 layout.addView(temp_graph_view, element_layout_params);
 
+                            }else if("slider".equals(temp_element.getNodeName())){
+                                My_slider temp_seek_bar=new My_slider(parent_activity);
+                                temp_seek_bar.set_direction(My_slider.Direction.VERTICAL);
+                                temp_seek_bar.setLayoutParams(element_layout_params);
+                                layout.addView(temp_seek_bar,element_layout_params);
                             }
                         }
                     }
