@@ -45,7 +45,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {1, 24, 24}, kd[3] = {0, 0, 0}, ki[3] = {0, 1, 1};
+int kp[3] = {0, 0, 0}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
+
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
 /* int gyro_kp[3] = {1000, 1000, 1000}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0}; */
@@ -113,8 +114,10 @@ const int MAX_yaw_S_PID_I_EFFECT=20;
 const int MAX_R_PID_I_EFFECT=40;
 const int MAX_yaw_R_PID_I_EFFECT=20;
 
+int MY_RATIO=10;
+
 const int RAW_RATIO=16;
-const int PID_SAMPLE_TIME=120;
+const int PID_SAMPLE_TIME=1000;
 
 byte sregRestore;
 
@@ -207,7 +210,7 @@ void ch6_change();
 
 //Stablize pid
 PID s_yaw_pid(&ypr_int[0],&gyro_ypr[0],&desired_ypr[0],kp[0],ki[0],kd[0],REVERSE);
-PID s_pitch_pid(&ypr_int[1],&gyro_ypr[1],&desired_ypr[1],kp[1],ki[1],kd[1],DIRECT);
+PID s_pitch_pid(&ypr_int[1],&gyro_ypr[1],&desired_ypr[1],kp[1],ki[1],kd[1],REVERSE);
 PID s_roll_pid(&ypr_int[2],&gyro_ypr[2],&desired_ypr[2],kp[2],ki[2],kd[2],REVERSE);
 
 //Rate pid
@@ -218,7 +221,6 @@ PID r_roll_pid(&gyro_int[2],&speed_ypr_raw[2],&gyro_ypr_temp[2],gyro_kp[2],gyro_
 //
 // Don't edit the output var of the PID it causes problem
 //
-
 
 
 void setup(){
@@ -236,7 +238,7 @@ void setup(){
 	/* loop_enter = loop_leave = micros(); */
 	/* pid_enter = pid_leave = micros(); */
 	/* interpolate_enter = interpolate_leave = micros(); */
-    enable_pitch=true;
+    enable_pitch=false;
     enable_roll=true;
     /* ApplicationMonitor.Dump(Serial); */
     ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
@@ -293,6 +295,7 @@ void loop(){
         /* Serial.print(" "); */
         /* Serial.print(m4_speed); */
         /* Serial.println(" "); */
+
     }else{
         count_serial=count_serial+1;
     }
@@ -355,19 +358,19 @@ void pid_init(){
     r_pitch_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
     r_roll_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
 
-    unsigned long yaw_tune_start=micros();
-    while(micros()-yaw_tune_start<PROPER_YAW_TIME)
-        update_ypr();
+    /* unsigned long yaw_tune_start=micros(); */
+    /* while(micros()-yaw_tune_start<PROPER_YAW_TIME) */
+        /* update_ypr(); */
     
-    int desired_yaw;
-    int yaw_average_count_copy=YAW_AVERAGE_COUNT;
-    while(yaw_average_count_copy>0){
-        update_ypr();
-        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0];
-        yaw_average_count_copy--;
-    }
+    /* int desired_yaw; */
+    /* int yaw_average_count_copy=YAW_AVERAGE_COUNT; */
+    /* while(yaw_average_count_copy>0){ */
+        /* update_ypr(); */
+        /* desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0]; */
+        /* yaw_average_count_copy--; */
+    /* } */
 
-    desired_ypr[0]=desired_yaw;
+    /* desired_ypr[0]=desired_yaw; */
 }
 
 
@@ -715,22 +718,34 @@ inline void interpolate(){
 
 inline void calc_pid(){
 
-    s_yaw_pid.Compute();
-    s_pitch_pid.Compute();
-    s_roll_pid.Compute();
+    gyro_int[0]/=5;
+    gyro_int[1]/=5;
+    gyro_int[2]/=5;
 
-    gyro_ypr_temp[0]=gyro_ypr[0];
-    gyro_ypr_temp[1]=gyro_ypr[1];
-    gyro_ypr_temp[2]=gyro_ypr[2];
+    speed_ypr[0]=-kp[0]*ypr_int[0]+kd[0]*gyro_int[0];
+    speed_ypr[1]=kp[1]*ypr_int[1]+kd[1]*gyro_int[1];
+    speed_ypr[2]=-kp[2]*ypr_int[2]+kd[2]*gyro_int[2];
+
+    speed_ypr[0]=0;
+    speed_ypr[1]/=MY_RATIO;
+    speed_ypr[0]/=MY_RATIO;
+
+    /* s_yaw_pid.Compute(); */
+    /* s_pitch_pid.Compute(); */
+    /* s_roll_pid.Compute(); */
+
+    /* gyro_ypr_temp[0]=gyro_ypr[0]; */
+    /* gyro_ypr_temp[1]=gyro_ypr[1]; */
+    /* gyro_ypr_temp[2]=gyro_ypr[2]; */
 
     // Rate pid on yaw axis not necessary
     /* r_yaw_pid.Compute(); */
-    r_pitch_pid.Compute();
-    r_roll_pid.Compute();
+    /* r_pitch_pid.Compute(); */
+    /* r_roll_pid.Compute(); */
 
-    speed_ypr[0]=gyro_ypr[0];
-    speed_ypr[1]=speed_ypr_raw[1]/RAW_RATIO;
-    speed_ypr[2]=speed_ypr_raw[2]/RAW_RATIO;
+    /* speed_ypr[0]=0; */
+    /* speed_ypr[1]=gyro_ypr[1]/MY_RATIO; */
+    /* speed_ypr[2]=gyro_ypr[2]/MY_RATIO; */
 
     /* speed_ypr[0]=speed_ypr_raw[0]; */
     /* speed_ypr[1]=speed_ypr_raw[1]/2; */

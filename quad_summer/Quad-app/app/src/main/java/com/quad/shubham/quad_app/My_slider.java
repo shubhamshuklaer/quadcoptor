@@ -17,14 +17,14 @@ import android.widget.TextView;
  */
 public class My_slider extends LinearLayout {
     public enum Direction{HORIZONTAL,VERTICAL};
-    SeekBar seek_bar;
+    My_seek_bar seek_bar;
     EditText min_text, max_text;
     TextView min_label,max_label,cur_label,cur_text;
     protected int rotation_angle;
     protected LayoutParams seek_bar_params;
     public My_slider(Context context) {
         super(context);
-        seek_bar=new SeekBar(context);
+        seek_bar=new My_seek_bar(context);
         min_text =new EditText(context);
         max_text =new EditText(context);
         cur_text =new TextView(context);
@@ -81,4 +81,12 @@ public class My_slider extends LinearLayout {
         this.invalidate();
     }
 
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        if(rotation_angle==90 || rotation_angle==270)
+            seek_bar.set_measured_dimension(400, seek_bar.getMeasuredWidth());
+
+//            seek_bar.set_measured_dimension(seek_bar.getMeasuredHeight(), seek_bar.getMeasuredWidth());
+    }
 }

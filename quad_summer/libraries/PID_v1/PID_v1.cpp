@@ -58,6 +58,7 @@ bool PID::Compute()
         if(ITerm > I_outMax) ITerm= I_outMax;
         else if(ITerm < I_outMin) ITerm= I_outMin;
         dInput = (input - lastInput);
+        lastInput = input;
     }
     /*Compute all the working error variables*/
 
@@ -69,7 +70,6 @@ bool PID::Compute()
     *myOutput = output;
 
     /*Remember some variables for next time*/
-    lastInput = input;
     lastTime = now;
     last_dInput=dInput;
     return true;
