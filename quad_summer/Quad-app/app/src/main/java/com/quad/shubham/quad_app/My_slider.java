@@ -1,14 +1,16 @@
 package com.quad.shubham.quad_app;
 
 import android.content.Context;
-import android.view.Gravity;
+import android.graphics.Canvas;
+import android.text.InputType;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 //import android.view.ViewGroup.LayoutParams;
-import android.view.ViewGroup.LayoutParams;
+
 
 /**
  * Created by shubham on 9/6/15.
@@ -16,26 +18,52 @@ import android.view.ViewGroup.LayoutParams;
 public class My_slider extends LinearLayout {
     public enum Direction{HORIZONTAL,VERTICAL};
     SeekBar seek_bar;
-    TextView min_val_text_view,max_val_text_view,current_val_text_view;
+    EditText min_text, max_text;
+    TextView min_label,max_label,cur_label,cur_text;
     protected int rotation_angle;
+    protected LayoutParams seek_bar_params;
     public My_slider(Context context) {
         super(context);
         seek_bar=new SeekBar(context);
-        min_val_text_view=new TextView(context);
-        max_val_text_view=new TextView(context);
-        current_val_text_view=new TextView(context);
-        min_val_text_view.setText("min val");
-        max_val_text_view.setText("max");
-        current_val_text_view.setText("cur");
+        min_text =new EditText(context);
+        max_text =new EditText(context);
+        cur_text =new TextView(context);
+        min_label=new TextView(context);
+        max_label=new TextView(context);
+        cur_label=new TextView(context);
+
+        min_label.setText("min");
+        max_label.setText("max");
+        cur_label.setText("cur");
+        cur_text.setText("cur_val");
+
+        max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+        min_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+
+        LinearLayout max_layout=new LinearLayout(context);
+        LinearLayout min_layout=new LinearLayout(context);
+        LinearLayout cur_layout=new LinearLayout(context);
+
+        max_layout.addView(max_label);
+        max_layout.addView(max_text);
+
+        min_layout.addView(min_label);
+        min_layout.addView(min_text);
+
+        cur_layout.addView(cur_label);
+        cur_layout.addView(cur_text);
+
         rotation_angle=0;
         seek_bar.setRotation(rotation_angle);
-        LayoutParams seek_bar_params=new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,ViewGroup.LayoutParams.WRAP_CONTENT);
-        seek_bar_params.gravity= Gravity.FILL;
+        seek_bar_params=new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT);
+        seek_bar_params.weight=1;
         seek_bar.setLayoutParams(seek_bar_params);
-        this.addView(max_val_text_view);
-        this.addView(min_val_text_view);
+
+        this.addView(max_layout);
+        this.addView(min_layout);
         this.addView(seek_bar);
-        this.addView(current_val_text_view);
+        this.addView(cur_layout);
 
     }
 
@@ -52,6 +80,5 @@ public class My_slider extends LinearLayout {
         seek_bar.setRotation(rotation_angle);
         this.invalidate();
     }
-
 
 }

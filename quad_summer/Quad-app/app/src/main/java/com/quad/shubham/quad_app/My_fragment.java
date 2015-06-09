@@ -117,7 +117,8 @@ public class My_fragment extends Fragment {
 
                             }else if("slider".equals(temp_element.getNodeName())){
                                 My_slider temp_seek_bar=new My_slider(parent_activity);
-                                temp_seek_bar.set_direction(My_slider.Direction.VERTICAL);
+                                if("vert".equals(temp_element.getAttribute("orient")))
+                                    temp_seek_bar.set_direction(My_slider.Direction.VERTICAL);
                                 temp_seek_bar.setLayoutParams(element_layout_params);
                                 layout.addView(temp_seek_bar,element_layout_params);
                             }
