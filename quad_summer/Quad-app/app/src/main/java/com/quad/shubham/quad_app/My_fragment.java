@@ -99,8 +99,8 @@ public class My_fragment extends Fragment {
                             GridLayout.LayoutParams element_layout_params = new GridLayout.LayoutParams(
                                     GridLayout.spec(element_start_cols, element_num_cols), GridLayout.spec(element_start_rows, element_num_rows));
 
-                            element_layout_params.height = full_height * element_num_cols / num_columns;
-                            element_layout_params.width = full_width * element_num_rows / num_rows;
+                            element_layout_params.height = full_height * element_num_rows / num_columns;
+                            element_layout_params.width = full_width * element_num_cols / num_rows;
 
                             if ("graph".equals(temp_element.getNodeName())) {
                                 GraphView temp_graph_view = new GraphView(parent_activity);
@@ -116,9 +116,11 @@ public class My_fragment extends Fragment {
                                 layout.addView(temp_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
-                                My_slider temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL);
-//                                if("vert".equals(temp_element.getAttribute("orient")))
-//                                    temp_seek_bar.set_direction(My_slider.Direction.VERTICAL);
+                                My_slider temp_seek_bar;
+                                if(element_num_rows>element_num_cols)
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL);
+                                else
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL);
                                 temp_seek_bar.setLayoutParams(element_layout_params);
                                 layout.addView(temp_seek_bar,element_layout_params);
                             }
