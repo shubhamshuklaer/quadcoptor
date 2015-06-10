@@ -117,10 +117,13 @@ public class My_fragment extends Fragment {
 
                             }else if("slider".equals(temp_element.getNodeName())){
                                 My_slider temp_seek_bar;
+                                String min,max;
+                                min=temp_element.getAttribute("min").toString();
+                                max=temp_element.getAttribute("max").toString();
                                 if(element_num_rows>element_num_cols)
-                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL);
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,min,max);
                                 else
-                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL);
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL,min,max);
                                 temp_seek_bar.setLayoutParams(element_layout_params);
                                 layout.addView(temp_seek_bar,element_layout_params);
                             }

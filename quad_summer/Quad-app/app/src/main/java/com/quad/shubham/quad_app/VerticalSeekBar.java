@@ -1,10 +1,11 @@
-package android.widget;
+package com.quad.shubham.quad_app;
 
 import android.content.Context;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
+import android.widget.SeekBar;
 
 public class VerticalSeekBar extends SeekBar {
 
@@ -59,5 +60,10 @@ public class VerticalSeekBar extends SeekBar {
         }
         return true;
     }
-    
+
+    @Override
+    public final void setProgress(final int progress) {
+        super.setProgress(progress);
+        onSizeChanged(getWidth(), getHeight(), 0, 0);
+    }
 }
