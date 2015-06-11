@@ -45,7 +45,7 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {0, 0, 0}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
+int kp[3] = {4, 30, 30}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
 
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
@@ -114,7 +114,6 @@ const int MAX_yaw_S_PID_I_EFFECT=20;
 const int MAX_R_PID_I_EFFECT=40;
 const int MAX_yaw_R_PID_I_EFFECT=20;
 
-int MY_RATIO=10;
 
 const int RAW_RATIO=16;
 const int PID_SAMPLE_TIME=1000;
@@ -157,6 +156,8 @@ float euler[3];										// [psi, theta, phi]    Euler angle container
 float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 int ypr_int_offset[3]={0,-5,0};
 int ypr_int[3];
+int ypr_int_bound[3];
+int gyro_int_bound[3];
 int gyro_int[3];
 int gyro_int_offset[3]={-21,-8,8};
 int gyro_int_raw[3];
@@ -716,11 +717,25 @@ inline void interpolate(){
 	interpolate_leave = micros();
 }
 
+int MY_RATIO=10;
+int ypr_yaw_bound=10;
+int ypr_bound=20;
+int gyro_yaw_bound=10;
+int gyro_bound=40;
+
 inline void calc_pid(){
 
-    gyro_int[0]/=5;
-    gyro_int[1]/=5;
-    gyro_int[2]/=5;
+    gyro_int[0]/=3;
+    gyro_int[1]/=3;
+    gyro_int[2]/=3;
+
+    ypr_int_bound[0]=constrain(ypr_int[0],-ypr_yaw_bound,ypr_yaw_bound);
+    ypr_int_bound[1]=constrain(ypr_int[1],-ypr_bound,ypr_bound);
+    ypr_int_bound[2]=constrain(ypr_int[2],-ypr_bound,ypr_bound);
+
+    gyro_int_bound[0]=constrain(gyro_int[0],-gyro_yaw_bound,gyro_yaw_bound);
+    gyro_int_bound[1]=constrain(gyro_int[1],-gyro_bound,gyro_bound);
+    gyro_int_bound[2]=constrain(gyro_int[2],-gyro_bound,gyro_bound);
 
     speed_ypr[0]=-kp[0]*ypr_int[0]+kd[0]*gyro_int[0];
     speed_ypr[1]=kp[1]*ypr_int[1]+kd[1]*gyro_int[1];
@@ -728,7 +743,7 @@ inline void calc_pid(){
 
     speed_ypr[0]=0;
     speed_ypr[1]/=MY_RATIO;
-    speed_ypr[0]/=MY_RATIO;
+    speed_ypr[2]/=MY_RATIO;
 
     /* s_yaw_pid.Compute(); */
     /* s_pitch_pid.Compute(); */
@@ -826,14 +841,14 @@ inline void check_serial(){
         Serial.print(gyro_int[1]);
         Serial.print(" gr: ");
         Serial.print(gyro_int[2]);
-        Serial.print("\t");
+        Serial.print("\t\t");
 
-        Serial.print("p-y: ");
-        Serial.print(gyro_ypr[0]);
-        Serial.print(" p-p: ");
-        Serial.print(gyro_ypr[1]);
-        Serial.print(" p-r: ");
-        Serial.print(gyro_ypr[2]);
+        /* Serial.print("p-y: "); */
+        /* Serial.print(gyro_ypr[0]); */
+        /* Serial.print(" p-p: "); */
+        /* Serial.print(gyro_ypr[1]); */
+        /* Serial.print(" p-r: "); */
+        /* Serial.print(gyro_ypr[2]); */
         Serial.print(" p-gy: ");
         Serial.print(speed_ypr[0]);
         Serial.print(" p-gp: ");
@@ -841,7 +856,7 @@ inline void check_serial(){
         Serial.print(" p-gr: ");
         Serial.print(speed_ypr[2]);
         /* Serial.println(""); */
-        Serial.print("\t");
+        Serial.print("\t\t");
 
         Serial.print("m1: ");
         Serial.print(m1_speed);
