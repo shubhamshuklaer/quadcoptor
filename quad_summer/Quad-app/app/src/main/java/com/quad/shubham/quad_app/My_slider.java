@@ -1,19 +1,15 @@
 package com.quad.shubham.quad_app;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.support.v4.widget.Space;
 import android.text.Editable;
 import android.text.InputType;
-import android.text.Selection;
 import android.text.TextWatcher;
-import android.view.ViewGroup;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-
-import com.github.rongi.rotate_layout.layout.RotateLayout;
+import android.widget.Toast;
 
 //import android.view.ViewGroup.LayoutParams;
 
@@ -29,13 +25,16 @@ public class My_slider extends LinearLayout {
     protected LayoutParams seek_bar_params;
     TextWatcher min_max_text_watcher,cur_text_watcher;
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
+    String parameter_name;
+    Context parent_context;
 
     public My_slider(Context context) {
         super(context);
     }
 
-    public static My_slider new_instance(Context context,Direction dir,String min_str,String max_str){
+    public static My_slider new_instance(Context context,Direction dir,String _parameter_name){
         final My_slider new_slider=new My_slider(context);
+        new_slider.parent_context=context;
 
         if(dir==Direction.HORIZONTAL) {
             new_slider.setOrientation(LinearLayout.HORIZONTAL);
@@ -44,6 +43,8 @@ public class My_slider extends LinearLayout {
             new_slider.setOrientation(LinearLayout.VERTICAL);
             new_slider.seek_bar=new VerticalSeekBar(context);
         }
+
+        new_slider.parameter_name=_parameter_name;
 
         new_slider.min_text =new EditText(context);
         new_slider.max_text =new EditText(context);
@@ -55,17 +56,33 @@ public class My_slider extends LinearLayout {
         new_slider.min_label.setText("min");
         new_slider.max_label.setText("max");
         new_slider.cur_label.setText("cur");
-        new_slider.cur_text.setText("0");
 
-        int min,max;
-        min=My_slider.try_parse_int(min_str);
-        max=My_slider.try_parse_int(max_str);
-        if(max<min)
-            max=min;
+
+        int min=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^min"));
+        int max=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^max"));
+        int cur=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^cur"));
+
+        if(max<min || cur>max || cur<min){
+            if(max<min){
+                max=min;
+                new_slider.update_shared_pref(new_slider.parameter_name+"^max",Integer.toString(max));
+            }
+            if(cur>max){
+                max=cur;
+                new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max));
+            }
+            if(cur<min){
+                min=cur;
+                new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min));
+            }
+        }
+
 
         new_slider.min_text.setText(Integer.toString(min));
         new_slider.max_text.setText(Integer.toString(max));
+        new_slider.cur_text.setText(Integer.toString(cur));
         new_slider.seek_bar.setMax(max-min);
+        new_slider.seek_bar.setProgress(cur);
 
         new_slider.max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
         new_slider.min_text.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -144,6 +161,8 @@ public class My_slider extends LinearLayout {
                 }
                 new_slider.seek_bar.setMax(max_val - min_val);
                 new_slider.seek_bar.setProgress(cur_val - min_val);
+                new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max_val));
+                new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min_val));
             }
         };
 
@@ -167,13 +186,16 @@ public class My_slider extends LinearLayout {
                 if(cur_val<min_val){
                     new_slider.min_text.setText(Integer.toString(cur_val));
                     min_val=cur_val;
+                    new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min_val));
                     new_slider.seek_bar.setMax(max_val - min_val);
                 }else if(cur_val>max_val){
                     new_slider.max_text.setText(Integer.toString(cur_val));
                     max_val=cur_val;
+                    new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max_val));
                     new_slider.seek_bar.setMax(max_val - min_val);
                 }
                 new_slider.seek_bar.setProgress(cur_val - min_val);
+                new_slider.update_shared_pref(new_slider.parameter_name+"^cur",Integer.toString(cur_val));
 //                Selection.setSelection(s,new_slider.cur_text.getText().length());
             }
         };
@@ -198,6 +220,11 @@ public class My_slider extends LinearLayout {
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
+        this.update_shared_pref(this.parameter_name+"^cur",str);
+    }
+
+    public void update_shared_pref(String key,String value){
+        Global_tune_data.set_attribute(this.parent_context, key, value);
     }
 
 }
