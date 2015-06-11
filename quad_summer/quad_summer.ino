@@ -45,7 +45,8 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
+int kp[3] = {4, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {1, 1, 1};
+int iterm_prev;
 
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
@@ -96,14 +97,15 @@ const int CH3_MAX_EFFECT=1600;
 const int CH4_EFFECT=100;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
+const int CH3_MIN_CUTOFF=50;
 
 int take_off_count=0;
 int take_down_count=0;
 unsigned long take_down_start=0;
-const int take_down_cutoff=1450;
+const int take_down_cutoff=1400;
 const int take_off_gradient=100;
 const int take_down_gradient=14;
-const int take_down_diff=50;
+const int take_down_diff=20;
 
 const int MAX_R_PID_EFFECT=800;
 const int MAX_yaw_R_PID_EFFECT=120;
@@ -325,6 +327,7 @@ void loop(){
 }
 
 void pid_init(){
+    iterm_prev=millis();
     s_yaw_pid.SetMode(AUTOMATIC);
     s_pitch_pid.SetMode(AUTOMATIC);
     s_roll_pid.SetMode(AUTOMATIC);
@@ -646,13 +649,12 @@ void update_rc(){
             if(ch5>CH5_EFFECT/2){
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
-                    if(base_speed_old>take_down_cutoff){
-                        base_speed_old--;
+                    if(base_speed>take_down_cutoff){
+                        base_speed--;
                     }else{
-                        base_speed_old=ESC_MIN;
+                        base_speed=ESC_MIN;
                         enable_motors=false;
                     }
-                    base_speed=base_speed_old;
                 }
             }else if(ch5<-CH5_EFFECT/2){
                 if(take_off_count>=take_off_gradient){
@@ -668,8 +670,6 @@ void update_rc(){
                 take_down_count=0;
                 take_off_count=0;
                 base_speed=ch3;
-                if(base_speed==CH3_MIN_EFFECT || base_speed-base_speed_old<take_down_diff)
-                    base_speed_old=base_speed;
                 take_down_start=millis();
             }
         }else{
@@ -724,6 +724,10 @@ int gyro_yaw_bound=10;
 int gyro_bound=800;
 int pr_bound=800;
 int y_bound=10;
+int ipr_bound=200;
+int iy_bound=10;
+int num_millis_iterm=50;
+int iterm[3]={0,0,0};
 
 inline void calc_pid(){
 
@@ -739,13 +743,22 @@ inline void calc_pid(){
     gyro_int_bound[1]=constrain(gyro_int[1],-gyro_bound,gyro_bound);
     gyro_int_bound[2]=constrain(gyro_int[2],-gyro_bound,gyro_bound);
 
-    speed_ypr[0]=-kp[0]*ypr_int[0]+kd[0]*gyro_int[0];
-    speed_ypr[1]=kp[1]*ypr_int[1]+kd[1]*gyro_int[1];
-    speed_ypr[2]=-kp[2]*ypr_int[2]+kd[2]*gyro_int[2];
+    if(millis()-iterm_prev>num_millis_iterm){
+        iterm[1]+=kp[1]*ypr_int_bound[1];
+        iterm[2]+=kp[2]*ypr_int_bound[2];
+        iterm[1]=constrain(iterm[1],-ipr_bound,ipr_bound);
+        iterm[2]=constrain(iterm[2],-ipr_bound,ipr_bound);
+        iterm_prev=millis();
+    }
 
-    speed_ypr[0]=constrain(speed_ypr[0],-y_bound,y_bound);
-    speed_ypr[1]=constrain(speed_ypr[1],-pr_bound,pr_bound);
-    speed_ypr[2]=constrain(speed_ypr[2],-pr_bound,pr_bound);
+
+    speed_ypr[0]=-kp[0]*ypr_int_bound[0]+kd[0]*gyro_int_bound[0]+iterm[0];
+    speed_ypr[1]=kp[1]*ypr_int_bound[1]+kd[1]*gyro_int_bound[1]+iterm[1];
+    speed_ypr[2]=-kp[2]*ypr_int_bound[2]+kd[2]*gyro_int_bound[2]+iterm[2];
+
+    /* speed_ypr[0]=constrain(speed_ypr[0],-y_bound,y_bound); */
+    /* speed_ypr[1]=constrain(speed_ypr[1],-pr_bound,pr_bound); */
+    /* speed_ypr[2]=constrain(speed_ypr[2],-pr_bound,pr_bound); */
 
     speed_ypr[0]=0;
     speed_ypr[1]/=MY_RATIO;
@@ -874,6 +887,8 @@ inline void check_serial(){
         Serial.print(m4_speed);
         Serial.print(" bs: ");
         Serial.print(base_speed);
+        Serial.print(" bso: ");
+        Serial.print(base_speed_old);
         Serial.println(" ");
 		/* count_ypr++; */
 		/* if(count_ypr & 0x10){ */
@@ -986,7 +1001,17 @@ inline void check_serial(){
 			// Convert the string to an integer
 			float val = in_value.toFloat();
 
-			if(in_key == "kd"){
+            if(in_key=="rat"){
+                MY_RATIO=val;
+            }else if(in_key=="prb"){
+                ypr_bound=val;
+            }else if(in_key=="sb"){
+                pr_bound=val;
+            }else if(in_key=="iprb"){
+                ipr_bound=val;
+            }else if(in_key=="miterm"){
+                num_millis_iterm=val;
+            }else if(in_key == "kd"){
 				if(val < 1000 && val >= 0){
 					kd[1] = kd[2] = val;
 				}
