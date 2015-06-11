@@ -45,7 +45,7 @@ int sum_ypr_int[3], prev_ypr_int[3];
 
 float offset_pitch = 0.00, offset_roll = 0.00, offset_yaw = 0.00;
 
-int kp[3] = {4, 30, 30}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
+int kp[3] = {4, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0, 0, 0};
 
 int gyro_kp[3] = {1, 1, 1}, gyro_kd[3] = {0, 0, 0}, gyro_ki[3] = {0, 0, 0};
 /* int kp[3] = {17190, 16044, 17190}, kd[3] = {1146000, 1146000, 1146000}, ki[3] = {286, 286, 286}; */
@@ -717,17 +717,19 @@ inline void interpolate(){
 	interpolate_leave = micros();
 }
 
-int MY_RATIO=10;
+int MY_RATIO=16;
 int ypr_yaw_bound=10;
-int ypr_bound=20;
+int ypr_bound=35;
 int gyro_yaw_bound=10;
-int gyro_bound=40;
+int gyro_bound=800;
+int pr_bound=800;
+int y_bound=10;
 
 inline void calc_pid(){
 
-    gyro_int[0]/=3;
-    gyro_int[1]/=3;
-    gyro_int[2]/=3;
+    /* gyro_int[0]/=3; */
+    /* gyro_int[1]/=3; */
+    /* gyro_int[2]/=3; */
 
     ypr_int_bound[0]=constrain(ypr_int[0],-ypr_yaw_bound,ypr_yaw_bound);
     ypr_int_bound[1]=constrain(ypr_int[1],-ypr_bound,ypr_bound);
@@ -740,6 +742,10 @@ inline void calc_pid(){
     speed_ypr[0]=-kp[0]*ypr_int[0]+kd[0]*gyro_int[0];
     speed_ypr[1]=kp[1]*ypr_int[1]+kd[1]*gyro_int[1];
     speed_ypr[2]=-kp[2]*ypr_int[2]+kd[2]*gyro_int[2];
+
+    speed_ypr[0]=constrain(speed_ypr[0],-y_bound,y_bound);
+    speed_ypr[1]=constrain(speed_ypr[1],-pr_bound,pr_bound);
+    speed_ypr[2]=constrain(speed_ypr[2],-pr_bound,pr_bound);
 
     speed_ypr[0]=0;
     speed_ypr[1]/=MY_RATIO;
