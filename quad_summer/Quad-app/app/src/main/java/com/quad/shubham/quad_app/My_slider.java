@@ -4,12 +4,10 @@ import android.content.Context;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 //import android.view.ViewGroup.LayoutParams;
 
@@ -58,22 +56,22 @@ public class My_slider extends LinearLayout {
         new_slider.cur_label.setText("cur");
 
 
-        int min=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^min"));
-        int max=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^max"));
-        int cur=Integer.parseInt(Global_tune_data.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^cur"));
+        int min=Integer.parseInt(Data_store.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^min", "0"));
+        int max=Integer.parseInt(Data_store.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^max", "0"));
+        int cur=Integer.parseInt(Data_store.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^cur", "0"));
 
         if(max<min || cur>max || cur<min){
             if(max<min){
                 max=min;
-                new_slider.update_shared_pref(new_slider.parameter_name+"^max",Integer.toString(max));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max));
             }
             if(cur>max){
                 max=cur;
-                new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max));
             }
             if(cur<min){
                 min=cur;
-                new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min));
             }
         }
 
@@ -161,8 +159,8 @@ public class My_slider extends LinearLayout {
                 }
                 new_slider.seek_bar.setMax(max_val - min_val);
                 new_slider.seek_bar.setProgress(cur_val - min_val);
-                new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max_val));
-                new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min_val));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
             }
         };
 
@@ -186,16 +184,16 @@ public class My_slider extends LinearLayout {
                 if(cur_val<min_val){
                     new_slider.min_text.setText(Integer.toString(cur_val));
                     min_val=cur_val;
-                    new_slider.update_shared_pref(new_slider.parameter_name + "^min", Integer.toString(min_val));
+                    new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
                     new_slider.seek_bar.setMax(max_val - min_val);
                 }else if(cur_val>max_val){
                     new_slider.max_text.setText(Integer.toString(cur_val));
                     max_val=cur_val;
-                    new_slider.update_shared_pref(new_slider.parameter_name + "^max", Integer.toString(max_val));
+                    new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
                     new_slider.seek_bar.setMax(max_val - min_val);
                 }
                 new_slider.seek_bar.setProgress(cur_val - min_val);
-                new_slider.update_shared_pref(new_slider.parameter_name+"^cur",Integer.toString(cur_val));
+                new_slider.update_tuner_data(new_slider.parameter_name + "^cur", Integer.toString(cur_val));
 //                Selection.setSelection(s,new_slider.cur_text.getText().length());
             }
         };
@@ -220,11 +218,11 @@ public class My_slider extends LinearLayout {
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
-        this.update_shared_pref(this.parameter_name+"^cur",str);
+        this.update_tuner_data(this.parameter_name + "^cur", str);
     }
 
-    public void update_shared_pref(String key,String value){
-        Global_tune_data.set_attribute(this.parent_context, key, value);
+    public void update_tuner_data(String key, String value){
+        Data_store.set_attribute(this.parent_context, key, value);
     }
 
 }

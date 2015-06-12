@@ -8,7 +8,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Map;
@@ -16,27 +15,50 @@ import java.util.Map;
 /**
  * Created by shubham on 10/6/15.
  */
-public class Global_tune_data {
-    public static String get_attribute(Context context,String attr_name){
+public class Data_store {
+    public static String TUNER_DATA_FILE="tuner_data";
+    public static String APPLICATION_DATA_FILE="application_data";
+    public static String HISTORY_META_FILE="history_meta";
+    public static String CUR_BRANCH_SETTING="cur_branch";
+    public static String PARENT_ID_SETTING="parent_id";
+    public static String CONFIG_FILE_PATH_SETTING="config_file_path";
+
+    public static String get_attribute(Context context,String attr_name,String default_val){
         context=context.getApplicationContext();
-        SharedPreferences shared_pref= context.getSharedPreferences("tuner_data",Context.MODE_PRIVATE);
-        return shared_pref.getString(attr_name,"0");
+        SharedPreferences shared_pref= context.getSharedPreferences(get_file_name(attr_name),Context.MODE_PRIVATE);
+        return shared_pref.getString(attr_name,default_val);
     }
 
     public static void set_attribute(Context context,String attr_name,String val){
         context=context.getApplicationContext();
-        SharedPreferences shared_pref= context.getSharedPreferences("tuner_data",Context.MODE_PRIVATE);
+        SharedPreferences shared_pref= context.getSharedPreferences(get_file_name(attr_name),Context.MODE_PRIVATE);
         SharedPreferences.Editor editor = shared_pref.edit();
         editor.putString(attr_name,val);
         editor.commit();
     }
 
+    protected static String get_file_name(String attr_name){
+        if(attr_name==PARENT_ID_SETTING)
+            return HISTORY_META_FILE;
+        else if(attr_name==CUR_BRANCH_SETTING)
+            return HISTORY_META_FILE;
+        else if(attr_name==CONFIG_FILE_PATH_SETTING)
+            return APPLICATION_DATA_FILE;
+        else
+            return TUNER_DATA_FILE;
+    }
+
+    public static Map<String,String> get_all(Context context,String file_name){
+        context=context.getApplicationContext();
+        SharedPreferences shared_pref=context.getSharedPreferences(file_name,Context.MODE_PRIVATE);
+        return (Map<String,String>)shared_pref.getAll();
+    }
+
     public static void commit(Context context,String commit_message){
         context=context.getApplicationContext();
-        SharedPreferences shared_pref= context.getSharedPreferences("tuner_data",Context.MODE_PRIVATE);
-        Map<String,String> tune_data=(Map<String,String>)shared_pref.getAll();
+        Map<String,String> tune_data=Data_store.get_all(context,TUNER_DATA_FILE);
         Db_helper db_helper=new Db_helper(context);
-        db_helper.commit(context, commit_message);
+        db_helper.put_commit(context, commit_message);
         int id=db_helper.get_num_rows(db_helper.COMMIT_TBL_NAME);
         try {
             FileOutputStream fos = context.openFileOutput(Integer.toString(id), Context.MODE_PRIVATE);
@@ -61,18 +83,14 @@ public class Global_tune_data {
             ois.close();
             fis.close();
 
-            SharedPreferences shared_pref= context.getSharedPreferences("history_meta",Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor=shared_pref.edit();
-            editor.putString("parent_id", id);
-            editor.commit();
+            Data_store.set_attribute(context, PARENT_ID_SETTING, id);
+            Db_helper db_helper=new Db_helper(context);
+            Data_store.set_attribute(context, CUR_BRANCH_SETTING, db_helper.get_branch_name(id));
 
-            shared_pref=context.getSharedPreferences("tuner_data",Context.MODE_PRIVATE);
-            editor=shared_pref.edit();
 
             for(Map.Entry<String,String> entry: tune_data.entrySet())
-                editor.putString(entry.getKey(),entry.getValue());
+                Data_store.set_attribute(context,entry.getKey(),entry.getValue());
 
-            editor.commit();
         }catch (FileNotFoundException e){
             Toast.makeText(context,e.getMessage(),Toast.LENGTH_LONG).show();
         }catch (IOException e){
@@ -81,5 +99,10 @@ public class Global_tune_data {
             Toast.makeText(context,e.getMessage(),Toast.LENGTH_LONG).show();
         }
 
+    }
+
+    public static void create_branch(Context context,String branch_name,int parent_commit_id){
+        Db_helper db_helper=new Db_helper(context);
+        db_helper.create_branch(branch_name,parent_commit_id);
     }
 }
