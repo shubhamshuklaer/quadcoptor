@@ -1,8 +1,10 @@
 package com.quad.shubham.quad_app;
 
 import android.content.Context;
+import android.graphics.Color;
 import android.text.InputType;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -29,15 +31,18 @@ public class Commit_widget extends LinearLayout{
         this.setOrientation(LinearLayout.VERTICAL);
 
         commit_message_area=new EditText(context);
-        commit_message_area.setHint("Type put_commit message");
-        commit_message_area.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        commit_message_area.setHint("Type commit message");
+        commit_message_area.setSingleLine(false);
+        commit_message_area.setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
         commit_message_area.setMinLines(message_num_lines);
         commit_message_area.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        commit_message_area.setTextColor(Color.BLACK);
 
 
         commit_btn=new Button(context);
         commit_btn.setText("Commit");
         commit_btn.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        commit_btn.setTextColor(Color.BLACK);
 
 
         if(parent_id==num_commits){
@@ -56,6 +61,7 @@ public class Commit_widget extends LinearLayout{
             branch_name_text_area=new EditText(context);
             branch_name_text_area.setHint("Type branch name");
             branch_name_text_area.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+            branch_name_text_area.setTextColor(Color.BLACK);
             this.addView(branch_name_text_area);
 
             this.commit_btn.setOnClickListener(new OnClickListener() {
