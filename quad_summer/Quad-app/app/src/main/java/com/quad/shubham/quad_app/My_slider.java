@@ -19,7 +19,7 @@ public class My_slider extends LinearLayout {
     public enum Direction{HORIZONTAL,VERTICAL};
     SeekBar seek_bar;
     EditText min_text, max_text;
-    TextView min_label,max_label,cur_label,cur_text;
+    TextView min_label,max_label,cur_label,cur_text,name_label;
     protected LayoutParams seek_bar_params;
     TextWatcher min_max_text_watcher,cur_text_watcher;
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
@@ -50,10 +50,12 @@ public class My_slider extends LinearLayout {
         new_slider.min_label=new TextView(context);
         new_slider.max_label=new TextView(context);
         new_slider.cur_label=new TextView(context);
+        new_slider.name_label=new TextView(context);
 
         new_slider.min_label.setText("min");
         new_slider.max_label.setText("max");
         new_slider.cur_label.setText("cur");
+        new_slider.name_label.setText(new_slider.parameter_name);
 
 
         int min=Integer.parseInt(Data_store.get_attribute(new_slider.parent_context, new_slider.parameter_name + "^min", "0"));
@@ -106,6 +108,7 @@ public class My_slider extends LinearLayout {
         new_slider.seek_bar_params.weight=1;
         new_slider.seek_bar.setLayoutParams(new_slider.seek_bar_params);
 
+        new_slider.addView(new_slider.name_label);
         new_slider.addView(max_layout);
         new_slider.addView(min_layout);
         new_slider.addView(new_slider.seek_bar);

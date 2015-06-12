@@ -1,3 +1,5 @@
+//Taken from https://github.com/AndroSelva/Vertical-SeekBar-Android
+
 package com.quad.shubham.quad_app;
 
 import android.content.Context;

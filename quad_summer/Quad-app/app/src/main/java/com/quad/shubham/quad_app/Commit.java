@@ -20,14 +20,16 @@ public class Commit extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         layout=new LinearLayout(Commit.this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
         commit_widget=new Commit_widget(Commit.this);
         commit_widget.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
         current_params=new ListView(Commit.this);
         current_params.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.FILL));
 
-        Map<String,String> tuner_data= Data_store.get_all(Commit.this, "tuner_data");
+        Map<String,String> tuner_data= Data_store.get_all(Commit.this, Data_store.TUNER_DATA_FILE);
 
-        current_params.setAdapter(new tuner_data_list_adapter(tuner_data));
+        current_params.setAdapter(new Tuner_data_list_adapter(tuner_data));
 
         layout.addView(commit_widget);
         layout.addView(current_params);
