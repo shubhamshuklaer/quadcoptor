@@ -22,6 +22,7 @@ public class Data_store {
     public static String CUR_BRANCH_SETTING="cur_branch";
     public static String PARENT_ID_SETTING="parent_id";
     public static String CONFIG_FILE_PATH_SETTING="config_file_path";
+    public static String CUR_BRANCH_SETTING_DEFAULT="master";
 
     public static String get_attribute(Context context,String attr_name,String default_val){
         context=context.getApplicationContext();

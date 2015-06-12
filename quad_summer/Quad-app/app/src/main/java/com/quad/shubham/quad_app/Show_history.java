@@ -21,7 +21,7 @@ public class Show_history extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         layout=new LinearLayout(Show_history.this);
-        layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
+        layout.setOrientation(LinearLayout.VERTICAL);
 
         Db_helper db_helper=new Db_helper(Show_history.this);
 
@@ -29,13 +29,18 @@ public class Show_history extends Activity {
         Branch_list_cursor_adapter branch_adapter=new Branch_list_cursor_adapter(Show_history.this,db_helper.get_all_branches());
         select_branch.setAdapter(branch_adapter);
         select_branch.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-        layout.addView(select_branch);
+        String branch_name=Data_store.get_attribute(Show_history.this, Data_store.CUR_BRANCH_SETTING, Data_store.CUR_BRANCH_SETTING_DEFAULT);
+        select_branch.setSelection(((Branch_list_cursor_adapter) (select_branch.getAdapter())).getPosition(branch_name));
 
 
         commits_list =new ListView(Show_history.this);
         commits_list.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.FILL));
-        layout.addView(commits_list);
 
+
+        commits_list.setAdapter(new Commit_list_cursor_adapter(Show_history.this,db_helper.get_commits_for_branch(branch_name)));
+
+        layout.addView(select_branch);
+        layout.addView(commits_list);
         setContentView(layout);
     }
 }

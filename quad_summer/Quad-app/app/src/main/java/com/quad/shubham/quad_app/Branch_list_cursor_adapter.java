@@ -28,4 +28,15 @@ public class Branch_list_cursor_adapter extends CursorAdapter {
         TextView t_view=(TextView)view;
         t_view.setText(cursor.getString(cursor.getColumnIndexOrThrow("name")));
     }
+
+    public int getPosition(String branch_name){
+        Cursor cur=this.getCursor();
+        for(int i=0;i<this.getCount();i++){
+            cur.moveToPosition(i);
+            String temp=cur.getString(cur.getColumnIndexOrThrow("name"));
+            if(temp.equals(branch_name))
+                return i;
+        }
+        return -1;
+    }
 }
