@@ -50,11 +50,12 @@ public class Commit_widget extends LinearLayout{
                 @Override
                 public void onClick(View v) {
                     String commit_message=commit_message_area.getText().toString();
-                    if(commit_message==""){
-                        Toast.makeText(context,"Please write some message",Toast.LENGTH_SHORT);
+                    if(commit_message.equals("")){
+                        Toast.makeText(context,"Please write some message",Toast.LENGTH_SHORT).show();
                         return;
                     }
                     Data_store.commit(context, commit_message);
+                    Toast.makeText(context,"Commited",Toast.LENGTH_SHORT).show();
                 }
             });
         }else{
@@ -67,13 +68,13 @@ public class Commit_widget extends LinearLayout{
             this.commit_btn.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String commit_message=commit_message_area.getText().toString();
-                    String branch_name=branch_name_text_area.getText().toString();
-                    if(commit_message==""){
+                    String commit_message=commit_message_area.getText().toString().trim();
+                    String branch_name=branch_name_text_area.getText().toString().trim();
+                    if(commit_message.equals("")){
                         Toast.makeText(context,"Please write some put_commit message",Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    if(branch_name==""){
+                    if(branch_name.equals("")){
                         Toast.makeText(context,"Please write some branch name",Toast.LENGTH_SHORT).show();
                         return;
                     }
@@ -81,7 +82,7 @@ public class Commit_widget extends LinearLayout{
                     Data_store.set_attribute(context, Data_store.CUR_BRANCH_SETTING, branch_name);
                     Data_store.create_branch(context, branch_name, Integer.parseInt(Data_store.get_attribute(context, Data_store.PARENT_ID_SETTING, "0")));
                     Data_store.commit(context, commit_message);
-
+                    Toast.makeText(context,"Commited",Toast.LENGTH_SHORT).show();
                 }
             });
         }
