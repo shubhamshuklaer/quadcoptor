@@ -16,7 +16,7 @@ import java.util.Map;
  * Created by shubham on 10/6/15.
  */
 public class Data_store {
-    public static String TUNER_DATA_FILE="tuner_data";
+    public static String TUNER_DATA_FILE="data";
     public static String APPLICATION_DATA_FILE="application_data";
     public static String HISTORY_META_FILE="history_meta";
     public static String CUR_BRANCH_SETTING="cur_branch";
@@ -57,7 +57,7 @@ public class Data_store {
 
     public static void commit(Context context,String commit_message){
         context=context.getApplicationContext();
-        Map<String,String> tune_data=Data_store.get_all(context,TUNER_DATA_FILE);
+        Map<String,String> tune_data=Data_store.get_all(context, TUNER_DATA_FILE);
         Db_helper db_helper=new Db_helper(context);
         db_helper.put_commit(context, commit_message);
         int id=db_helper.get_num_rows(db_helper.COMMIT_TBL_NAME);
@@ -105,5 +105,23 @@ public class Data_store {
     public static void create_branch(Context context,String branch_name,int parent_commit_id){
         Db_helper db_helper=new Db_helper(context);
         db_helper.create_branch(branch_name,parent_commit_id);
+    }
+
+    public static Map<String,String> get_data_for_commit(Context context,String _id){
+        try{
+            FileInputStream fis = context.openFileInput(_id);
+            ObjectInputStream ois= new ObjectInputStream(fis);
+            Map<String,String> tune_data=(Map<String,String>) ois.readObject();
+            ois.close();
+            fis.close();
+            return  tune_data;
+        }catch (FileNotFoundException e){
+            Toast.makeText(context,e.getMessage(),Toast.LENGTH_SHORT).show();
+        }catch (IOException e){
+            Toast.makeText(context,e.getMessage(),Toast.LENGTH_LONG).show();
+        }catch (ClassNotFoundException e){
+            Toast.makeText(context,e.getMessage(),Toast.LENGTH_LONG).show();
+        }
+        return null;
     }
 }

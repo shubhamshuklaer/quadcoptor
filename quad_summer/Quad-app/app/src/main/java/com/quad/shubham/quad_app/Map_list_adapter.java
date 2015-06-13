@@ -13,24 +13,24 @@ import java.util.TreeMap;
 /**
  * Created by shubham on 12/6/15.
  */
-public class Tuner_data_list_adapter extends BaseAdapter {
-    TreeMap<String,String> tuner_data;
+public class Map_list_adapter extends BaseAdapter {
+    TreeMap<String,String> data;
     int h_padding=5;
     int v_padding=5;
 
-    public Tuner_data_list_adapter(Map<String, String> _tuner_data){
+    public Map_list_adapter(Map<String, String> _tuner_data){
         super();
-        tuner_data=new TreeMap<String,String>(_tuner_data);//TreeMap sorts the data
+        data =new TreeMap<String,String>(_tuner_data);//TreeMap sorts the data
     }
     @Override
     public int getCount() {
-        return this.tuner_data.size();
+        return this.data.size();
     }
 
     @Override
     public Object getItem(int position) {
-        String key=this.tuner_data.keySet().toArray()[position].toString();
-        String value=this.tuner_data.get(key);
+        String key=this.data.keySet().toArray()[position].toString();
+        String value=this.data.get(key);
         String[] key_val={key,value};
         return key_val;
     }

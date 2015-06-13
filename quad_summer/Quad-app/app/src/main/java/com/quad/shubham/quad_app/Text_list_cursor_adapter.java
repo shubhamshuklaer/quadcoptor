@@ -11,8 +11,8 @@ import android.widget.TextView;
 /**
  * Created by shubham on 12/6/15.
  */
-public class Branch_list_cursor_adapter extends CursorAdapter {
-    public Branch_list_cursor_adapter(Context context,Cursor cursor){
+public class Text_list_cursor_adapter extends CursorAdapter {
+    public Text_list_cursor_adapter(Context context, Cursor cursor){
         super(context,cursor,0);
     }
     @Override

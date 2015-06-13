@@ -29,7 +29,7 @@ public class Commit extends Activity {
 
         Map<String,String> tuner_data= Data_store.get_all(Commit.this, Data_store.TUNER_DATA_FILE);
 
-        current_params.setAdapter(new Tuner_data_list_adapter(tuner_data));
+        current_params.setAdapter(new Map_list_adapter(tuner_data));
 
         layout.addView(commit_widget);
         layout.addView(current_params);

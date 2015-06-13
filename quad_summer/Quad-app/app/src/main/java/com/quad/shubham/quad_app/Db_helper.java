@@ -13,10 +13,10 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class Db_helper extends SQLiteOpenHelper {
 
     public static final String DB_NAME="tuner_database";
-    public static final String COMMIT_TBL_NAME ="tuner_data";
+    public static final String COMMIT_TBL_NAME ="data";
     public static final String BRANCHES_TBL_NAME ="branches";
     public static final String MASTER_BRANCH_NAME="master";
-    public static final int VERSION=5;
+    public static final int VERSION=6;
     Context context;
 
     public Db_helper(Context _context){
@@ -85,7 +85,7 @@ public class Db_helper extends SQLiteOpenHelper {
     public String get_branch_name(String commit_id){
 //        DatabaseUtils.
         SQLiteDatabase db=this.getReadableDatabase();
-        Cursor cur=db.rawQuery("SELECT * FROM "+COMMIT_TBL_NAME+" WHERE id=?",new String[]{commit_id});
+        Cursor cur=db.rawQuery("SELECT * FROM "+COMMIT_TBL_NAME+" WHERE _id=?",new String[]{commit_id});
         cur.moveToFirst();
         return cur.getString(cur.getColumnIndexOrThrow("branch_name"));
     }
