@@ -51,7 +51,7 @@ public class Connect_device extends Activity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
                 BluetoothDevice device = scanned_devices.get(position);
-//                Data_logging_service_interface.start_data_logging(Connect_device.this, device);
+                Data_logging_service_interface.start_data_logging(Connect_device.this, device);
             }
         });
         setContentView(list);
