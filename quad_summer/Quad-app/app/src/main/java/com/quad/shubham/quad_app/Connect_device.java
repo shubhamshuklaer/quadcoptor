@@ -12,10 +12,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 /**
@@ -37,19 +34,6 @@ public class Connect_device extends Activity {
         }
     };
 
-//    private final BroadcastReceiver bond_state_changed_receiver=new BroadcastReceiver() {
-//        @Override
-//        public void onReceive(Context context, Intent intent) {
-//            String action=intent.getAction();
-//            if(BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action)){
-//                final int state = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.ERROR);
-//                final int prevState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, BluetoothDevice.ERROR);
-//                if(state==BluetoothDevice.BOND_BONDED && prevState==BluetoothDevice.BOND_BONDING){
-//                    Toast.makeText(Connect_device.this,"Paired",Toast.LENGTH_SHORT).show();
-//                }
-//            }
-//        }
-//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,10 +41,6 @@ public class Connect_device extends Activity {
         list=new ListView(Connect_device.this);
         IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_FOUND);
         registerReceiver(action_found_reciever,filter);
-
-//        IntentFilter filter1=new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
-//        registerReceiver(bond_state_changed_receiver,filter1);
-
 
         arr_adapter=new ArrayAdapter<String>(Connect_device.this,android.R.layout.simple_list_item_1,android.R.id.text1);
         scanned_devices= new ArrayList<BluetoothDevice>();
@@ -71,7 +51,7 @@ public class Connect_device extends Activity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
                 BluetoothDevice device = scanned_devices.get(position);
-                Bluetooth_interface.start_data_logging(Connect_device.this,device);
+//                Data_logging_service_interface.start_data_logging(Connect_device.this, device);
             }
         });
         setContentView(list);
@@ -83,6 +63,5 @@ public class Connect_device extends Activity {
         super.onDestroy();
         //Imp to unregister receiver
         unregisterReceiver(action_found_reciever);
-//        unregisterReceiver(bond_state_changed_receiver);
     }
 }

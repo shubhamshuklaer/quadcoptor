@@ -63,6 +63,7 @@ public class Bluetooth extends Activity {
                         }
                         break;
                     case 3://Stop data logging
+//                        Data_logging_service_interface.stop_data_logging();
                         break;
 
                 }
