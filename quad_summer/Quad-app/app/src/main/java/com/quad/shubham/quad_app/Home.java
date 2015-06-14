@@ -13,12 +13,17 @@ import android.widget.Toast;
 import com.ipaulpro.afilechooser.FileChooserActivity;
 import com.ipaulpro.afilechooser.utils.FileUtils;
 
+import app.akexorcist.bluetotohspp.library.BluetoothSPP;
+import app.akexorcist.bluetotohspp.library.BluetoothState;
+import app.akexorcist.bluetotohspp.library.DeviceList;
+
 
 public class Home extends Activity {
 
-    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit"};
+    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit","Bluetooth"};
     ListView activity_list_view;
     String config_path;
+    BluetoothSPP bt;
     private static final int REQUEST_CHOOSER = 1234;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +62,10 @@ public class Home extends Activity {
                         intent = new Intent(Home.this, Commit.class);
                         startActivity(intent);
                         break;
+                    case 5:
+                        intent = new Intent(Home.this, Bluetooth.class);
+                        startActivity(intent);
+                        break;
                 }
             }
         });
@@ -80,6 +89,18 @@ public class Home extends Activity {
                     toast.show();
                 }
                 break;
+            case BluetoothState.REQUEST_CONNECT_DEVICE:
+                if(resultCode == Activity.RESULT_OK)
+                    bt.connect(data);
+                break;
+            case BluetoothState.REQUEST_ENABLE_BT:
+                if(resultCode == Activity.RESULT_OK) {
+                    bt.setupService();
+                    bt.startService(BluetoothState.DEVICE_ANDROID);
+//                    setup();
+                } else {
+                    // Do something if user doesn't choose any device (Pressed back)
+                }
         }
     }
 }
