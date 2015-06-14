@@ -60,8 +60,9 @@ public class Connect_device extends Activity {
 
     @Override
     protected void onDestroy() {
-        super.onDestroy();
+        BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
         //Imp to unregister receiver
         unregisterReceiver(action_found_reciever);
+        super.onDestroy();
     }
 }
