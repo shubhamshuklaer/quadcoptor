@@ -3,13 +3,11 @@ package com.quad.shubham.quad_app;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
-import android.hardware.camera2.params.BlackLevelPattern;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Switch;
 import android.widget.Toast;
 
 /**
@@ -18,7 +16,7 @@ import android.widget.Toast;
 public class Bluetooth extends Activity {
     ListView list;
     static final int ENABLE_REQUEST=1;
-    String[] actions={"Enable Bluetooth","Disable Bluetooth","Pair Device","Connect to device","Stop Data Logging"};
+    String[] actions={"Enable Bluetooth","Disable Bluetooth","Start Data Logging","Stop Data Logging"};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,15 +54,15 @@ public class Bluetooth extends Activity {
                             Toast.makeText(Bluetooth.this, "Already Disabled", Toast.LENGTH_SHORT).show();
                         }
                         break;
-                    case 2://Pair device
+                    case 2://Connect device
                         if(b_adapter.isEnabled()) {
-                            intent = new Intent(Bluetooth.this, Pair_device.class);
+                            intent = new Intent(Bluetooth.this, Connect_device.class);
                             startActivity(intent);
                         }else{
                             Toast.makeText(Bluetooth.this,"Enable bluetooth first", Toast.LENGTH_SHORT).show();
                         }
                         break;
-                    case 3://Connect to device
+                    case 3://Stop data logging
                         break;
 
                 }
