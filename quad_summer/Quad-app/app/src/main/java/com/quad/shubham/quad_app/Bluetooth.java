@@ -61,8 +61,12 @@ public class Bluetooth extends Activity {
                         break;
                     case 2://Connect device
                         if (b_adapter.isEnabled()) {
-                            intent = new Intent(Bluetooth.this, Connect_device.class);
-                            startActivity(intent);
+                            if(Data_logging_service.running){
+                                Toast.makeText(Bluetooth.this,"Service already running",Toast.LENGTH_SHORT).show();
+                            }else {
+                                intent = new Intent(Bluetooth.this, Connect_device.class);
+                                startActivity(intent);
+                            }
                         } else {
                             Toast.makeText(Bluetooth.this, "Enable bluetooth first", Toast.LENGTH_SHORT).show();
                         }

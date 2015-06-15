@@ -34,6 +34,7 @@ public class Data_logging_service extends IntentService{
     final byte new_line_ascii='\n';
     final byte carrige_return_ascii='\r';
     public static final String intent_filter_prefix="com.quad.shubham.quad_app";
+    public static boolean running;
     volatile boolean stop;
 
 
@@ -49,6 +50,12 @@ public class Data_logging_service extends IntentService{
         i_stream=null;
         o_stream=null;
         socket=null;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        running=true;
     }
 
     @Override
@@ -108,7 +115,7 @@ public class Data_logging_service extends IntentService{
                     if (read_byte == carrige_return_ascii) {
                         String data_line = new String(data, 0, buffer_pos, "US-ASCII");
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
-                        if (data_line.charAt(data_line.length() - 1) == '\n') {
+                        if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
                         }
                         String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
@@ -135,7 +142,10 @@ public class Data_logging_service extends IntentService{
 
     @Override
     public void onDestroy() {
-        stop=true;
+        synchronized (this) {
+            stop = true;
+        };
+        running=false;
         //from https://github.com/android/platform_frameworks_base/blob/master/core/java/android/app/IntentService.java
         //super.onDestroy() only quits the looper i.e no more requests will be taken and also all pending
         //requests are cleared... but the current request will still run

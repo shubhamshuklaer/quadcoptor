@@ -54,6 +54,11 @@ public class Connect_device extends Activity {
         list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                if(Data_logging_service.running){
+                    Toast.makeText(Connect_device.this,"Service already running",Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
 
                 BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(scanned_devices_addr.get(position));
