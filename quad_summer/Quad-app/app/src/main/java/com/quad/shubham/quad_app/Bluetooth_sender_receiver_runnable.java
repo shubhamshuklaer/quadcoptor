@@ -61,9 +61,9 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
                         data_line=data_line.substring(0,data_line.length()-1);//removing the last /n
                     }
                     String[] seperated=data_line.split(" ",2);// Data line will be of format "prefix int int\n"
-                    Intent intent=new Intent(Data_logging_service_interface.intent_filter_prefix+seperated[0]);
-                    intent.putExtra("data",seperated[1]);
-                    LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+                    Intent intent=new Intent(Data_logging_service_interface.intent_filter_prefix+":"+seperated[0]);
+                    intent.putExtra("data", seperated[1]);
+                    LocalBroadcastManager.getInstance(context.getApplicationContext()).sendBroadcast(intent);
                     buffer_pos=0;
                 } else if (read_byte==-1){
                     Toast.makeText(context, "End of stream reached", Toast.LENGTH_SHORT).show();
@@ -106,9 +106,14 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
     private void destroy(){
         try {
             socket.close();
+            i_stream.close();
+            o_stream.close();
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }
     }
 
 }
+
+
+

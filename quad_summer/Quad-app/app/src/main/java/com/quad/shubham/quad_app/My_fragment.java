@@ -1,9 +1,14 @@
 package com.quad.shubham.quad_app;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.Layout;
 import android.util.LayoutDirection;
 import android.util.Log;
@@ -29,6 +34,7 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.util.ArrayList;
 
 
 /**
@@ -41,6 +47,7 @@ public class My_fragment extends Fragment {
     String title;
     int num_columns;
     int num_rows;
+    ArrayList<Graph_data_receiver> receivers;
 
     public static My_fragment newInstance(int _position){
         My_fragment fragment=new My_fragment();
@@ -54,6 +61,7 @@ public class My_fragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         position=getArguments().getInt("position");
+        receivers=new ArrayList<Graph_data_receiver>();
     }
 
     @Nullable
@@ -104,13 +112,9 @@ public class My_fragment extends Fragment {
 
                             if ("graph".equals(temp_element.getNodeName())) {
                                 GraphView temp_graph_view = new GraphView(parent_activity);
-                                LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>(new DataPoint[]{
-                                        new DataPoint(0, 1),
-                                        new DataPoint(1, 5),
-                                        new DataPoint(2, 3),
-                                        new DataPoint(3, 2),
-                                        new DataPoint(4, 6)
-                                });
+                                LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>();
+                                String prefix=temp_element.getAttribute("prefix").toString();
+                                receivers.add(new Graph_data_receiver(parent_activity,series,prefix));
                                 temp_graph_view.setLayoutParams(element_layout_params);
                                 temp_graph_view.addSeries(series);
                                 layout.addView(temp_graph_view, element_layout_params);
@@ -127,13 +131,24 @@ public class My_fragment extends Fragment {
                             }
                         }
                     }
+
+                    for(int i=0;i<receivers.size();i++)
+                        receivers.get(i).register_receiver();
                 }
             }
         });
 
+
+
         return layout;
     }
 
+    @Override
+    public void onDestroyView() {
+        for(int i=0;i<receivers.size();i++)
+            receivers.get(i).unregister_receiver();
 
+        super.onDestroyView();
+    }
 }
 

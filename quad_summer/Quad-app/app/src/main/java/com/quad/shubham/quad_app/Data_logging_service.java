@@ -36,5 +36,6 @@ public class Data_logging_service extends Service {
     public void onDestroy() {
         thread.interrupt();
         Toast.makeText(this,"Data logging stopped", Toast.LENGTH_LONG).show();
+        super.onDestroy();
     }
 }

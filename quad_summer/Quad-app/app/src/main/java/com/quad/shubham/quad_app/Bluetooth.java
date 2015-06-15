@@ -22,12 +22,6 @@ public class Bluetooth extends Activity {
     ListView list;
     static final int ENABLE_REQUEST=1;
     String[] actions={"Enable Bluetooth","Disable Bluetooth","Start Data Logging","Stop Data Logging"};
-    BroadcastReceiver receiver=new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            Log.e("normal","err.."+intent.getStringExtra("data"));
-        }
-    };
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,8 +75,7 @@ public class Bluetooth extends Activity {
             }
         });
 
-        IntentFilter intent_filter=new IntentFilter(Data_logging_service_interface.intent_filter_prefix+"hello");
-        LocalBroadcastManager.getInstance(Bluetooth.this).registerReceiver(receiver,intent_filter);
+
 
         setContentView(list);
     }
@@ -107,8 +100,6 @@ public class Bluetooth extends Activity {
 
     @Override
     protected void onDestroy() {
-        if(receiver!=null)
-            LocalBroadcastManager.getInstance(Bluetooth.this).unregisterReceiver(receiver);
         super.onDestroy();
     }
 }
