@@ -12,6 +12,7 @@ import android.widget.Toast;
  */
 public class Data_logging_service extends Service {
     Thread thread;
+    public static final String intent_filter_prefix="com.quad.shubham.quad_app";
 
     @Override
     public void onCreate() {
@@ -35,7 +36,5 @@ public class Data_logging_service extends Service {
     @Override
     public void onDestroy() {
         thread.interrupt();
-        Toast.makeText(this,"Data logging stopped", Toast.LENGTH_LONG).show();
-        super.onDestroy();
     }
 }

@@ -68,7 +68,8 @@ public class Bluetooth extends Activity {
                         }
                         break;
                     case 3://Stop data logging
-                        Data_logging_service_interface.stop_data_logging(Bluetooth.this);
+                        intent=new Intent(Bluetooth.this,Data_logging_service.class);
+                        stopService(intent);
                         break;
 
                 }

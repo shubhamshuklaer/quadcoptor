@@ -1,5 +1,6 @@
 package com.quad.shubham.quad_app;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
@@ -61,12 +62,14 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
                         data_line=data_line.substring(0,data_line.length()-1);//removing the last /n
                     }
                     String[] seperated=data_line.split(" ",2);// Data line will be of format "prefix int int\n"
-                    Intent intent=new Intent(Data_logging_service_interface.intent_filter_prefix+":"+seperated[0]);
-                    intent.putExtra("data", seperated[1]);
-                    LocalBroadcastManager.getInstance(context.getApplicationContext()).sendBroadcast(intent);
+                    if(seperated.length==2) { //Sometimes it is lenght 1 causes error
+                        Intent intent = new Intent(Data_logging_service.intent_filter_prefix + ":" + seperated[0]);
+                        intent.putExtra("data", seperated[1]);
+                        LocalBroadcastManager.getInstance(context.getApplicationContext()).sendBroadcast(intent);
+                    }
                     buffer_pos=0;
                 } else if (read_byte==-1){
-                    Toast.makeText(context, "End of stream reached", Toast.LENGTH_SHORT).show();
+                    Log.d("normal","End of stream reached");
                     stop=true;
                 }else{
                     data[buffer_pos]=read_byte;
@@ -81,7 +84,7 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
 
     //Constructor
     public Bluetooth_sender_receiver_runnable(Context _context,BluetoothDevice _device){
-        context=_context.getApplicationContext();
+        context=_context;
         device=_device;
     }
 
@@ -105,9 +108,9 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
 
     private void destroy(){
         try {
-            socket.close();
             i_stream.close();
             o_stream.close();
+            socket.close();
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }

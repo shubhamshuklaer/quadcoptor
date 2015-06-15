@@ -35,7 +35,7 @@ public class Graph_data_receiver extends BroadcastReceiver {
     }
 
     public void register_receiver(){
-        IntentFilter intent_filter=new IntentFilter(Data_logging_service_interface.intent_filter_prefix+":"+prefix);
+        IntentFilter intent_filter=new IntentFilter(Data_logging_service.intent_filter_prefix+":"+prefix);
         LocalBroadcastManager.getInstance(context.getApplicationContext()).registerReceiver(this, intent_filter);
         Log.d("normal",prefix);
     }
