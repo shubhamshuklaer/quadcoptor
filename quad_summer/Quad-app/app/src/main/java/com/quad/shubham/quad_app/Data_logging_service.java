@@ -99,6 +99,7 @@ public class Data_logging_service extends IntentService{
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }
+        running=false;
     }
 
 
@@ -145,7 +146,6 @@ public class Data_logging_service extends IntentService{
         synchronized (this) {
             stop = true;
         };
-        running=false;
         //from https://github.com/android/platform_frameworks_base/blob/master/core/java/android/app/IntentService.java
         //super.onDestroy() only quits the looper i.e no more requests will be taken and also all pending
         //requests are cleared... but the current request will still run
