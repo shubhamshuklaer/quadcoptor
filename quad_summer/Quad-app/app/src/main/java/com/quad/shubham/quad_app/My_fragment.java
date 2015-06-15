@@ -117,6 +117,9 @@ public class My_fragment extends Fragment {
                                 receivers.add(new Graph_data_receiver(parent_activity,series,prefix));
                                 temp_graph_view.setLayoutParams(element_layout_params);
                                 temp_graph_view.addSeries(series);
+                                temp_graph_view.getViewport().setXAxisBoundsManual(true);
+                                temp_graph_view.getViewport().setMinX(-1000000);
+                                temp_graph_view.getViewport().setMaxX(1000000);
                                 layout.addView(temp_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
@@ -144,11 +147,17 @@ public class My_fragment extends Fragment {
     }
 
     @Override
-    public void onDestroyView() {
+    public void onPause() {
+        super.onPause();
         for(int i=0;i<receivers.size();i++)
             receivers.get(i).unregister_receiver();
+    }
 
-        super.onDestroyView();
+    @Override
+    public void onResume() {
+        super.onResume();
+        for(int i=0;i<receivers.size();i++)
+            receivers.get(i).register_receiver();
     }
 }
 
