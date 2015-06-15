@@ -120,6 +120,8 @@ public class My_fragment extends Fragment {
                                 temp_graph_view.getViewport().setXAxisBoundsManual(true);
                                 temp_graph_view.getViewport().setMinX(-1000000);
                                 temp_graph_view.getViewport().setMaxX(1000000);
+                                temp_graph_view.getViewport().setScalable(true);
+                                temp_graph_view.getViewport().setScrollable(true);
                                 layout.addView(temp_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
