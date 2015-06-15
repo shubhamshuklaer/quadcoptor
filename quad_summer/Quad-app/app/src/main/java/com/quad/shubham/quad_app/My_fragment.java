@@ -1,34 +1,18 @@
 package com.quad.shubham.quad_app;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.LocalBroadcastManager;
-import android.text.Layout;
-import android.util.LayoutDirection;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
-import android.widget.Button;
 import android.widget.GridLayout;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-
-import android.view.ViewGroup.LayoutParams;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
@@ -112,16 +96,35 @@ public class My_fragment extends Fragment {
 
                             if ("graph".equals(temp_element.getNodeName())) {
                                 GraphView temp_graph_view = new GraphView(parent_activity);
-                                LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>();
-                                String prefix=temp_element.getAttribute("prefix").toString();
-                                receivers.add(new Graph_data_receiver(parent_activity,series,prefix));
-                                temp_graph_view.setLayoutParams(element_layout_params);
-                                temp_graph_view.addSeries(series);
+
+                                NodeList graph_childs=temp_element.getChildNodes();
+
+                                for(int j=0;j<graph_childs.getLength();j++) {
+                                    Node graph_child=graph_childs.item(j);
+                                    if(graph_child.getNodeType()==Node.ELEMENT_NODE && "series".equals(graph_child.getNodeName())) {
+                                        Element graph_child_element=(Element)graph_child;
+
+                                        LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>();
+                                        String prefix = graph_child_element.getAttribute("name").toString();
+                                        int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color").toString());
+
+                                        Log.e("normal", Integer.toString(color));
+
+                                        receivers.add(new Graph_data_receiver(parent_activity, series, prefix));
+                                        series.setTitle(prefix);
+                                        series.setColor(color);
+
+                                        temp_graph_view.addSeries(series);
+                                    }
+                                }
+
                                 temp_graph_view.getViewport().setXAxisBoundsManual(true);
                                 temp_graph_view.getViewport().setMinX(-1000000);
                                 temp_graph_view.getViewport().setMaxX(1000000);
                                 temp_graph_view.getViewport().setScalable(true);
                                 temp_graph_view.getViewport().setScrollable(true);
+                                temp_graph_view.getLegendRenderer().setVisible(true);
+
                                 layout.addView(temp_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
@@ -131,7 +134,6 @@ public class My_fragment extends Fragment {
                                     temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,param_name);
                                 else
                                     temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL,param_name);
-                                temp_seek_bar.setLayoutParams(element_layout_params);
                                 layout.addView(temp_seek_bar,element_layout_params);
                             }
                         }
@@ -160,6 +162,19 @@ public class My_fragment extends Fragment {
         super.onResume();
         for(int i=0;i<receivers.size();i++)
             receivers.get(i).register_receiver();
+    }
+
+    public static int try_parse_hex_int(String str){
+        try {
+            //The max value is 0xFFFFFFFF whose value 4294967295 is outside int range
+            //So we get NumberFormatException if we use Integer.ParseInt(str,16)
+            //Sol parse using long and then cast it to int it will send it to the negative side
+            //of int just like we want according to the color class
+            //http://developer.android.com/reference/android/graphics/Color.html
+            return (int)Long.parseLong(str,16);
+        } catch(NumberFormatException nfe) {
+            return 0;
+        }
     }
 }
 
