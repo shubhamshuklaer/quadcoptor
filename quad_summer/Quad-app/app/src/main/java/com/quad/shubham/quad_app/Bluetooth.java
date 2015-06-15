@@ -25,7 +25,7 @@ public class Bluetooth extends Activity {
     BroadcastReceiver receiver=new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d("normal",intent.getStringExtra("data"));
+            Log.e("normal","err.."+intent.getStringExtra("data"));
         }
     };
     @Override

@@ -52,11 +52,8 @@ public class Bluetooth_sender_receiver_runnable implements Runnable{
     private void receive() {
         byte read_byte;
         try {
-            Log.d("normal","hh");
-            while(i_stream.available() >0 && buffer_pos!=buffer_size) {
-
+            while(i_stream.available() >0 && buffer_pos < buffer_size) {
                 read_byte =(byte) (i_stream.read());//reads 1 byte... since returns a int between 0-255 we can cast it directly
-                Log.d("normal",new String(data,0,buffer_pos,"US-ASCII"));
                 if (read_byte == carrige_return_ascii) {
                     String data_line=new String(data,0,buffer_pos,"US-ASCII");
                     data_line=data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
