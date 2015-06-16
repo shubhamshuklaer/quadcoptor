@@ -6,10 +6,16 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Binder;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -40,15 +46,26 @@ public class Data_logging_service extends IntentService{
     public static final int STOP_NOTIFICATION_ID =21;
     public static final String send_intent_filter="com.quad.shubham.quad_app_send";
     public static boolean running;
+    private Binder my_binder=null;
     volatile boolean stop;
 
+    Sender_thread sender_thread;
+    Handler sender_handler;
 
-    private BroadcastReceiver data_receiver=new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
+    public class My_Binder extends Binder{
+        private Handler handler;
 
+        public My_Binder(Handler _handler){
+            this.handler=_handler;
         }
-    };
+
+        public void send_data(String data){
+            Message msg=Message.obtain();
+            msg.obj=data;
+            msg.setTarget(handler);
+            msg.sendToTarget();
+        }
+    }
 
     public Data_logging_service() {
         super("Data_logging_service");
@@ -71,6 +88,8 @@ public class Data_logging_service extends IntentService{
             }
             destroy();
         }
+
+        running=false;
     }
 
 
@@ -113,6 +132,11 @@ public class Data_logging_service extends IntentService{
 
             IntentFilter filter=new IntentFilter(Data_logging_service.send_intent_filter);
 //            registerReceiver(data_receiver,filter,null,this.getHa)
+
+            sender_thread=new Sender_thread("Sender_thread",o_stream);
+            sender_thread.start();
+            sender_handler=sender_thread.get_handler();
+            my_binder=new My_Binder(sender_handler);
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -131,7 +155,7 @@ public class Data_logging_service extends IntentService{
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }
-        running=false;
+        sender_thread.quit();
         Notification service_stopped_notification=new NotificationCompat.Builder(this)
                 .setContentTitle("Quad app")
                 .setContentText("Data logging stopped")
@@ -190,5 +214,11 @@ public class Data_logging_service extends IntentService{
         //super.onDestroy() only quits the looper i.e no more requests will be taken and also all pending
         //requests are cleared... but the current request will still run
         super.onDestroy();
+
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return my_binder;
     }
 }

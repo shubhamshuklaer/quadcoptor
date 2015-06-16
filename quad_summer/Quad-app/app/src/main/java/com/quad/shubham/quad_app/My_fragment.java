@@ -117,10 +117,6 @@ public class My_fragment extends Fragment {
                                         temp_graph_view.addSeries(series);
                                     }
                                 }
-
-//                                temp_graph_view.getViewport().setXAxisBoundsManual(true);
-//                                temp_graph_view.getViewport().setMinX(-1000000);
-//                                temp_graph_view.getViewport().setMaxX(1000000);
                                 temp_graph_view.getViewport().setScalable(true);
                                 temp_graph_view.getViewport().setScrollable(true);
                                 temp_graph_view.getLegendRenderer().setVisible(true);
@@ -130,10 +126,11 @@ public class My_fragment extends Fragment {
                             }else if("slider".equals(temp_element.getNodeName())){
                                 My_slider temp_seek_bar;
                                 String param_name=temp_element.getAttribute("param_name").toString();
+                                String command=temp_element.getAttribute("command").toString();
                                 if(element_num_rows>element_num_cols)
-                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,param_name);
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,param_name,command);
                                 else
-                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL,param_name);
+                                    temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL,param_name,command);
                                 layout.addView(temp_seek_bar,element_layout_params);
                             }
                         }

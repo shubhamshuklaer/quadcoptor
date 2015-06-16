@@ -1,6 +1,10 @@
 package com.quad.shubham.quad_app;
 
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -25,13 +29,17 @@ public class My_slider extends LinearLayout {
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
     String parameter_name;
     Context parent_context;
+    Data_logging_service.My_Binder my_binder;
+    String command;
+    private final String replace_str="%";
 
     public My_slider(Context context) {
         super(context);
     }
 
-    public static My_slider new_instance(Context context,Direction dir,String _parameter_name){
+    public static My_slider new_instance(Context context,Direction dir,String _parameter_name,String _command){
         final My_slider new_slider=new My_slider(context);
+        new_slider.command=_command;
         new_slider.parent_context=context;
 
         if(dir==Direction.HORIZONTAL) {
@@ -206,6 +214,18 @@ public class My_slider extends LinearLayout {
         new_slider.cur_text.addTextChangedListener(new_slider.cur_text_watcher);
         new_slider.seek_bar.setOnSeekBarChangeListener(new_slider.seek_bar_change_listner);
 
+        new_slider.parent_context.bindService(new Intent(new_slider.parent_context, Data_logging_service.class), new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                new_slider.my_binder=(Data_logging_service.My_Binder)service;
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                new_slider.my_binder=null;
+            }
+        }, 0);
+
         return new_slider;
     }
 
@@ -220,6 +240,9 @@ public class My_slider extends LinearLayout {
     public void set_cur_text(String str){
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
+        if(my_binder!=null){
+            my_binder.send_data(command.replace(replace_str,str));
+        }
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
         this.update_tuner_data(this.parameter_name + "^cur", str);
     }
