@@ -7,6 +7,7 @@ import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
@@ -17,12 +18,14 @@ public class Graph_data_receiver extends BroadcastReceiver {
     LineGraphSeries<DataPoint> series;
     public String prefix;
     Context context;
+    GraphView graph_view;
+    public static final int view_port_size=50;
 
-    public Graph_data_receiver(Context _context,LineGraphSeries<DataPoint> _series,String _prefix){
+    public Graph_data_receiver(Context _context,GraphView _graph_view,LineGraphSeries<DataPoint> _series,String _prefix){
         series=_series;
         prefix=_prefix;
         context=_context;
-        Log.e("normal","Created");
+        graph_view=_graph_view;
     }
 
     @Override
@@ -30,8 +33,9 @@ public class Graph_data_receiver extends BroadcastReceiver {
         String data=intent.getStringExtra("data");
         String[] seperated=data.split(" ",2);
         DataPoint point=new DataPoint(Integer.parseInt(seperated[0]),Integer.parseInt(seperated[1]));
-        series.appendData(point, true, 50);
-        Log.e("normal", "err..." + data);
+        series.appendData(point, false, 50);
+        graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - view_port_size);
+        graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
     }
 
     public void register_receiver(){

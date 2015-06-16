@@ -110,7 +110,7 @@ public class My_fragment extends Fragment {
 
                                         Log.e("normal", Integer.toString(color));
 
-                                        receivers.add(new Graph_data_receiver(parent_activity, series, prefix));
+                                        receivers.add(new Graph_data_receiver(parent_activity,temp_graph_view, series, prefix));
                                         series.setTitle(prefix);
                                         series.setColor(color);
 
@@ -118,9 +118,9 @@ public class My_fragment extends Fragment {
                                     }
                                 }
 
-                                temp_graph_view.getViewport().setXAxisBoundsManual(true);
-                                temp_graph_view.getViewport().setMinX(-1000000);
-                                temp_graph_view.getViewport().setMaxX(1000000);
+//                                temp_graph_view.getViewport().setXAxisBoundsManual(true);
+//                                temp_graph_view.getViewport().setMinX(-1000000);
+//                                temp_graph_view.getViewport().setMaxX(1000000);
                                 temp_graph_view.getViewport().setScalable(true);
                                 temp_graph_view.getViewport().setScrollable(true);
                                 temp_graph_view.getLegendRenderer().setVisible(true);

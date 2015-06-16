@@ -9,6 +9,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -37,6 +38,7 @@ public class Data_logging_service extends IntentService{
     public static final String intent_filter_prefix="com.quad.shubham.quad_app";
     public static final int START_NOTIFICATION_ID =19;
     public static final int STOP_NOTIFICATION_ID =21;
+    public static final String send_intent_filter="com.quad.shubham.quad_app_send";
     public static boolean running;
     volatile boolean stop;
 
@@ -107,7 +109,10 @@ public class Data_logging_service extends IntentService{
                     .setContentIntent(pending_intent)
                     .setSmallIcon(R.mipmap.ic_launcher).build();
 
-            startForeground(Data_logging_service.START_NOTIFICATION_ID,notification);
+            startForeground(Data_logging_service.START_NOTIFICATION_ID, notification);
+
+            IntentFilter filter=new IntentFilter(Data_logging_service.send_intent_filter);
+//            registerReceiver(data_receiver,filter,null,this.getHa)
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
