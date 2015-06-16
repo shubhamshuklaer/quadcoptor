@@ -138,6 +138,7 @@ public class Data_logging_service extends IntentService{
                 .setSmallIcon(R.mipmap.ic_launcher).build();
 
         NotificationManager notification_manager=(NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        notification_manager.cancel(STOP_NOTIFICATION_ID);
         notification_manager.notify(STOP_NOTIFICATION_ID,service_stopped_notification);
     }
 
