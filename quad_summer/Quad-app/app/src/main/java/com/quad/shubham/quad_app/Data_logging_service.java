@@ -1,17 +1,17 @@
 package com.quad.shubham.quad_app;
 
 import android.app.IntentService;
-import android.app.Service;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.HandlerThread;
-import android.os.IBinder;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +34,8 @@ public class Data_logging_service extends IntentService{
     final byte new_line_ascii='\n';
     final byte carrige_return_ascii='\r';
     public static final String intent_filter_prefix="com.quad.shubham.quad_app";
+    public static final int START_NOTIFICATION_ID =19;
+    public static final int STOP_NOTIFICATION_ID =21;
     public static boolean running;
     volatile boolean stop;
 
@@ -81,6 +83,22 @@ public class Data_logging_service extends IntentService{
             data=new byte[buffer_size];
             buffer_pos=0;
             stop=false;
+
+            //  http://www.truiton.com/2014/10/android-foreground-service-example/
+            // For foreground service
+
+            Intent bluetooth_activity_intent=new Intent(this,Bluetooth.class);
+            bluetooth_activity_intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+
+            PendingIntent pending_intent=PendingIntent.getActivity(this,0,bluetooth_activity_intent,0);
+
+            Notification notification=new NotificationCompat.Builder(this)
+                    .setContentTitle("Data Logging service started")
+                    .setContentText("Click to stop")
+                    .setContentIntent(pending_intent)
+                    .setSmallIcon(R.mipmap.ic_launcher).build();
+
+            startForeground(Data_logging_service.START_NOTIFICATION_ID,notification);
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -100,6 +118,13 @@ public class Data_logging_service extends IntentService{
             Log.e("normal", e.getMessage());
         }
         running=false;
+        Notification service_stopped_notification=new NotificationCompat.Builder(this)
+                .setContentTitle("Quad app")
+                .setContentText("Data logging stopped")
+                .setSmallIcon(R.mipmap.ic_launcher).build();
+
+        NotificationManager notification_manager=(NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        notification_manager.notify(STOP_NOTIFICATION_ID,service_stopped_notification);
     }
 
 
