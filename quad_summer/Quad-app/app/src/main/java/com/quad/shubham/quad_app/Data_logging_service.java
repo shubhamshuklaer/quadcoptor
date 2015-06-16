@@ -10,6 +10,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -88,9 +89,17 @@ public class Data_logging_service extends IntentService{
             // For foreground service
 
             Intent bluetooth_activity_intent=new Intent(this,Bluetooth.class);
-            bluetooth_activity_intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
 
-            PendingIntent pending_intent=PendingIntent.getActivity(this,0,bluetooth_activity_intent,0);
+            // http://stackoverflow.com/questions/13632480/android-build-a-notification-taskstackbuilder-addparentstack-not-working
+            // http://developer.android.com/guide/topics/ui/notifiers/notifications.html
+            // So that when we press back from the activity opened by notification click we go
+            // to home activity. In manifest the android:parent parameter is for this only.
+            // Also the android:launchMode=singleTop is so if the activity is already running it is not started twice
+            TaskStackBuilder stack_builder=TaskStackBuilder.create(this);
+            stack_builder.addParentStack(Bluetooth.class);
+            stack_builder.addNextIntent(bluetooth_activity_intent);
+
+            PendingIntent pending_intent=stack_builder.getPendingIntent(0,PendingIntent.FLAG_UPDATE_CURRENT);
 
             Notification notification=new NotificationCompat.Builder(this)
                     .setContentTitle("Data Logging service started")

@@ -27,7 +27,9 @@
         <activity android:name=".Select_config"></activity>
         <activity android:name=".Commit"></activity>
         <activity android:name=".Show_commit"></activity>
-        <activity android:name=".Bluetooth"></activity>
+        <activity android:name=".Bluetooth"
+            android:launchMode="singleTop"
+            android:parentActivityName=".Home"></activity>
         <activity android:name=".Connect_device"></activity>
         <activity
             android:name="com.ipaulpro.afilechooser.FileChooserActivity"
