@@ -65,6 +65,12 @@ public class Data_logging_service extends IntentService{
     }
 
     @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        super.onStartCommand(intent, flags, startId);
+        return START_REDELIVER_INTENT;
+    }
+
+    @Override
     protected void onHandleIntent(Intent intent) {
         if(initialize(intent)){
             while(!stop){
