@@ -1,10 +1,12 @@
 package com.quad.shubham.quad_app;
 
 import android.app.Activity;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,6 +33,7 @@ public class My_fragment extends Fragment {
     String title;
     int num_columns;
     int num_rows;
+    final int margin=10;
     ArrayList<Graph_data_receiver> receivers;
 
     public static My_fragment newInstance(int _position){
@@ -89,10 +92,15 @@ public class My_fragment extends Fragment {
                             int element_num_cols = Integer.parseInt(temp_element.getAttribute("num_cols"));
                             int element_num_rows = Integer.parseInt(temp_element.getAttribute("num_rows"));
                             GridLayout.LayoutParams element_layout_params = new GridLayout.LayoutParams(
-                                    GridLayout.spec(element_start_cols, element_num_cols), GridLayout.spec(element_start_rows, element_num_rows));
+                                    GridLayout.spec(element_start_rows, element_num_rows)  , GridLayout.spec(element_start_cols, element_num_cols));
 
-                            element_layout_params.height = full_height * element_num_rows / num_columns;
-                            element_layout_params.width = full_width * element_num_cols / num_rows;
+                            element_layout_params.height = full_height * element_num_rows / num_columns -2*margin;
+                            element_layout_params.width = full_width * element_num_cols / num_rows -2*margin;
+
+                            element_layout_params.leftMargin=margin;
+                            element_layout_params.rightMargin=margin;
+                            element_layout_params.topMargin=margin;
+                            element_layout_params.bottomMargin=margin;
 
                             if ("graph".equals(temp_element.getNodeName())) {
                                 GraphView temp_graph_view = new GraphView(parent_activity);

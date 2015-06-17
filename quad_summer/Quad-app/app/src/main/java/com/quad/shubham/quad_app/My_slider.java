@@ -9,6 +9,8 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -34,6 +36,7 @@ public class My_slider extends LinearLayout {
     String command;
     ServiceConnection conn;
     private final String replace_str="%";
+    final int margin=10;
 
     public My_slider(Context context) {
         super(context);
@@ -182,7 +185,7 @@ public class My_slider extends LinearLayout {
         //The cur_text_textwatcher should be defined before this
         //cause I set that in set_cur_text so we get a null textwatcher
         new_slider.set_cur_text(Integer.toString(cur));
-        new_slider.seek_bar.setMax(max-min);
+        new_slider.seek_bar.setMax(max - min);
         new_slider.seek_bar.setProgress(cur);
 
         new_slider.max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -194,6 +197,8 @@ public class My_slider extends LinearLayout {
         LinearLayout min_layout=new LinearLayout(context);
         LinearLayout cur_layout=new LinearLayout(context);
 
+        LayoutParams temp_layout_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+        temp_layout_params.gravity=Gravity.CENTER;
 
         max_layout.addView(new_slider.max_label);
         max_layout.addView(new_slider.max_text);
@@ -207,14 +212,21 @@ public class My_slider extends LinearLayout {
 
         new_slider.seek_bar_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
         new_slider.seek_bar_params.weight=1;
-        new_slider.seek_bar.setLayoutParams(new_slider.seek_bar_params);
+        new_slider.seek_bar_params.gravity= Gravity.CENTER;
 
-        new_slider.addView(new_slider.name_label);
-        new_slider.addView(max_layout);
-        new_slider.addView(min_layout);
-        new_slider.addView(new_slider.seek_bar);
-        new_slider.addView(cur_layout);
+        new_slider.addView(new_slider.name_label,temp_layout_params);
+        new_slider.addView(max_layout,temp_layout_params);
+        new_slider.addView(min_layout,temp_layout_params);
+        new_slider.addView(new_slider.seek_bar, new_slider.seek_bar_params);
+        new_slider.addView(cur_layout, temp_layout_params);
 
+        LayoutParams full_layout_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+        full_layout_params.leftMargin=new_slider.margin;
+        full_layout_params.rightMargin=new_slider.margin;
+        full_layout_params.topMargin=new_slider.margin;
+        full_layout_params.bottomMargin=new_slider.margin;
+
+        new_slider.setLayoutParams(full_layout_params);
 
 
         new_slider.min_text.addTextChangedListener(new_slider.min_max_text_watcher);
