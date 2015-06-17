@@ -30,7 +30,7 @@ public class Sender_thread extends HandlerThread {
                 try {
                     o_stream.write(data.getBytes("UTF-8"));
                     o_stream.flush();
-                    Log.e("normal",data);
+                    Log.e("normal","Received data "+data);
                 }catch (IOException e){
                     Log.e("normal", e.getMessage());
                 }

@@ -20,7 +20,7 @@ public class Graph_data_receiver extends BroadcastReceiver {
     public String prefix;
     Context context;
     GraphView graph_view;
-    public static final int view_port_size=20;
+    public static final int view_port_size=50;
 
     public Graph_data_receiver(Context _context,GraphView _graph_view,LineGraphSeries<DataPoint> _series,String _prefix){
         series=_series;

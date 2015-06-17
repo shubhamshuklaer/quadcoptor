@@ -250,6 +250,7 @@ public class My_slider extends LinearLayout {
         this.cur_text.setText(str);
         if (this.my_binder != null) {
             this.my_binder.send_data(command.replace(replace_str, str));
+            Log.e("normal","Sent text "+command.replace(replace_str, str));
         }
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
         this.update_tuner_data(this.parameter_name + "^cur", str);
