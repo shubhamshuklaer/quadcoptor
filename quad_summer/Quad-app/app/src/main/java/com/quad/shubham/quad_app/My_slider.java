@@ -8,6 +8,7 @@ import android.os.IBinder;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -29,13 +30,16 @@ public class My_slider extends LinearLayout {
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
     String parameter_name;
     Context parent_context;
-    Data_logging_service.My_Binder my_binder;
+    My_binder my_binder;
     String command;
+    ServiceConnection conn;
     private final String replace_str="%";
 
     public My_slider(Context context) {
         super(context);
     }
+
+
 
     public static My_slider new_instance(Context context,Direction dir,String _parameter_name,String _command){
         final My_slider new_slider=new My_slider(context);
@@ -84,43 +88,6 @@ public class My_slider extends LinearLayout {
                 new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min));
             }
         }
-
-
-        new_slider.min_text.setText(Integer.toString(min));
-        new_slider.max_text.setText(Integer.toString(max));
-        new_slider.cur_text.setText(Integer.toString(cur));
-        new_slider.seek_bar.setMax(max-min);
-        new_slider.seek_bar.setProgress(cur);
-
-        new_slider.max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
-        new_slider.min_text.setInputType(InputType.TYPE_CLASS_NUMBER);
-        new_slider.cur_text.setInputType(InputType.TYPE_CLASS_NUMBER);
-
-
-        LinearLayout max_layout=new LinearLayout(context);
-        LinearLayout min_layout=new LinearLayout(context);
-        LinearLayout cur_layout=new LinearLayout(context);
-
-
-        max_layout.addView(new_slider.max_label);
-        max_layout.addView(new_slider.max_text);
-
-        min_layout.addView(new_slider.min_label);
-        min_layout.addView(new_slider.min_text);
-
-        cur_layout.addView(new_slider.cur_label);
-        cur_layout.addView(new_slider.cur_text);
-
-
-        new_slider.seek_bar_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
-        new_slider.seek_bar_params.weight=1;
-        new_slider.seek_bar.setLayoutParams(new_slider.seek_bar_params);
-
-        new_slider.addView(new_slider.name_label);
-        new_slider.addView(max_layout);
-        new_slider.addView(min_layout);
-        new_slider.addView(new_slider.seek_bar);
-        new_slider.addView(cur_layout);
 
         new_slider.seek_bar_change_listner=new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -209,22 +176,51 @@ public class My_slider extends LinearLayout {
             }
         };
 
+
+        new_slider.min_text.setText(Integer.toString(min));
+        new_slider.max_text.setText(Integer.toString(max));
+        //The cur_text_textwatcher should be defined before this
+        //cause I set that in set_cur_text so we get a null textwatcher
+        new_slider.set_cur_text(Integer.toString(cur));
+        new_slider.seek_bar.setMax(max-min);
+        new_slider.seek_bar.setProgress(cur);
+
+        new_slider.max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+        new_slider.min_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+        new_slider.cur_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+
+
+        LinearLayout max_layout=new LinearLayout(context);
+        LinearLayout min_layout=new LinearLayout(context);
+        LinearLayout cur_layout=new LinearLayout(context);
+
+
+        max_layout.addView(new_slider.max_label);
+        max_layout.addView(new_slider.max_text);
+
+        min_layout.addView(new_slider.min_label);
+        min_layout.addView(new_slider.min_text);
+
+        cur_layout.addView(new_slider.cur_label);
+        cur_layout.addView(new_slider.cur_text);
+
+
+        new_slider.seek_bar_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+        new_slider.seek_bar_params.weight=1;
+        new_slider.seek_bar.setLayoutParams(new_slider.seek_bar_params);
+
+        new_slider.addView(new_slider.name_label);
+        new_slider.addView(max_layout);
+        new_slider.addView(min_layout);
+        new_slider.addView(new_slider.seek_bar);
+        new_slider.addView(cur_layout);
+
+
+
         new_slider.min_text.addTextChangedListener(new_slider.min_max_text_watcher);
         new_slider.max_text.addTextChangedListener(new_slider.min_max_text_watcher);
         new_slider.cur_text.addTextChangedListener(new_slider.cur_text_watcher);
         new_slider.seek_bar.setOnSeekBarChangeListener(new_slider.seek_bar_change_listner);
-
-        new_slider.parent_context.bindService(new Intent(new_slider.parent_context, Data_logging_service.class), new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                new_slider.my_binder=(Data_logging_service.My_Binder)service;
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-                new_slider.my_binder=null;
-            }
-        }, 0);
 
         return new_slider;
     }
@@ -240,8 +236,8 @@ public class My_slider extends LinearLayout {
     public void set_cur_text(String str){
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
-        if(my_binder!=null){
-            my_binder.send_data(command.replace(replace_str,str));
+        if (this.my_binder != null) {
+            this.my_binder.send_data(command.replace(replace_str, str));
         }
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
         this.update_tuner_data(this.parameter_name + "^cur", str);
@@ -251,4 +247,29 @@ public class My_slider extends LinearLayout {
         Data_store.set_attribute(this.parent_context, key, value);
     }
 
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        if(conn==null){
+            conn=new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    my_binder = (My_binder) service;
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    my_binder = null;
+                }
+            };
+        }
+        this.parent_context.bindService(new Intent(this.parent_context, Data_logging_service.class),conn , Context.BIND_DEBUG_UNBIND);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        this.parent_context.unbindService(conn);
+        conn=null;
+    }
 }

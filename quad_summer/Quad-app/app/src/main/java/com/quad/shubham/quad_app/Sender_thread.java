@@ -16,24 +16,31 @@ public class Sender_thread extends HandlerThread {
     OutputStream o_stream;
 
     public Sender_thread(String name,OutputStream _o_stream) {
-        super(name);
+        super(name,android.os.Process.THREAD_PRIORITY_FOREGROUND);
         o_stream=_o_stream;
     }
 
     @Override
-    public void run() {
-        super.run();
+    protected void onLooperPrepared() {
+        super.onLooperPrepared();
         m_handler=new Handler(getLooper()){
             @Override
             public void handleMessage(Message msg) {
                 String data=(String)msg.obj;
                 try {
-                    o_stream.write(data.getBytes("US-ASCII"));
+                    o_stream.write(data.getBytes("UTF-8"));
+                    o_stream.flush();
+                    Log.e("normal",data);
                 }catch (IOException e){
                     Log.e("normal", e.getMessage());
                 }
             }
         };
+    }
+
+    @Override
+    public void run() {
+        super.run();
     }
 
     public Handler get_handler(){

@@ -108,7 +108,6 @@ public class My_fragment extends Fragment {
                                         String prefix = graph_child_element.getAttribute("name").toString();
                                         int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color").toString());
 
-                                        Log.e("normal", Integer.toString(color));
 
                                         receivers.add(new Graph_data_receiver(parent_activity,temp_graph_view, series, prefix));
                                         series.setTitle(prefix);

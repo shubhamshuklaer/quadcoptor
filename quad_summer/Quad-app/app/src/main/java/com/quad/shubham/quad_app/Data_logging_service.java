@@ -46,26 +46,10 @@ public class Data_logging_service extends IntentService{
     public static final int STOP_NOTIFICATION_ID =21;
     public static final String send_intent_filter="com.quad.shubham.quad_app_send";
     public static boolean running;
-    private Binder my_binder=null;
     volatile boolean stop;
 
     Sender_thread sender_thread;
     Handler sender_handler;
-
-    public class My_Binder extends Binder{
-        private Handler handler;
-
-        public My_Binder(Handler _handler){
-            this.handler=_handler;
-        }
-
-        public void send_data(String data){
-            Message msg=Message.obtain();
-            msg.obj=data;
-            msg.setTarget(handler);
-            msg.sendToTarget();
-        }
-    }
 
     public Data_logging_service() {
         super("Data_logging_service");
@@ -135,8 +119,6 @@ public class Data_logging_service extends IntentService{
 
             sender_thread=new Sender_thread("Sender_thread",o_stream);
             sender_thread.start();
-            sender_handler=sender_thread.get_handler();
-            my_binder=new My_Binder(sender_handler);
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -178,7 +160,7 @@ public class Data_logging_service extends IntentService{
                 if(read_byte_int!=-1) {
                     read_byte = (byte) (read_byte_int);//reads 1 byte... since returns a int between 0-255 we can cast it directly
                     if (read_byte == carrige_return_ascii) {
-                        String data_line = new String(data, 0, buffer_pos, "US-ASCII");
+                        String data_line = new String(data, 0, buffer_pos, "UTF-8");
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
                         if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
@@ -219,6 +201,10 @@ public class Data_logging_service extends IntentService{
 
     @Override
     public IBinder onBind(Intent intent) {
-        return my_binder;
+        if(sender_thread==null)
+            return null;
+        else
+            sender_handler=sender_thread.get_handler();
+            return My_binder.new_instance(sender_handler);
     }
 }
