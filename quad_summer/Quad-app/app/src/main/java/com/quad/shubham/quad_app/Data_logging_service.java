@@ -179,7 +179,7 @@ public class Data_logging_service extends IntentService{
                     if (read_byte == carrige_return_ascii) {
                         String data_line = new String(data, 0, buffer_pos, "UTF-8");
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
-                        data_log_file_stream.write(data_line.getBytes());
+                        data_log_file_stream.write((data_line+"\r").getBytes());
                         if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
                         }
