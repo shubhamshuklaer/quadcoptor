@@ -47,9 +47,10 @@ public class Show_history extends Activity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 LinearLayout layout=(LinearLayout)view;
 
-                String _id=((TextView)layout.findViewById(Commit_list_cursor_adapter._id_view_id)).getText().toString();
-                String timestamp=((TextView)layout.findViewById(Commit_list_cursor_adapter.time_stamp_view_id)).getText().toString();
-                String commit_message=((TextView)layout.findViewById(Commit_list_cursor_adapter.commit_message_view_id)).getText().toString();
+                String _id=((My_cursor_adapter)commits_list.getAdapter()).get_text(view, 0);
+                String commit_message=((My_cursor_adapter)commits_list.getAdapter()).get_text(view, 1);
+                String timestamp=((My_cursor_adapter)commits_list.getAdapter()).get_text(view, 2);
+
 
                 Intent intent=new Intent(Show_history.this,Show_commit.class);
                 intent.putExtra("_id", _id);
@@ -60,7 +61,7 @@ public class Show_history extends Activity {
             }
         });
 
-        set_adapter(new Commit_list_cursor_adapter(Show_history.this, db_helper.get_commits_for_branch(branch_name)));
+        set_adapter(new My_cursor_adapter(Show_history.this, db_helper.get_commits_for_branch(branch_name),new String[] {"_id","commit_message","timestamp"}));
 
         layout.addView(select_branch);
         layout.addView(commits_list);
@@ -71,7 +72,7 @@ public class Show_history extends Activity {
                 TextView t_v = (TextView) view;
                 String branch_name = t_v.getText().toString();
                 Db_helper db_helper = new Db_helper(Show_history.this);
-                set_adapter(new Commit_list_cursor_adapter(Show_history.this, db_helper.get_commits_for_branch(branch_name)));
+                set_adapter(new My_cursor_adapter(Show_history.this, db_helper.get_commits_for_branch(branch_name),new String[] {"_id","commit_message","timestamp"}));
             }
 
             @Override
@@ -84,7 +85,7 @@ public class Show_history extends Activity {
         setContentView(layout);
     }
 
-    public void set_adapter(Commit_list_cursor_adapter adapter){
+    public void set_adapter(My_cursor_adapter adapter){
         this.commits_list.setAdapter(adapter);
     }
 }

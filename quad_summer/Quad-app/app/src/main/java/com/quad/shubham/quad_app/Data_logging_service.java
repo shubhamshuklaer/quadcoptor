@@ -21,6 +21,7 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -45,6 +46,7 @@ public class Data_logging_service extends IntentService{
     public static final int START_NOTIFICATION_ID =19;
     public static final int STOP_NOTIFICATION_ID =21;
     public static final String send_intent_filter="com.quad.shubham.quad_app_send";
+    private FileOutputStream data_log_file_stream;
     public static boolean running;
     volatile boolean stop;
 
@@ -78,7 +80,11 @@ public class Data_logging_service extends IntentService{
             }
             destroy();
         }
-
+        try {
+            data_log_file_stream.close();
+        }catch (IOException e){
+            Log.e("normal",e.getMessage());
+        }
         running=false;
     }
 
@@ -125,6 +131,9 @@ public class Data_logging_service extends IntentService{
 
             sender_thread=new Sender_thread("Sender_thread",o_stream);
             sender_thread.start();
+            Db_helper db_helper=new Db_helper(Data_logging_service.this);
+            db_helper.insert_data_log();
+            data_log_file_stream=openFileOutput(Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt",Context.MODE_PRIVATE);
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -168,6 +177,7 @@ public class Data_logging_service extends IntentService{
                     if (read_byte == carrige_return_ascii) {
                         String data_line = new String(data, 0, buffer_pos, "UTF-8");
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
+                        data_log_file_stream.write(data_line.getBytes());
                         if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
                         }

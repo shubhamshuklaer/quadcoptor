@@ -1,9 +1,11 @@
 package com.quad.shubham.quad_app;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
@@ -12,6 +14,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -21,6 +25,7 @@ import android.widget.Toast;
 public class Bluetooth extends Activity {
     ListView list;
     static final int ENABLE_REQUEST=1;
+    final int log_message_view_id=19;
     String[] actions={"Enable Bluetooth","Disable Bluetooth","Start Data Logging","Stop Data Logging"};
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,8 +77,31 @@ public class Bluetooth extends Activity {
                         }
                         break;
                     case 3://Stop data logging
-                        intent=new Intent(Bluetooth.this,Data_logging_service.class);
-                        stopService(intent);
+                        if(Data_logging_service.running) {
+                            AlertDialog.Builder builder=new AlertDialog.Builder(Bluetooth.this);
+                            EditText log_message_view=new EditText(Bluetooth.this);
+                            log_message_view.setId(log_message_view_id);
+                            log_message_view.setHint("Enter Log message");
+                            builder.setView(log_message_view).setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    String log_message=((EditText)((AlertDialog)dialog).findViewById(log_message_view_id)).getText().toString();
+                                    Db_helper db_helper_1=new Db_helper(Bluetooth.this);
+                                    db_helper_1.update_data_log(log_message);
+                                }
+                            }).setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.cancel();
+                                }
+                            });
+
+                            builder.create().show();
+                            intent = new Intent(Bluetooth.this, Data_logging_service.class);
+                            stopService(intent);
+                        }else{
+                            Toast.makeText(Bluetooth.this,"Not running",Toast.LENGTH_SHORT).show();
+                        }
                         break;
 
                 }
