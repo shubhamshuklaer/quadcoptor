@@ -17,7 +17,7 @@ public class Db_helper extends SQLiteOpenHelper {
     public static final String BRANCHES_TBL_NAME ="branches";
     public static final String DATA_LOGS_TBL_NAME="data_logs";
     public static final String MASTER_BRANCH_NAME="master";
-    public static final int VERSION=7;
+    public static final int VERSION=1;
     Context context;
 
     public Db_helper(Context _context){

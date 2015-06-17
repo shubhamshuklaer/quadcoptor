@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.widget.Toast;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -60,9 +61,10 @@ public class Data_store {
         Map<String,String> tune_data=Data_store.get_all(context, TUNER_DATA_FILE);
         Db_helper db_helper=new Db_helper(context);
         db_helper.put_commit(context, commit_message);
-        int id=db_helper.get_num_rows(db_helper.COMMIT_TBL_NAME);
+        int _id=db_helper.get_num_rows(db_helper.COMMIT_TBL_NAME);
         try {
-            FileOutputStream fos = context.openFileOutput(Integer.toString(id), Context.MODE_PRIVATE);
+            File output_file=new File(context.getExternalFilesDir(null),Integer.toString(_id)+"_data.txt");
+            FileOutputStream fos = new FileOutputStream(output_file);
             ObjectOutputStream oos= new ObjectOutputStream(fos);
             oos.writeObject(tune_data);
             oos.close();
@@ -74,19 +76,20 @@ public class Data_store {
         }
     }
 
-    public static void load_version(Context context,String id){
+    public static void load_version(Context context,String _id){
         context= context.getApplicationContext();
 
         try {
-            FileInputStream fis = context.openFileInput(id);
+            File input_file=new File(context.getExternalFilesDir(null),_id+"_data.txt");
+            FileInputStream fis = new FileInputStream(input_file);
             ObjectInputStream ois= new ObjectInputStream(fis);
             Map<String,String> tune_data=(Map<String,String>) ois.readObject();
             ois.close();
             fis.close();
 
-            Data_store.set_attribute(context, PARENT_ID_SETTING, id);
+            Data_store.set_attribute(context, PARENT_ID_SETTING, _id);
             Db_helper db_helper=new Db_helper(context);
-            Data_store.set_attribute(context, CUR_BRANCH_SETTING, db_helper.get_branch_name(id));
+            Data_store.set_attribute(context, CUR_BRANCH_SETTING, db_helper.get_branch_name(_id));
 
 
             for(Map.Entry<String,String> entry: tune_data.entrySet())
@@ -109,7 +112,8 @@ public class Data_store {
 
     public static Map<String,String> get_data_for_commit(Context context,String _id){
         try{
-            FileInputStream fis = context.openFileInput(_id);
+            File input_file=new File(context.getExternalFilesDir(null),_id+"_data.txt");
+            FileInputStream fis = new FileInputStream(input_file);
             ObjectInputStream ois= new ObjectInputStream(fis);
             Map<String,String> tune_data=(Map<String,String>) ois.readObject();
             ois.close();

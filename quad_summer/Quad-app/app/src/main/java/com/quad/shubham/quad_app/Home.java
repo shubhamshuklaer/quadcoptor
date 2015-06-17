@@ -52,9 +52,6 @@ public class Home extends Activity {
                         startActivity(intent);
                         break;
                     case 3:
-                        // Create the ACTION_GET_CONTENT Intent
-//                        Intent getContentIntent = FileUtils.createGetContentIntent();
-//                        intent = Intent.createChooser(getContentIntent, "Select a file");
                         intent = new Intent(Home.this, FileChooserActivity.class);
                         startActivityForResult(intent, REQUEST_CHOOSER);
                         break;

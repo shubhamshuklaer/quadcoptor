@@ -21,6 +21,7 @@ import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -133,7 +134,8 @@ public class Data_logging_service extends IntentService{
             sender_thread.start();
             Db_helper db_helper=new Db_helper(Data_logging_service.this);
             db_helper.insert_data_log();
-            data_log_file_stream=openFileOutput(Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt",Context.MODE_PRIVATE);
+            File data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt");
+            data_log_file_stream=new FileOutputStream(data_log_file);
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
