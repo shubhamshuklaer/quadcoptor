@@ -82,7 +82,8 @@ public class Data_logging_service extends IntentService{
             destroy();
         }
         try {
-            data_log_file_stream.close();
+            if(data_log_file_stream!=null)
+                data_log_file_stream.close();
         }catch (IOException e){
             Log.e("normal",e.getMessage());
         }

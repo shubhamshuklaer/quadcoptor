@@ -1,0 +1,944 @@
+From 2620f1d33a1d72c68aae8dd77895adf03d492e23 Mon Sep 17 00:00:00 2001
+From: Shubahm shukla <shubhamshuklaerssss@gmail.com>
+Date: Thu, 18 Jun 2015 13:32:54 +0530
+Subject: [PATCH] Getting null_ptr_exception
+
+---
+ quad_summer/Quad-app/.idea/gradle.xml              |   7 +
+ quad_summer/Quad-app/app/app.iml                   |   2 -
+ quad_summer/Quad-app/app/build.gradle              |   1 -
+ .../Quad-app/app/src/main/AndroidManifest.xml      |   2 +-
+ .../shubham/quad_app/Data_logging_service.java     |  11 +-
+ .../quad/shubham/quad_app/Graph_data_receiver.java |  24 +-
+ .../main/java/com/quad/shubham/quad_app/Home.java  |  21 +-
+ .../com/quad/shubham/quad_app/My_fragment.java     |   7 +-
+ .../main/java/com/quad/shubham/quad_app/Test.java  |  38 ++
+ .../main/java/com/quad/shubham/quad_app/Tuner.java |  12 +
+ quad_summer/quad_app_config.xml                    |  25 ++
+ quad_summer/quad_summer.ino                        | 383 ++++++++++++---------
+ 12 files changed, 341 insertions(+), 192 deletions(-)
+ create mode 100644 quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Test.java
+ create mode 100644 quad_summer/quad_app_config.xml
+
+diff --git a/quad_summer/Quad-app/.idea/gradle.xml b/quad_summer/Quad-app/.idea/gradle.xml
+index 47fdc16..63ba5ac 100644
+--- a/quad_summer/Quad-app/.idea/gradle.xml
++++ b/quad_summer/Quad-app/.idea/gradle.xml
+@@ -7,6 +7,13 @@
+         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+         <option name="gradleHome" value="$APPLICATION_HOME_DIR$/gradle/gradle-2.2.1" />
+         <option name="gradleJvm" value="1.7" />
++        <option name="modules">
++          <set>
++            <option value="$PROJECT_DIR$" />
++            <option value="$PROJECT_DIR$/aFileChooser" />
++            <option value="$PROJECT_DIR$/app" />
++          </set>
++        </option>
+       </GradleProjectSettings>
+     </option>
+   </component>
+diff --git a/quad_summer/Quad-app/app/app.iml b/quad_summer/Quad-app/app/app.iml
+index 7692cf8..769c4f5 100644
+--- a/quad_summer/Quad-app/app/app.iml
++++ b/quad_summer/Quad-app/app/app.iml
+@@ -69,7 +69,6 @@
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/dependency-cache" />
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/dex" />
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/dex-cache" />
+-      <excludeFolder url="file://$MODULE_DIR$/build/intermediates/exploded-aar/com.akexorcist/bluetoothspp/1.0.0/jars" />
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.2.0/jars" />
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/exploded-aar/com.android.support/support-v4/22.2.0/jars" />
+       <excludeFolder url="file://$MODULE_DIR$/build/intermediates/exploded-aar/com.astuetz/pagerslidingtabstrip/1.0.1/jars" />
+@@ -92,7 +91,6 @@
+     <orderEntry type="jdk" jdkName="Android API 22 Platform" jdkType="Android SDK" />
+     <orderEntry type="sourceFolder" forTests="false" />
+     <orderEntry type="library" exported="" name="graphview-4.0.1" level="project" />
+-    <orderEntry type="library" exported="" name="bluetoothspp-1.0.0" level="project" />
+     <orderEntry type="library" exported="" name="pagerslidingtabstrip-1.0.1" level="project" />
+     <orderEntry type="library" exported="" name="support-v4-22.2.0" level="project" />
+     <orderEntry type="library" exported="" name="support-annotations-22.2.0" level="project" />
+diff --git a/quad_summer/Quad-app/app/build.gradle b/quad_summer/Quad-app/app/build.gradle
+index 8c4640f..f21cd35 100644
+--- a/quad_summer/Quad-app/app/build.gradle
++++ b/quad_summer/Quad-app/app/build.gradle
+@@ -26,5 +26,4 @@ dependencies {
+     compile project(':aFileChooser')
+     compile 'com.astuetz:pagerslidingtabstrip:1.0.1'
+     compile 'com.android.support:support-v4:22.2.0'
+-    compile 'com.akexorcist:bluetoothspp:1.0.0'
+ }
+diff --git a/quad_summer/Quad-app/app/src/main/AndroidManifest.xml b/quad_summer/Quad-app/app/src/main/AndroidManifest.xml
+index 574eeed..9e5811a 100644
+--- a/quad_summer/Quad-app/app/src/main/AndroidManifest.xml
++++ b/quad_summer/Quad-app/app/src/main/AndroidManifest.xml
+@@ -31,6 +31,7 @@
+             android:launchMode="singleTop"
+             android:parentActivityName=".Home"></activity>
+         <activity android:name=".Connect_device"></activity>
++        <activity android:name=".Test"></activity>
+         <activity
+             android:name="com.ipaulpro.afilechooser.FileChooserActivity"
+             android:icon="@drawable/ic_chooser"
+@@ -46,7 +47,6 @@
+                 <data android:mimeType="*/*" />
+             </intent-filter>
+         </activity>
+-        <activity android:name="app.akexorcist.bluetoothspp.DeviceList" />
+     </application>
+ 
+ </manifest>
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Data_logging_service.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Data_logging_service.java
+index 2e3750a..6b26e36 100644
+--- a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Data_logging_service.java
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Data_logging_service.java
+@@ -82,7 +82,8 @@ public class Data_logging_service extends IntentService{
+             destroy();
+         }
+         try {
+-            data_log_file_stream.close();
++            if(data_log_file_stream!=null)
++                data_log_file_stream.close();
+         }catch (IOException e){
+             Log.e("normal",e.getMessage());
+         }
+@@ -180,11 +181,13 @@ public class Data_logging_service extends IntentService{
+                         String data_line = new String(data, 0, buffer_pos, "UTF-8");
+                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
+                         data_log_file_stream.write((data_line+"\r").getBytes());
+-                        if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
++
++                        if(data_line.length()>0 && data_line.charAt(data_line.length()-1)=='\n') {
+                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
+                         }
+-                        String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
+-                        if (seperated.length == 2) { //Sometimes it is lenght 1 causes error
++
++                        if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+\\s-?[0-9]+$")) {
++                            String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int"
+                             Intent intent = new Intent(Data_logging_service.intent_filter_prefix + ":" + seperated[0]);
+                             intent.putExtra("data", seperated[1]);
+                             LocalBroadcastManager.getInstance(Data_logging_service.this.getApplicationContext()).sendBroadcast(intent);
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Graph_data_receiver.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Graph_data_receiver.java
+index b1e4238..15679e5 100644
+--- a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Graph_data_receiver.java
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Graph_data_receiver.java
+@@ -31,24 +31,28 @@ public class Graph_data_receiver extends BroadcastReceiver {
+ 
+     @Override
+     public void onReceive(Context context, Intent intent) {
++        Log.e("normal","receive start");
+         String data=intent.getStringExtra("data");
+-        String[] seperated=data.split(" ",2);
+-        if(seperated.length==2) {
+-            DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
+-            try {
+-                series.appendData(point, false, view_port_size);
+-                graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - view_port_size);
+-                graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
+-            }catch(Exception e){
+-                Toast.makeText(context.getApplicationContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
++        if(data!=null) {
++            String[] seperated = data.split(" ", 2);
++            if (seperated.length == 2) {
++                DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
++                try {
++                    series.appendData(point, false, view_port_size);
++                    graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - view_port_size);
++                    graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
++                    Log.d("normal", point.toString());
++                } catch (Exception e) {
++                    Toast.makeText(context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
++                }
+             }
+         }
++        Log.e("normal","Receive stop");
+     }
+ 
+     public void register_receiver(){
+         IntentFilter intent_filter=new IntentFilter(Data_logging_service.intent_filter_prefix+":"+prefix);
+         LocalBroadcastManager.getInstance(context.getApplicationContext()).registerReceiver(this, intent_filter);
+-        Log.d("normal",prefix);
+     }
+ 
+     public void unregister_receiver(){
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Home.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Home.java
+index 8718cd5..1237e83 100644
+--- a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Home.java
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Home.java
+@@ -13,17 +13,13 @@ import android.widget.Toast;
+ import com.ipaulpro.afilechooser.FileChooserActivity;
+ import com.ipaulpro.afilechooser.utils.FileUtils;
+ 
+-import app.akexorcist.bluetotohspp.library.BluetoothSPP;
+-import app.akexorcist.bluetotohspp.library.BluetoothState;
+-import app.akexorcist.bluetotohspp.library.DeviceList;
+ 
+ 
+ public class Home extends Activity {
+ 
+-    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit","Bluetooth"};
++    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit","Bluetooth","test"};
+     ListView activity_list_view;
+     String config_path;
+-    BluetoothSPP bt;
+     private static final int REQUEST_CHOOSER = 1234;
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+@@ -63,6 +59,9 @@ public class Home extends Activity {
+                         intent = new Intent(Home.this, Bluetooth.class);
+                         startActivity(intent);
+                         break;
++                    case 6:
++                        intent = new Intent(Home.this,Test.class);
++                        startActivity(intent);
+                 }
+             }
+         });
+@@ -86,18 +85,6 @@ public class Home extends Activity {
+                     toast.show();
+                 }
+                 break;
+-            case BluetoothState.REQUEST_CONNECT_DEVICE:
+-                if(resultCode == Activity.RESULT_OK)
+-                    bt.connect(data);
+-                break;
+-            case BluetoothState.REQUEST_ENABLE_BT:
+-                if(resultCode == Activity.RESULT_OK) {
+-                    bt.setupService();
+-                    bt.startService(BluetoothState.DEVICE_ANDROID);
+-//                    setup();
+-                } else {
+-                    // Do something if user doesn't choose any device (Pressed back)
+-                }
+         }
+     }
+ }
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/My_fragment.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/My_fragment.java
+index f515e13..38e66ef 100644
+--- a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/My_fragment.java
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/My_fragment.java
+@@ -113,12 +113,13 @@ public class My_fragment extends Fragment {
+                                         Element graph_child_element=(Element)graph_child;
+ 
+                                         LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>();
+-                                        String prefix = graph_child_element.getAttribute("name").toString();
++                                        String name = graph_child_element.getAttribute("name").toString();
++                                        String prefix = graph_child_element.getAttribute("prefix").toString();
+                                         int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color").toString());
+ 
+ 
+                                         receivers.add(new Graph_data_receiver(parent_activity,temp_graph_view, series, prefix));
+-                                        series.setTitle(prefix);
++                                        series.setTitle(name);
+                                         series.setColor(color);
+ 
+                                         temp_graph_view.addSeries(series);
+@@ -142,7 +143,7 @@ public class My_fragment extends Fragment {
+                             }
+                         }
+                     }
+-
++                    
+                     for(int i=0;i<receivers.size();i++)
+                         receivers.get(i).register_receiver();
+                 }
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Test.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Test.java
+new file mode 100644
+index 0000000..670b4b7
+--- /dev/null
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Test.java
+@@ -0,0 +1,38 @@
++package com.quad.shubham.quad_app;
++
++import android.app.Activity;
++import android.os.Bundle;
++import android.view.View;
++import android.widget.Button;
++import android.widget.EditText;
++import android.widget.LinearLayout;
++import android.widget.Toast;
++
++/**
++ * Created by shubham on 17/6/15.
++ */
++public class Test extends Activity {
++    LinearLayout layout;
++    EditText edit_text,pattern_text;
++    Button btn;
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        layout=new LinearLayout(Test.this);
++        edit_text=new EditText(Test.this);
++        pattern_text=new EditText(Test.this);
++        btn=new Button(Test.this);
++        btn.setOnClickListener(new View.OnClickListener() {
++            @Override
++            public void onClick(View v) {
++                if(edit_text.getText().toString().matches(pattern_text.getText().toString()))
++                    Toast.makeText(Test.this,"Matches",Toast.LENGTH_SHORT).show();
++            }
++        });
++        layout.setOrientation(LinearLayout.VERTICAL);
++        layout.addView(edit_text);
++        layout.addView(pattern_text);
++        layout.addView(btn);
++        setContentView(layout);
++    }
++}
+diff --git a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Tuner.java b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Tuner.java
+index 5bc2bf3..3fe9527 100644
+--- a/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Tuner.java
++++ b/quad_summer/Quad-app/app/src/main/java/com/quad/shubham/quad_app/Tuner.java
+@@ -16,6 +16,7 @@ import org.xml.sax.SAXException;
+ 
+ import java.io.File;
+ import java.io.FileInputStream;
++import java.io.FileOutputStream;
+ import java.io.IOException;
+ 
+ import javax.xml.parsers.DocumentBuilder;
+@@ -46,6 +47,17 @@ public class Tuner extends FragmentActivity{
+     @Override
+     protected void onCreate(Bundle savedInstanceState) {
+         super.onCreate(savedInstanceState);
++
++        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
++            @Override
++            public void uncaughtException(Thread thread, Throwable ex) {
++                Log.e("normal","hello");
++                Log.e("normal",ex.getCause().toString());
++                Log.e("normal", ex.getMessage());
++                Log.e("normal",ex.getStackTrace().toString());
++            }
++        });
++
+         DocumentBuilderFactory d_builder_factory_obj=null;
+         DocumentBuilder d_builder=null;
+ 
+diff --git a/quad_summer/quad_app_config.xml b/quad_summer/quad_app_config.xml
+new file mode 100644
+index 0000000..a7c1a43
+--- /dev/null
++++ b/quad_summer/quad_app_config.xml
+@@ -0,0 +1,25 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<root>
++    <tab name="Graphs" num_cols="2" num_rows="2">
++        <graph start_col="0" start_row="0" num_cols="1" num_rows="1">
++            <series name="yaw" color="ffff0000" prefix="y"></series>
++            <series name="pitch" color="ff00ff00" prefix="p"></series>
++            <series name="roll" color="ff0000ff" prefix="r"></series>
++        </graph>
++        <graph start_col="1" start_row="0" num_cols="1" num_rows="1">
++            <series name="gyro yaw" color="ffff0000" prefix="gy"></series>
++            <series name="gyro pitch" color="ff00ff00" prefix="gp"></series>
++            <series name="gyro roll" color="ff0000ff" prefix="gr"></series>
++        </graph>
++        <graph start_col="0" start_row="1" num_cols="1" num_rows="1">
++            <series name="Pid yaw" color="ffff0000" prefix="sy"></series>
++            <series name="Pid pitch" color="ff00ff00" prefix="sp"></series>
++            <series name="Pid roll" color="ff0000ff" prefix="sr"></series>
++        </graph>
++        <graph start_col="1" start_row="1" num_cols="1" num_rows="1">
++            <series name="base speed" color="ffff0000" prefix="bs"></series>
++            <series name="m1 speed" color="ff00ff00" prefix="m1"></series>
++            <series name="m2 speed" color="ff0000ff" prefix="m2"></series>
++        </graph>
++    </tab>
++</root>
+diff --git a/quad_summer/quad_summer.ino b/quad_summer/quad_summer.ino
+index 959783a..6a0e002 100644
+--- a/quad_summer/quad_summer.ino
++++ b/quad_summer/quad_summer.ino
+@@ -228,8 +228,8 @@ PID r_roll_pid(&gyro_int[2],&speed_ypr_raw[2],&gyro_ypr_temp[2],gyro_kp[2],gyro_
+ 
+ void setup(){
+     ApplicationMonitor.DisableWatchdog();
+-    Serial.begin(115200);
+-    while (!Serial); // wait for Leonardo enumeration, others continue immediately
++    Serial1.begin(9600);
++    while (!Serial1); // wait for Leonardo enumeration, others continue immediately
+     mpu_init();
+     /* xbee_init(); */
+     esc_init();
+@@ -241,9 +241,9 @@ void setup(){
+ 	/* loop_enter = loop_leave = micros(); */
+ 	/* pid_enter = pid_leave = micros(); */
+ 	/* interpolate_enter = interpolate_leave = micros(); */
+-    enable_pitch=false;
++    enable_pitch=true;
+     enable_roll=true;
+-    /* ApplicationMonitor.Dump(Serial); */
++    /* ApplicationMonitor.Dump(Serial1); */
+     ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
+ }
+ 
+@@ -253,51 +253,126 @@ void loop(){
+ 
+     // earlier it was 0x40 but for processing graph I increased it
+     // 0x40 is hex of 64 decimal i.e 01000000 and hence the bitwise and works
++    // 0x100 is 256 in decimal
+     if(count_serial & 0x100){
++        unsigned long cur_milli=millis();
+         check_serial();
+         count_serial = 0;
+-        /* Serial.print(ypr_int[1]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[1]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(ypr_int[2]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[2]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(ypr_int[0]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[0]); */
+-        /* Serial.println(" "); */
+-
+-        /* Serial.print(gyro_ypr[1]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[1]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_ypr[2]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[2]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_ypr[0]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(gyro_int[0]); */
+-        /* Serial.println(" "); */
+-
+-        /* Serial.print(speed_ypr[0]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(speed_ypr[1]); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(speed_ypr[2]); */
+-        /* Serial.println(" "); */
+-
+-        /* Serial.print(m1_speed); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(m2_speed); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(base_speed); */
+-        /* Serial.print(m3_speed); */
+-        /* Serial.print(" "); */
+-        /* Serial.print(m4_speed); */
+-        /* Serial.println(" "); */
++
++        //yaw
++        Serial1.print("y ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(ypr_int[0]);
++
++        //pitch
++        Serial1.print("p ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(ypr_int[1]);
++
++        //Roll
++        Serial1.print("r ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(ypr_int[2]);
++
++        //yaw gyro
++        Serial1.print("gy ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(gyro_int[0]);
++
++        //pitch gyro
++        Serial1.print("gp ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(gyro_int[1]);
++
++        //Roll gyro
++        Serial1.print("gr ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(gyro_int[2]);
++
++        //base speed
++        Serial1.print("bs ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(base_speed);
++
++        //m1 speed
++        Serial1.print("m1 ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(m1_speed);
++
++        //m2 speed
++        Serial1.print("m2 ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(m2_speed);
++
++        //Pid yaw
++        Serial1.print("sy ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(speed_ypr[0]);
++
++        //Pid pitch
++        Serial1.print("sp ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(speed_ypr[1]);
++
++        //Pid roll
++        Serial1.print("sr ");
++        Serial1.print(cur_milli);
++        Serial1.print(" ");
++        Serial1.println(speed_ypr[2]);
++
++        /* Serial1.print(ypr_int[1]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[1]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(ypr_int[2]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[2]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(ypr_int[0]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[0]); */
++        /* Serial1.println(" "); */
++
++        /* Serial1.print(gyro_ypr[1]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[1]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_ypr[2]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[2]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_ypr[0]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(gyro_int[0]); */
++        /* Serial1.println(" "); */
++
++        /* Serial1.print(speed_ypr[0]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(speed_ypr[1]); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(speed_ypr[2]); */
++        /* Serial1.println(" "); */
++
++        /* Serial1.print(m1_speed); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(m2_speed); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(base_speed); */
++        /* Serial1.print(m3_speed); */
++        /* Serial1.print(" "); */
++        /* Serial1.print(m4_speed); */
++        /* Serial1.println(" "); */
+ 
+     }else{
+         count_serial=count_serial+1;
+@@ -309,19 +384,19 @@ void loop(){
+     motor_control();
+     ApplicationMonitor.IAmAlive();
+ 
+-    /* Serial.print(gyro_ypr[0]); */
+-    /* Serial.print("\t"); */
+-    /* Serial.print(gyro_ypr[1]); */
+-    /* Serial.print("\t"); */
+-    /* Serial.println(gyro_ypr[2]); */
+-    /* Serial.println(i2c_reset_count); */
++    /* Serial1.print(gyro_ypr[0]); */
++    /* Serial1.print("\t"); */
++    /* Serial1.print(gyro_ypr[1]); */
++    /* Serial1.print("\t"); */
++    /* Serial1.println(gyro_ypr[2]); */
++    /* Serial1.println(i2c_reset_count); */
+     
+-    /* Serial.print(gx); */
+-    /* Serial.print(" "); */
+-    /* Serial.print(gy); */
+-    /* Serial.print(" "); */
+-    /* Serial.print(gz); */
+-    /* Serial.print('\r'); */
++    /* Serial1.print(gx); */
++    /* Serial1.print(" "); */
++    /* Serial1.print(gy); */
++    /* Serial1.print(" "); */
++    /* Serial1.print(gz); */
++    /* Serial1.print('\r'); */
+ 
+ 
+ }
+@@ -438,7 +513,7 @@ void mpu_init(){
+ 
+ 
+     // initialize device
+-    /* Serial.println(F("Initializing I2C devices...")); */
++    /* Serial1.println(F("Initializing I2C devices...")); */
+ 	/* accelgyro.initialize(); */
+ 	/* accelgyro.setI2CBypassEnabled(true); */
+     mpu.initialize();
+@@ -446,12 +521,12 @@ void mpu_init(){
+     mpu.setFullScaleGyroRange(250);
+ 
+     // verify connection
+-    /* Serial.println(F("Testing device connections...")); */
++    /* Serial1.println(F("Testing device connections...")); */
+     if(!mpu.testConnection())
+-        Serial.println(F("MPU connection failed"));
++        Serial1.println(F("MPU connection failed"));
+ 
+     // load and configure the DMP
+-    /* Serial.println(F("Initializing DMP...")); */
++    /* Serial1.println(F("Initializing DMP...")); */
+     dev_status = mpu.dmpInitialize();
+ 
+     // supply your own gyro offsets here, scaled for min sensitivity
+@@ -468,16 +543,16 @@ void mpu_init(){
+     // make sure it worked (returns 0 if so)
+     if (dev_status == 0) {
+         // turn on the DMP, now that it's ready
+-        /* Serial.println(F("Enabling DMP...")); */
++        /* Serial1.println(F("Enabling DMP...")); */
+         mpu.setDMPEnabled(true);
+ 
+         // enable Arduino interrupt detection
+-        /* Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)...")); */
++        /* Serial1.println(F("Enabling interrupt detection (Arduino external interrupt 0)...")); */
+         enableInterrupt(DMP_INT_PIN, dmp_data_ready, RISING);
+         mpu_int_status = mpu.getIntStatus();
+ 
+         // set our DMP Ready flag so the main loop() function knows it's okay to use it
+-        /* Serial.println(F("DMP ready! Waiting for first interrupt...")); */
++        /* Serial1.println(F("DMP ready! Waiting for first interrupt...")); */
+         dmp_ready = true;
+ 
+         // get expected DMP packet size for later comparison
+@@ -487,9 +562,9 @@ void mpu_init(){
+         // 1 = initial memory load failed
+         // 2 = DMP configuration updates failed
+         // (if it's going to break, usually the code will be 1)
+-        Serial.print(F("DMP Initialization failed (code "));
+-        Serial.print(dev_status);
+-        Serial.println(F(")"));
++        Serial1.print(F("DMP Initialization failed (code "));
++        Serial1.print(dev_status);
++        Serial1.println(F(")"));
+ 		asm volatile ("  jmp 0");
+     }
+ 
+@@ -546,9 +621,9 @@ void update_ypr(){
+         // check for overflow (this should never happen unless our code is too inefficient)
+         if ((mpu_int_status & 0x10) || fifo_count == 1024) {
+             // reset so we can continue cleanly
+-            Serial.println(fifo_count);
++            Serial1.println(fifo_count);
+             mpu.resetFIFO();
+-            Serial.println(F("FIFO overflow!"));
++            Serial1.println(F("FIFO overflow!"));
+ 
+             // otherwise, check for DMP data ready interrupt (this should happen frequently)
+         }else if (mpu_int_status & 0x02) {
+@@ -609,18 +684,18 @@ void update_rc(){
+         ch6=ch6_val;
+         SREG = sregRestore; // restore the status register to its previous value
+ 
+-        /* Serial.print("ch1 "); */
+-        /* Serial.print(ch1); */
+-        /* Serial.print("\tch2 "); */
+-        /* Serial.print(ch2); */
+-        /* Serial.print("\tch3 "); */
+-        /* Serial.print(ch3); */
+-        /* Serial.print("\tch4 "); */
+-        /* Serial.print(ch4); */
+-        /* Serial.print("\tch5 "); */
+-        /* Serial.print(ch5); */
+-        /* Serial.print("\tch6 "); */
+-        /* Serial.println(ch6); */
++        /* Serial1.print("ch1 "); */
++        /* Serial1.print(ch1); */
++        /* Serial1.print("\tch2 "); */
++        /* Serial1.print(ch2); */
++        /* Serial1.print("\tch3 "); */
++        /* Serial1.print(ch3); */
++        /* Serial1.print("\tch4 "); */
++        /* Serial1.print(ch4); */
++        /* Serial1.print("\tch5 "); */
++        /* Serial1.print(ch5); */
++        /* Serial1.print("\tch6 "); */
++        /* Serial1.println(ch6); */
+ 
+         ch1 = (ch1==0)?(CH1_MAX+CH1_MIN)/2:ch1;
+         ch2 = (ch2==0)?(CH2_MAX+CH2_MIN)/2:ch2;
+@@ -690,18 +765,18 @@ void update_rc(){
+ 
+     }
+ 
+-    /* Serial.print("ch1 "); */
+-    /* Serial.print(ch1); */
+-    /* Serial.print("\tch2 "); */
+-    /* Serial.print(ch2); */
+-    /* Serial.print("\tch3 "); */
+-    /* Serial.print(ch3); */
+-    /* Serial.print("\tch4 "); */
+-    /* Serial.print(ch4); */
+-    /* Serial.print("\tch5 "); */
+-    /* Serial.print(ch5); */
+-    /* Serial.print("\tch6 "); */
+-    /* Serial.println(ch6); */
++    /* Serial1.print("ch1 "); */
++    /* Serial1.print(ch1); */
++    /* Serial1.print("\tch2 "); */
++    /* Serial1.print(ch2); */
++    /* Serial1.print("\tch3 "); */
++    /* Serial1.print(ch3); */
++    /* Serial1.print("\tch4 "); */
++    /* Serial1.print(ch4); */
++    /* Serial1.print("\tch5 "); */
++    /* Serial1.print(ch5); */
++    /* Serial1.print("\tch6 "); */
++    /* Serial1.println(ch6); */
+ }
+ 
+ inline void interpolate(){
+@@ -789,9 +864,9 @@ inline void calc_pid(){
+     /* speed_ypr[1]=gyro_ypr[1]; */
+     /* speed_ypr[2]=gyro_ypr[2]; */
+     /* if(ret_val) */
+-        /* Serial.println("Hello"); */
++        /* Serial1.println("Hello"); */
+     /* else */
+-        /* Serial.println("hoooo"); */
++        /* Serial1.println("hoooo"); */
+ }
+ 
+ 
+@@ -842,54 +917,54 @@ inline void check_serial(){
+ 	// serial_count++;
+ 	serial_send = "";
+ 
+-    /* Serial.println(loop_leave); */
++    /* Serial1.println(loop_leave); */
+ 
+     
+ 
+ 	if(show_ypr){
+ 
+-        Serial.print("y: ");
+-        Serial.print(ypr_int[0]);
+-        Serial.print(" p: ");
+-        Serial.print(ypr_int[1]);
+-        Serial.print(" r: ");
+-        Serial.print(ypr_int[2]);
+-        Serial.print(" gy: ");
+-        Serial.print(gyro_int[0]);
+-        Serial.print(" gp: ");
+-        Serial.print(gyro_int[1]);
+-        Serial.print(" gr: ");
+-        Serial.print(gyro_int[2]);
+-        Serial.print("\t\t");
+-
+-        /* Serial.print("p-y: "); */
+-        /* Serial.print(gyro_ypr[0]); */
+-        /* Serial.print(" p-p: "); */
+-        /* Serial.print(gyro_ypr[1]); */
+-        /* Serial.print(" p-r: "); */
+-        /* Serial.print(gyro_ypr[2]); */
+-        Serial.print(" p-gy: ");
+-        Serial.print(speed_ypr[0]);
+-        Serial.print(" p-gp: ");
+-        Serial.print(speed_ypr[1]);
+-        Serial.print(" p-gr: ");
+-        Serial.print(speed_ypr[2]);
+-        /* Serial.println(""); */
+-        Serial.print("\t\t");
+-
+-        Serial.print("m1: ");
+-        Serial.print(m1_speed);
+-        Serial.print(" m2: ");
+-        Serial.print(m2_speed);
+-        Serial.print(" m3: ");
+-        Serial.print(m3_speed);
+-        Serial.print(" m4: ");
+-        Serial.print(m4_speed);
+-        Serial.print(" bs: ");
+-        Serial.print(base_speed);
+-        Serial.print(" bso: ");
+-        Serial.print(base_speed_old);
+-        Serial.println(" ");
++        Serial1.print("y: ");
++        Serial1.print(ypr_int[0]);
++        Serial1.print(" p: ");
++        Serial1.print(ypr_int[1]);
++        Serial1.print(" r: ");
++        Serial1.print(ypr_int[2]);
++        Serial1.print(" gy: ");
++        Serial1.print(gyro_int[0]);
++        Serial1.print(" gp: ");
++        Serial1.print(gyro_int[1]);
++        Serial1.print(" gr: ");
++        Serial1.print(gyro_int[2]);
++        Serial1.print("\t\t");
++
++        /* Serial1.print("p-y: "); */
++        /* Serial1.print(gyro_ypr[0]); */
++        /* Serial1.print(" p-p: "); */
++        /* Serial1.print(gyro_ypr[1]); */
++        /* Serial1.print(" p-r: "); */
++        /* Serial1.print(gyro_ypr[2]); */
++        Serial1.print(" p-gy: ");
++        Serial1.print(speed_ypr[0]);
++        Serial1.print(" p-gp: ");
++        Serial1.print(speed_ypr[1]);
++        Serial1.print(" p-gr: ");
++        Serial1.print(speed_ypr[2]);
++        /* Serial1.println(""); */
++        Serial1.print("\t\t");
++
++        Serial1.print("m1: ");
++        Serial1.print(m1_speed);
++        Serial1.print(" m2: ");
++        Serial1.print(m2_speed);
++        Serial1.print(" m3: ");
++        Serial1.print(m3_speed);
++        Serial1.print(" m4: ");
++        Serial1.print(m4_speed);
++        Serial1.print(" bs: ");
++        Serial1.print(base_speed);
++        Serial1.print(" bso: ");
++        Serial1.print(base_speed_old);
++        Serial1.println(" ");
+ 		/* count_ypr++; */
+ 		/* if(count_ypr & 0x10){ */
+ 			/* count_ypr = 0; */
+@@ -901,7 +976,7 @@ inline void check_serial(){
+ 			/* serial_send += sum_ypr_deg[1]; */
+ 			/* serial_send += "\t";                        */
+ 			/* serial_send += sum_ypr_deg[2]; */
+-			/* Serial.println(serial_send); */
++			/* Serial1.println(serial_send); */
+ 		/* } */
+ 	}
+ 
+@@ -916,7 +991,7 @@ inline void check_serial(){
+ 		serial_send += gy;
+ 		serial_send += "\tgyro_yaw: ";
+ 		serial_send += gz;
+-		Serial.println(serial_send);
++		Serial1.println(serial_send);
+ 
+ 
+ 	}
+@@ -930,12 +1005,12 @@ inline void check_serial(){
+ 		serial_send += m3_speed;
+ 		serial_send += "\t";
+ 		serial_send += m4_speed;
+-		Serial.println(serial_send);
++		Serial1.println(serial_send);
+ 	}
+ 
+-	if (Serial.available() > 0){
++	if (Serial1.available() > 0){
+ 		// read the value
+-		char ch = Serial.read();
++		char ch = Serial1.read();
+ 		// serial_send += ch;
+ 
+ 		if(ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
+@@ -982,7 +1057,7 @@ inline void check_serial(){
+ 			
+ 			// serial_send += "\tserial count: ";
+ 			// serial_send += serial_count;
+-			Serial.println(serial_send);
++			Serial1.println(serial_send);
+ 
+ 		}else if(ch == ';'){
+ 			in_value = in_str;
+@@ -995,7 +1070,7 @@ inline void check_serial(){
+ 			serial_send += "\t\t";
+ 			serial_send += "Value: ";
+ 			serial_send += in_value;
+-			Serial.println(serial_send);
++			Serial1.println(serial_send);
+ 			serial_send = "";
+ 
+ 			// Convert the string to an integer
+@@ -1031,7 +1106,7 @@ inline void check_serial(){
+ 				serial_send += kd[2];
+ 				serial_send += "\t";
+ 				serial_send += offset_yaw;
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_value == "k1"){
+ 				serial_send += kp[1];
+ 				serial_send += "\t";
+@@ -1040,7 +1115,7 @@ inline void check_serial(){
+ 				serial_send += kd[1];
+ 				serial_send += "\t";
+ 				serial_send += offset_pitch;
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_value == "k2"){
+ 				serial_send += kp[2];
+ 				serial_send += "\t";
+@@ -1049,28 +1124,28 @@ inline void check_serial(){
+ 				serial_send += kd[2];
+ 				serial_send += "\t";
+ 				serial_send += offset_roll;
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_value == "gk0"){
+ 				serial_send += gyro_kp[0];
+ 				serial_send += "\t";
+ 				serial_send += gyro_ki[0];
+ 				serial_send += "\t";
+ 				serial_send += gyro_kd[0];
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_value == "gk1"){
+ 				serial_send += gyro_kp[1];
+ 				serial_send += "\t";
+ 				serial_send += gyro_ki[1];
+ 				serial_send += "\t";
+ 				serial_send += gyro_kd[1];
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_value == "gk2"){
+ 				serial_send += gyro_kp[2];
+ 				serial_send += "\t";
+ 				serial_send += gyro_ki[2];
+ 				serial_send += "\t";
+ 				serial_send += gyro_kd[2];
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}else if(in_key == "kp1"){
+ 				if(val < 1000 && val >= 0){
+ 					kp[1] = val;
+@@ -1167,7 +1242,7 @@ inline void check_serial(){
+ 					base_speed = (int)val;
+ 					serial_send += "Speed changed to: ";
+ 					serial_send += base_speed;
+-					Serial.println(serial_send);
++					Serial1.println(serial_send);
+ 				}
+ 			}else if(in_value == "s"){
+ 				show_speed = !show_speed;
+@@ -1186,7 +1261,7 @@ inline void check_serial(){
+ 			}else{
+ 				serial_send += "Error with the input ";
+ 				serial_send += in_key;
+-				Serial.println(serial_send);
++				Serial1.println(serial_send);
+ 			}
+ 			in_key = in_value = in_str = in_index = "";
+ 
+-- 
+2.1.0
+

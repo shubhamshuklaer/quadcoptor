@@ -20,6 +20,8 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+
+
 import java.util.ArrayList;
 
 
@@ -113,12 +115,13 @@ public class My_fragment extends Fragment {
                                         Element graph_child_element=(Element)graph_child;
 
                                         LineGraphSeries<DataPoint> series = new LineGraphSeries<DataPoint>();
-                                        String prefix = graph_child_element.getAttribute("name").toString();
-                                        int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color").toString());
+                                        String name = graph_child_element.getAttribute("name");
+                                        String prefix = graph_child_element.getAttribute("prefix");
+                                        int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color"));
 
 
                                         receivers.add(new Graph_data_receiver(parent_activity,temp_graph_view, series, prefix));
-                                        series.setTitle(prefix);
+                                        series.setTitle(name);
                                         series.setColor(color);
 
                                         temp_graph_view.addSeries(series);
@@ -127,13 +130,15 @@ public class My_fragment extends Fragment {
                                 temp_graph_view.getViewport().setScalable(true);
                                 temp_graph_view.getViewport().setScrollable(true);
                                 temp_graph_view.getLegendRenderer().setVisible(true);
+                                temp_graph_view.getViewport().setMinX(-25);
+                                temp_graph_view.getViewport().setMaxX(25);
 
                                 layout.addView(temp_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
                                 My_slider temp_seek_bar;
-                                String param_name=temp_element.getAttribute("param_name").toString();
-                                String command=temp_element.getAttribute("command").toString();
+                                String param_name=temp_element.getAttribute("param_name");
+                                String command=temp_element.getAttribute("command");
                                 if(element_num_rows>element_num_cols)
                                     temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,param_name,command);
                                 else

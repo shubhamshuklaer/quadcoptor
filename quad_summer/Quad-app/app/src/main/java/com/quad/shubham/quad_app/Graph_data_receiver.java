@@ -12,6 +12,7 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+
 /**
  * Created by shubham on 15/6/15.
  */
@@ -20,7 +21,7 @@ public class Graph_data_receiver extends BroadcastReceiver {
     public String prefix;
     Context context;
     GraphView graph_view;
-    public static final int view_port_size=50;
+    public final int view_port_size=50;
 
     public Graph_data_receiver(Context _context,GraphView _graph_view,LineGraphSeries<DataPoint> _series,String _prefix){
         series=_series;
@@ -34,10 +35,10 @@ public class Graph_data_receiver extends BroadcastReceiver {
         String data=intent.getStringExtra("data");
         String[] seperated=data.split(" ",2);
         if(seperated.length==2) {
-            DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
             try {
-                series.appendData(point, false, view_port_size);
-                graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - view_port_size);
+                DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
+                series.appendData(point, false, this.view_port_size);
+                graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - this.view_port_size);
                 graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
             }catch(Exception e){
                 Toast.makeText(context.getApplicationContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
