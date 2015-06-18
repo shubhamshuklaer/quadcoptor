@@ -180,21 +180,25 @@ public abstract class BaseSeries<E extends DataPointInterface> implements Series
                     if (org.hasNext()) {
                         prevValue = org.next();
                     }
-                    if (prevValue.getX() >= from) {
-                        nextValue = prevValue;
-                        found = true;
-                    } else {
-                        while (org.hasNext()) {
-                            nextValue = org.next();
-                            if (nextValue.getX() >= from) {
-                                found = true;
-                                nextNextValue = nextValue;
-                                nextValue = prevValue;
-                                break;
+                    if (prevValue!=null) {//By shubham Shukla because of issue https://github.com/jjoe64/GraphView/issues/352
+
+                        if (prevValue.getX() >= from) {
+                            nextValue = prevValue;
+                            found = true;
+                        } else {
+                            while (org.hasNext()) {
+                                nextValue = org.next();
+                                if (nextValue.getX() >= from) {
+                                    found = true;
+                                    nextNextValue = nextValue;
+                                    nextValue = prevValue;
+                                    break;
+                                }
+                                prevValue = nextValue;
                             }
-                            prevValue = nextValue;
                         }
                     }
+
                     if (!found) {
                         nextValue = null;
                     }
