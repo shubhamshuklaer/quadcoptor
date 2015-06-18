@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <tab name="Graphs" num_cols="2" num_rows="2">
-        <graph start_col="0" start_row="0" num_cols="1" num_rows="1">
+    <tab name="Graphs" num_cols="1" num_rows="1">
+        <graph name="All params" start_col="0" start_row="0" num_cols="1" num_rows="1">
             <series name="yaw" color="ffff0000" prefix="y"></series>
             <series name="pitch" color="ff00ff00" prefix="p"></series>
             <series name="roll" color="ff0000ff" prefix="r"></series>
+
+            <series name="gyro yaw" color="ff000000" prefix="gy"></series>
+            <series name="gyro pitch" color="ff00FFFF" prefix="gp"></series>
+            <series name="gyro roll" color="ff0000FF" prefix="gr"></series>
+
+            <series name="Pid yaw" color="ffDEB887" prefix="sy"></series>
+            <series name="Pid pitch" color="ff7FFF00" prefix="sp"></series>
+            <series name="Pid roll" color="ffFF7F50" prefix="sr"></series>
+
+            <series name="base speed" color="ff00008B" prefix="bs"></series>
+            <series name="m1 speed" color="ffFF1493" prefix="m1"></series>
+            <series name="m2 speed" color="ffFFD700" prefix="m2"></series>
         </graph>
-        <graph start_col="1" start_row="0" num_cols="1" num_rows="1">
-            <series name="gyro yaw" color="ffff0000" prefix="gy"></series>
-            <series name="gyro pitch" color="ff00ff00" prefix="gp"></series>
-            <series name="gyro roll" color="ff0000ff" prefix="gr"></series>
-        </graph>
-        <graph start_col="0" start_row="1" num_cols="1" num_rows="1">
-            <series name="Pid yaw" color="ffff0000" prefix="sy"></series>
-            <series name="Pid pitch" color="ff00ff00" prefix="sp"></series>
-            <series name="Pid roll" color="ff0000ff" prefix="sr"></series>
-        </graph>
-        <graph start_col="1" start_row="1" num_cols="1" num_rows="1">
-            <series name="base speed" color="ffff0000" prefix="bs"></series>
-            <series name="m1 speed" color="ff00ff00" prefix="m1"></series>
-            <series name="m2 speed" color="ff0000ff" prefix="m2"></series>
-        </graph>
+    </tab>
+    <tab name="Sliders" num_cols="6" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="bs" command="bs=%;"></slider>
     </tab>
 </root>
