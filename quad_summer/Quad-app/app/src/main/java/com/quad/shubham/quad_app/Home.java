@@ -16,7 +16,7 @@ import com.ipaulpro.afilechooser.utils.FileUtils;
 
 public class Home extends Activity {
 
-    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit","Bluetooth"};
+    String[] activity_list={"Tuner","Data Logs","Show History","Select Config","Commit","Bluetooth","test"};
     ListView activity_list_view;
     String config_path;
     private static final int REQUEST_CHOOSER = 1234;
@@ -58,6 +58,9 @@ public class Home extends Activity {
                         intent = new Intent(Home.this, Bluetooth.class);
                         startActivity(intent);
                         break;
+                    case 6:
+                        intent = new Intent(Home.this,Test.class);
+                        startActivity(intent);
                 }
             }
         });

@@ -33,15 +33,17 @@ public class Graph_data_receiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String data=intent.getStringExtra("data");
-        String[] seperated=data.split(" ",2);
-        if(seperated.length==2) {
-            try {
-                DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
-                series.appendData(point, false, this.view_port_size);
-                graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - this.view_port_size);
-                graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
-            }catch(Exception e){
-                Toast.makeText(context.getApplicationContext(),e.getMessage(),Toast.LENGTH_SHORT).show();
+        if(data!=null) {
+            String[] seperated = data.split(" ", 2);
+            if (seperated.length == 2) {
+                try {
+                    DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
+                    series.appendData(point, false, this.view_port_size);
+                    graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - this.view_port_size);
+                    graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
+                } catch (Exception e) {
+                    Toast.makeText(context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         }
     }
@@ -49,7 +51,6 @@ public class Graph_data_receiver extends BroadcastReceiver {
     public void register_receiver(){
         IntentFilter intent_filter=new IntentFilter(Data_logging_service.intent_filter_prefix+":"+prefix);
         LocalBroadcastManager.getInstance(context.getApplicationContext()).registerReceiver(this, intent_filter);
-        Log.d("normal",prefix);
     }
 
     public void unregister_receiver(){

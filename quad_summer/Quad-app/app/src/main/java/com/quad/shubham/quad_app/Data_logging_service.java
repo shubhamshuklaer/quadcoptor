@@ -181,11 +181,12 @@ public class Data_logging_service extends IntentService{
                         String data_line = new String(data, 0, buffer_pos, "UTF-8");
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
                         data_log_file_stream.write((data_line+"\r").getBytes());
+
                         if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
                             data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
                         }
-                        String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
-                        if (seperated.length == 2) { //Sometimes it is lenght 1 causes error
+                        if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+\\s-?[0-9]+$")) {
+                            String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
                             Intent intent = new Intent(Data_logging_service.intent_filter_prefix + ":" + seperated[0]);
                             intent.putExtra("data", seperated[1]);
                             LocalBroadcastManager.getInstance(Data_logging_service.this.getApplicationContext()).sendBroadcast(intent);
