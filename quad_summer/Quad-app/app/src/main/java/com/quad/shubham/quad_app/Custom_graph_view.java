@@ -90,13 +90,13 @@ public class Custom_graph_view extends LinearLayout {
                     int index=buttonView.getId() - 1;
                     LineGraphSeries series = series_list.get(index);
                     if (isChecked) {
-                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"1");
+                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"true");
                         if (graph_view.getSeries().indexOf(series) == -1) {
                             graph_view.addSeries(series);
                             register_receiver();
                         }
                     } else {
-                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"1");
+                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"false");
                         if (graph_view.getSeries().indexOf(series) != -1) {
                             graph_view.removeSeries(series);
                             register_receiver();
@@ -108,7 +108,7 @@ public class Custom_graph_view extends LinearLayout {
             //Do it after setOnCheckeListner so that it will add the series to graph too depending
             //on checked state
             temp_check_box.setChecked(Boolean.parseBoolean(Data_store
-                    .get_attribute(context, graph_name + ":" + series_list.get(i).getTitle(), "1")));
+                    .get_attribute(context, graph_name + ":" + series_list.get(i).getTitle(), "true")));
 
             check_box_layout.addView(temp_check_box);
         }
