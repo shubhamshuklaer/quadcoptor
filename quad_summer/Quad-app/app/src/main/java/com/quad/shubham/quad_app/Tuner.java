@@ -47,15 +47,15 @@ public class Tuner extends FragmentActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-            @Override
-            public void uncaughtException(Thread thread, Throwable ex) {
-                Log.e("normal","hello");
-                Log.e("normal",ex.getCause().toString());
-                Log.e("normal", ex.getMessage());
-                Log.e("normal",ex.getStackTrace().toString());
-            }
-        });
+//        Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+//            @Override
+//            public void uncaughtException(Thread thread, Throwable ex) {
+//                Log.e("normal","hello");
+//                Log.e("normal",ex.getCause().toString());
+//                Log.e("normal", ex.getMessage());
+//                Log.e("normal",ex.getStackTrace().toString());
+//            }
+//        });
 
         DocumentBuilderFactory d_builder_factory_obj=null;
         DocumentBuilder d_builder=null;

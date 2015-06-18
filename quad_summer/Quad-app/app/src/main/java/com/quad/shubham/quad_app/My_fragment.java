@@ -1,12 +1,9 @@
 package com.quad.shubham.quad_app;
 
 import android.app.Activity;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +33,7 @@ public class My_fragment extends Fragment {
     int num_columns;
     int num_rows;
     final int margin=10;
-    ArrayList<Graph_data_receiver> receivers;
+    ArrayList<Custom_graph_view> custom_graph_views;
 
     public static My_fragment newInstance(int _position){
         My_fragment fragment=new My_fragment();
@@ -50,7 +47,7 @@ public class My_fragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         position=getArguments().getInt("position");
-        receivers=new ArrayList<Graph_data_receiver>();
+        custom_graph_views=new ArrayList<Custom_graph_view>();
     }
 
     @Nullable
@@ -105,9 +102,11 @@ public class My_fragment extends Fragment {
                             element_layout_params.bottomMargin=margin;
 
                             if ("graph".equals(temp_element.getNodeName())) {
-                                GraphView temp_graph_view = new GraphView(parent_activity);
+                                ArrayList<LineGraphSeries> temp_series_list=new ArrayList<LineGraphSeries>();
+                                ArrayList<String> temp_prefix_list=new ArrayList<String>();
 
                                 NodeList graph_childs=temp_element.getChildNodes();
+                                String graph_name=temp_element.getAttribute("name");
 
                                 for(int j=0;j<graph_childs.getLength();j++) {
                                     Node graph_child=graph_childs.item(j);
@@ -118,22 +117,19 @@ public class My_fragment extends Fragment {
                                         String name = graph_child_element.getAttribute("name");
                                         String prefix = graph_child_element.getAttribute("prefix");
                                         int color = My_fragment.try_parse_hex_int(graph_child_element.getAttribute("color"));
-
-
-                                        receivers.add(new Graph_data_receiver(parent_activity,temp_graph_view, series, prefix));
                                         series.setTitle(name);
                                         series.setColor(color);
 
-                                        temp_graph_view.addSeries(series);
+                                        temp_series_list.add(series);
+                                        temp_prefix_list.add(prefix);
                                     }
                                 }
-                                temp_graph_view.getViewport().setScalable(true);
-                                temp_graph_view.getViewport().setScrollable(true);
-                                temp_graph_view.getLegendRenderer().setVisible(true);
-                                temp_graph_view.getViewport().setMinX(-25);
-                                temp_graph_view.getViewport().setMaxX(25);
 
-                                layout.addView(temp_graph_view, element_layout_params);
+                                Custom_graph_view custom_graph_view=new Custom_graph_view(parent_activity,temp_series_list,temp_prefix_list,graph_name);
+
+                                custom_graph_views.add(custom_graph_view);
+
+                                layout.addView(custom_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
                                 My_slider temp_seek_bar;
@@ -148,8 +144,8 @@ public class My_fragment extends Fragment {
                         }
                     }
 
-                    for(int i=0;i<receivers.size();i++)
-                        receivers.get(i).register_receiver();
+                    for(int i=0;i<custom_graph_views.size();i++)
+                        custom_graph_views.get(i).register_receiver();
                 }
             }
         });
@@ -162,15 +158,15 @@ public class My_fragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        for(int i=0;i<receivers.size();i++)
-            receivers.get(i).unregister_receiver();
+        for(int i=0;i<custom_graph_views.size();i++)
+            custom_graph_views.get(i).unregister_receiver();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        for(int i=0;i<receivers.size();i++)
-            receivers.get(i).register_receiver();
+        for(int i=0;i<custom_graph_views.size();i++)
+            custom_graph_views.get(i).register_receiver();
     }
 
     public static int try_parse_hex_int(String str){

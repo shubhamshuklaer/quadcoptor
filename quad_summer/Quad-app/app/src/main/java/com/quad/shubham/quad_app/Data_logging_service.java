@@ -43,7 +43,7 @@ public class Data_logging_service extends IntentService{
     OutputStream o_stream;
     final byte new_line_ascii='\n';
     final byte carrige_return_ascii='\r';
-    public static final String intent_filter_prefix="com.quad.shubham.quad_app";
+    public static final String intent_filter_prefix="com.quad.shubham.quad_app:";
     public static final int START_NOTIFICATION_ID =19;
     public static final int STOP_NOTIFICATION_ID =21;
     public static final String send_intent_filter="com.quad.shubham.quad_app_send";
@@ -187,7 +187,7 @@ public class Data_logging_service extends IntentService{
                         }
                         if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+\\s-?[0-9]+$")) {
                             String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
-                            Intent intent = new Intent(Data_logging_service.intent_filter_prefix + ":" + seperated[0]);
+                            Intent intent = new Intent(Data_logging_service.intent_filter_prefix + seperated[0]);
                             intent.putExtra("data", seperated[1]);
                             LocalBroadcastManager.getInstance(Data_logging_service.this.getApplicationContext()).sendBroadcast(intent);
                         }
