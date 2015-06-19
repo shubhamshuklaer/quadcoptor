@@ -45,6 +45,7 @@ public class My_slider extends LinearLayout {
             if (my_binder != null) {
                 my_binder.send_data(command.replace(replace_str, value_to_send));
             }
+            update_tuner_data(parameter_name + "^cur", value_to_send);
             send_now=true;
         }
     };
@@ -256,7 +257,7 @@ public class My_slider extends LinearLayout {
         }
     }
 
-    public void set_cur_text(String str){
+    public void set_cur_text(String str) {
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
         value_to_send=str;
@@ -265,7 +266,6 @@ public class My_slider extends LinearLayout {
             this.postDelayed(send_command_runnable, send_interval);
         }
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
-        this.update_tuner_data(this.parameter_name + "^cur", str);
     }
 
     public void update_tuner_data(String key, String value){

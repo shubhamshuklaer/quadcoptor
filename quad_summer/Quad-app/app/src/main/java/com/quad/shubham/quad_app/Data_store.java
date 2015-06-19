@@ -24,6 +24,8 @@ public class Data_store {
     public static String PARENT_ID_SETTING="parent_id";
     public static String CONFIG_FILE_PATH_SETTING="config_file_path";
     public static String CUR_BRANCH_SETTING_DEFAULT="master";
+    public static String USER_SETTING_PREFIX="user_setting_";
+    public static String USER_SETTING_FILE="user_meta";
 
     public static String get_attribute(Context context,String attr_name,String default_val){
         context=context.getApplicationContext();
@@ -46,6 +48,8 @@ public class Data_store {
             return HISTORY_META_FILE;
         else if(attr_name==CONFIG_FILE_PATH_SETTING)
             return APPLICATION_DATA_FILE;
+        else if(attr_name.length()>=USER_SETTING_PREFIX.length() && attr_name.substring(0,USER_SETTING_PREFIX.length()).equals(USER_SETTING_PREFIX))
+            return USER_SETTING_FILE;
         else
             return TUNER_DATA_FILE;
     }

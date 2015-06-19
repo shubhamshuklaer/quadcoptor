@@ -5,9 +5,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -25,16 +29,19 @@ public class Custom_graph_view extends LinearLayout {
     GraphView graph_view;
     ArrayList<LineGraphSeries> series_list;
     Context context;
-    LinearLayout check_box_layout;
+    LinearLayout check_box_layout,top_layout;
+    TextView view_port_label;
+    EditText view_port_size_text;
     ArrayList<String> prefix_list;
     String graph_name;
     TextView graph_name_view;
-    public final int view_port_size=50;
+    public int view_port_size=1000;
     boolean registered=false;
     final long update_delay=500;//500ms
     boolean update_now=true;
     int cur_max_x;
     boolean first_time=true;
+    int h_m=30,v_m=5;
 
     BroadcastReceiver receiver=new BroadcastReceiver() {
         @Override
@@ -63,7 +70,7 @@ public class Custom_graph_view extends LinearLayout {
                                             update_now=true;
                                             graph_view.getViewport().setMinX(cur_max_x - view_port_size);
                                             graph_view.getViewport().setMaxX(cur_max_x);
-                                            graph_view.onDataChanged(!first_time,false);
+                                            graph_view.onDataChanged(!first_time, false);
                                             first_time=false;
                                         } catch (Exception e) {
                                             Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -86,8 +93,42 @@ public class Custom_graph_view extends LinearLayout {
         graph_name=_graph_name;
         this.setOrientation(VERTICAL);
 
+        top_layout=new LinearLayout(context);
+
         graph_name_view=new TextView(context);
         graph_name_view.setText(graph_name);
+
+        view_port_label=new TextView(context);
+        view_port_label.setText("View port size");
+
+        view_port_size_text=new EditText(context);
+        view_port_size_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+        view_port_size_text.setText(Data_store.get_attribute(context,
+                Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
+                Integer.toString(view_port_size)));
+
+        view_port_size_text.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                view_port_size = try_parse_int(view_port_size_text.getText().toString());
+                Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
+                        Integer.toString(view_port_size));
+            }
+        });
+
+        top_layout.addView(graph_name_view,new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.LEFT));
+        top_layout.addView(view_port_label, new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.RIGHT));
+        top_layout.addView(view_port_size_text, new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.RIGHT));
 
         graph_view=new GraphView(context);
         graph_view.getViewport().setScalable(true);
@@ -106,13 +147,13 @@ public class Custom_graph_view extends LinearLayout {
                     int index=buttonView.getId() - 1;
                     LineGraphSeries series = series_list.get(index);
                     if (isChecked) {
-                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"true");
+                        Data_store.set_attribute(context,Data_store.USER_SETTING_PREFIX + graph_name+":"+series.getTitle(),"true");
                         if (graph_view.getSeries().indexOf(series) == -1) {
                             graph_view.addSeries(series);
                             register_receiver();
                         }
                     } else {
-                        Data_store.set_attribute(context,graph_name+":"+series.getTitle(),"false");
+                        Data_store.set_attribute(context,Data_store.USER_SETTING_PREFIX + graph_name+":"+series.getTitle(),"false");
                         if (graph_view.getSeries().indexOf(series) != -1) {
                             graph_view.removeSeries(series);
                             register_receiver();
@@ -124,14 +165,14 @@ public class Custom_graph_view extends LinearLayout {
             //Do it after setOnCheckeListner so that it will add the series to graph too depending
             //on checked state
             temp_check_box.setChecked(Boolean.parseBoolean(Data_store
-                    .get_attribute(context, graph_name + ":" + series_list.get(i).getTitle(), "true")));
+                    .get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":" + series_list.get(i).getTitle(), "true")));
 
             check_box_layout.addView(temp_check_box);
         }
 
         register_receiver();
 
-        this.addView(graph_name_view,new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY));
+        this.addView(top_layout,new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY));
         this.addView(graph_view, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.FILL));
         this.addView(check_box_layout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY));
     }
@@ -151,6 +192,14 @@ public class Custom_graph_view extends LinearLayout {
         if(registered) {
             LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver);
             registered = false;
+        }
+    }
+
+    public int try_parse_int(String str){
+        try{
+            return Integer.parseInt(str);
+        }catch (NumberFormatException e){
+            return view_port_size;
         }
     }
 }

@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -137,6 +138,10 @@ public class Data_logging_service extends IntentService{
             db_helper.insert_data_log();
             File data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt");
             data_log_file_stream=new FileOutputStream(data_log_file);
+            Map<String,String> cur_tune_data=Data_store.get_all(Data_logging_service.this,Data_store.TUNER_DATA_FILE);
+            for(Map.Entry<String,String> entry:cur_tune_data.entrySet()){
+                data_log_file_stream.write((entry.getKey()+" : "+entry.getValue()+"\n").getBytes());
+            }
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -177,14 +182,12 @@ public class Data_logging_service extends IntentService{
                 int read_byte_int=i_stream.read();
                 if(read_byte_int!=-1) {
                     read_byte = (byte) (read_byte_int);//reads 1 byte... since returns a int between 0-255 we can cast it directly
-                    if (read_byte == carrige_return_ascii) {
-                        String data_line = new String(data, 0, buffer_pos, "UTF-8");
+                    if (read_byte == new_line_ascii) {//println does "\r\n"
+                        String data_line = new String(data, 0, buffer_pos, "UTF-8");//this will give us till \r
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
-                        data_log_file_stream.write((data_line+"\r").getBytes());
+                        //The trim function also removes the \n or \r characters from the ends in addition to spaces at ends
+                        data_log_file_stream.write((data_line+"\n").getBytes());
 
-                        if (data_line.length()>0 && data_line.charAt(data_line.length() - 1) == '\n') {
-                            data_line = data_line.substring(0, data_line.length() - 1);//removing the last /n
-                        }
                         if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+\\s-?[0-9]+$")) {
                             String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
                             Intent intent = new Intent(Data_logging_service.intent_filter_prefix + seperated[0]);
