@@ -19,7 +19,24 @@
             <series name="m2 speed" color="ffFFD700" prefix="m2"></series>
         </graph>
     </tab>
-    <tab name="Sliders" num_cols="6" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="bs" command="bs=%;"></slider>
+    <tab name="PID constants" num_cols="6" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="kp" command="kp=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="kd" command="kd=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ki" command="ki=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="ykp" command="ykp=%;"></slider>
+        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="ykd" command="ykd=%;"></slider>
+        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="yki" command="yki=%;"></slider>
     </tab>
+    <tab name="PID bounds" num_cols="6" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="p-bound" command="prb=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="g-bound" command="gprb=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="i-bound" command="iprb=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="yp-bound" command="yprb=%;"></slider>
+        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="yg-bound" command="ygprb=%;"></slider>
+        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="yi-bound" command="yiprb=%;"></slider>
+    </tab>
+    <tab name="Mix" num_cols="6" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="i milli" command="miterm=%;"></slider>
+    </tab>
+
 </root>

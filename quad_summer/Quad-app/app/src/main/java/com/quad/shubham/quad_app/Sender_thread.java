@@ -29,7 +29,6 @@ public class Sender_thread extends HandlerThread {
                 String data=(String)msg.obj;
                 try {
                     o_stream.write(data.getBytes("UTF-8"));
-                    o_stream.flush();
                     Log.e("normal","Received data "+data);
                 }catch (IOException e){
                     Log.e("normal", e.getMessage());

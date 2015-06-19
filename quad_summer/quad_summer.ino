@@ -58,6 +58,7 @@ bool in_str_arr = false, show_speed = false, show_ypr = false, enable_motors = f
 	enable_pitch = false, enable_yaw = false, enable_roll = false, show_diff = false;
 
 int count_auto_calc=0, count_dmp_calc=0, count_motor = 0, count_mpu = 0, count_ypr = 0, count_serial = 0, count_iter = 0, count_check_overflow = 0;
+int count_check_serial=0;
 
 MPU6050 mpu;
 MPU6050 accelgyro;
@@ -229,6 +230,7 @@ PID r_roll_pid(&gyro_int[2],&speed_ypr_raw[2],&gyro_ypr_temp[2],gyro_kp[2],gyro_
 void setup(){
     ApplicationMonitor.DisableWatchdog();
     Serial1.begin(9600);
+    Serial.begin(9600);
     while (!Serial1); // wait for Leonardo enumeration, others continue immediately
     mpu_init();
     /* xbee_init(); */
@@ -241,7 +243,7 @@ void setup(){
 	/* loop_enter = loop_leave = micros(); */
 	/* pid_enter = pid_leave = micros(); */
 	/* interpolate_enter = interpolate_leave = micros(); */
-    enable_pitch=true;
+    enable_pitch=false;
     enable_roll=true;
     /* ApplicationMonitor.Dump(Serial1); */
     ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
@@ -256,7 +258,6 @@ void loop(){
     // 0x100 is 256 in decimal
     if(count_serial & 0x100){
         unsigned long cur_milli=millis();
-        check_serial();
         count_serial = 0;
 
         //yaw
@@ -378,6 +379,12 @@ void loop(){
         count_serial=count_serial+1;
     }
 
+    if(count_check_serial & 0x40)
+        check_serial();
+    else
+        count_check_serial=count_check_serial+1;
+
+
     update_rc();
     update_ypr();
     calc_pid();
@@ -403,40 +410,52 @@ void loop(){
 
 void pid_init(){
     iterm_prev=millis();
-    s_yaw_pid.SetMode(AUTOMATIC);
-    s_pitch_pid.SetMode(AUTOMATIC);
-    s_roll_pid.SetMode(AUTOMATIC);
+    /* s_yaw_pid.SetMode(AUTOMATIC); */
+    /* s_pitch_pid.SetMode(AUTOMATIC); */
+    /* s_roll_pid.SetMode(AUTOMATIC); */
 
 
-    r_yaw_pid.SetMode(AUTOMATIC);
-    r_pitch_pid.SetMode(AUTOMATIC);
-    r_roll_pid.SetMode(AUTOMATIC);
+    /* r_yaw_pid.SetMode(AUTOMATIC); */
+    /* r_pitch_pid.SetMode(AUTOMATIC); */
+    /* r_roll_pid.SetMode(AUTOMATIC); */
 
 
-    s_yaw_pid.SetSampleTime(PID_SAMPLE_TIME);
-    s_pitch_pid.SetSampleTime(PID_SAMPLE_TIME);
-    s_roll_pid.SetSampleTime(PID_SAMPLE_TIME);
+    /* s_yaw_pid.SetSampleTime(PID_SAMPLE_TIME); */
+    /* s_pitch_pid.SetSampleTime(PID_SAMPLE_TIME); */
+    /* s_roll_pid.SetSampleTime(PID_SAMPLE_TIME); */
 
-    s_yaw_pid.SetOutputLimits(-MAX_yaw_S_PID_EFFECT,MAX_yaw_S_PID_EFFECT);
-    s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
-    s_roll_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT);
+    /* s_yaw_pid.SetOutputLimits(-MAX_yaw_S_PID_EFFECT,MAX_yaw_S_PID_EFFECT); */
+    /* s_pitch_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT); */
+    /* s_roll_pid.SetOutputLimits(-MAX_S_PID_EFFECT,MAX_S_PID_EFFECT); */
 
-    s_yaw_pid.SetILimits(-MAX_yaw_S_PID_I_EFFECT,MAX_yaw_S_PID_I_EFFECT);
-    s_pitch_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
-    s_roll_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT);
+    /* s_yaw_pid.SetILimits(-MAX_yaw_S_PID_I_EFFECT,MAX_yaw_S_PID_I_EFFECT); */
+    /* s_pitch_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT); */
+    /* s_roll_pid.SetILimits(-MAX_S_PID_I_EFFECT,MAX_S_PID_I_EFFECT); */
 
-    r_yaw_pid.SetSampleTime(PID_SAMPLE_TIME);
-    r_pitch_pid.SetSampleTime(PID_SAMPLE_TIME);
-    r_roll_pid.SetSampleTime(PID_SAMPLE_TIME);
+    /* r_yaw_pid.SetSampleTime(PID_SAMPLE_TIME); */
+    /* r_pitch_pid.SetSampleTime(PID_SAMPLE_TIME); */
+    /* r_roll_pid.SetSampleTime(PID_SAMPLE_TIME); */
 
-    r_yaw_pid.SetOutputLimits(-MAX_yaw_R_PID_EFFECT,MAX_yaw_R_PID_EFFECT);
-    r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
-    r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT);
+    /* r_yaw_pid.SetOutputLimits(-MAX_yaw_R_PID_EFFECT,MAX_yaw_R_PID_EFFECT); */
+    /* r_pitch_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT); */
+    /* r_roll_pid.SetOutputLimits(-MAX_R_PID_EFFECT,MAX_R_PID_EFFECT); */
 
-    r_yaw_pid.SetILimits(-MAX_yaw_R_PID_I_EFFECT,MAX_yaw_R_PID_I_EFFECT);
-    r_pitch_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
-    r_roll_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT);
+    /* r_yaw_pid.SetILimits(-MAX_yaw_R_PID_I_EFFECT,MAX_yaw_R_PID_I_EFFECT); */
+    /* r_pitch_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT); */
+    /* r_roll_pid.SetILimits(-MAX_R_PID_I_EFFECT,MAX_R_PID_I_EFFECT); */
 
+    
+
+
+
+
+
+
+
+
+    //////////////////////////
+    ///////////////IMP
+    //////////////
     /* unsigned long yaw_tune_start=micros(); */
     /* while(micros()-yaw_tune_start<PROPER_YAW_TIME) */
         /* update_ypr(); */
@@ -1011,6 +1030,7 @@ inline void check_serial(){
 	if (Serial1.available() > 0){
 		// read the value
 		char ch = Serial1.read();
+        Serial.write(ch);
 		// serial_send += ch;
 
 		if(ch != ';' && ch != '=' && ch != ' ' && ch != 'l') {
@@ -1070,7 +1090,7 @@ inline void check_serial(){
 			serial_send += "\t\t";
 			serial_send += "Value: ";
 			serial_send += in_value;
-			Serial1.println(serial_send);
+			Serial.println(serial_send);//to terminal
 			serial_send = "";
 
 			// Convert the string to an integer
@@ -1080,12 +1100,20 @@ inline void check_serial(){
                 MY_RATIO=val;
             }else if(in_key=="prb"){
                 ypr_bound=val;
-            }else if(in_key=="sb"){
-                pr_bound=val;
+            }else if(in_key=="gprb"){
+                gyro_bound=val;
             }else if(in_key=="iprb"){
                 ipr_bound=val;
+            }else if(in_key=="yprb"){
+                ypr_yaw_bound=val;
+            }else if(in_key=="ygprb"){
+                gyro_yaw_bound=val;
+            }else if(in_key=="yiprb"){
+                iy_bound=val;
             }else if(in_key=="miterm"){
                 num_millis_iterm=val;
+            }else if(in_key=="sb"){
+                pr_bound=val;
             }else if(in_key == "kd"){
 				if(val < 1000 && val >= 0){
 					kd[1] = kd[2] = val;
@@ -1097,6 +1125,18 @@ inline void check_serial(){
 			}else if(in_key == "ki"){
 				if(val < 1000 && val >= 0){
 					ki[1] = ki[2] = val;
+				}
+            }else if(in_key == "ykd"){
+				if(val < 1000 && val >= 0){
+					kd[0]= val;
+				}
+			}else if(in_key == "ykp"){
+				if(val < 1000 && val >= 0){
+					kp[0]= val;
+				}
+			}else if(in_key == "yki"){
+				if(val < 1000 && val >= 0){
+					ki[0] = val;
 				}
 			}else if(in_value == "k0"){
 				serial_send += kp[0];
@@ -1261,7 +1301,8 @@ inline void check_serial(){
 			}else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
-				Serial1.println(serial_send);
+                //It will print on terminal
+				Serial.println(serial_send);
 			}
 			in_key = in_value = in_str = in_index = "";
 

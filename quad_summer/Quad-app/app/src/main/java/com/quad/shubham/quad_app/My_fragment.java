@@ -93,8 +93,8 @@ public class My_fragment extends Fragment {
                             GridLayout.LayoutParams element_layout_params = new GridLayout.LayoutParams(
                                     GridLayout.spec(element_start_rows, element_num_rows)  , GridLayout.spec(element_start_cols, element_num_cols));
 
-                            element_layout_params.height = full_height * element_num_rows / num_columns -2*margin;
-                            element_layout_params.width = full_width * element_num_cols / num_rows -2*margin;
+                            element_layout_params.height = full_height * element_num_rows / num_rows -2*margin;
+                            element_layout_params.width = full_width * element_num_cols / num_columns -2*margin;
 
                             element_layout_params.leftMargin=margin;
                             element_layout_params.rightMargin=margin;
@@ -135,7 +135,7 @@ public class My_fragment extends Fragment {
                                 My_slider temp_seek_bar;
                                 String param_name=temp_element.getAttribute("param_name");
                                 String command=temp_element.getAttribute("command");
-                                if(element_num_rows>element_num_cols)
+                                if(element_layout_params.height>element_layout_params.width)
                                     temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.VERTICAL,param_name,command);
                                 else
                                     temp_seek_bar=My_slider.new_instance(parent_activity, My_slider.Direction.HORIZONTAL,param_name,command);
