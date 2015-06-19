@@ -8,9 +8,7 @@ import android.os.IBinder;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.Gravity;
-import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -36,7 +34,20 @@ public class My_slider extends LinearLayout {
     String command;
     ServiceConnection conn;
     private final String replace_str="%";
+    String value_to_send;
     final int margin=10;
+    long send_interval=500;//in ms;
+    boolean send_now=true;
+
+    Runnable send_command_runnable =new Runnable() {
+        @Override
+        public void run() {
+            if (my_binder != null) {
+                my_binder.send_data(command.replace(replace_str, value_to_send));
+            }
+            send_now=true;
+        }
+    };
 
     public My_slider(Context context) {
         super(context);
@@ -248,9 +259,10 @@ public class My_slider extends LinearLayout {
     public void set_cur_text(String str){
         this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
-        if (this.my_binder != null) {
-            this.my_binder.send_data(command.replace(replace_str, str));
-            Log.e("normal","Sent text "+command.replace(replace_str, str));
+        value_to_send=str;
+        if(send_now) {
+            send_now=false;
+            this.postDelayed(send_command_runnable, send_interval);
         }
         this.cur_text.addTextChangedListener(this.cur_text_watcher);
         this.update_tuner_data(this.parameter_name + "^cur", str);
