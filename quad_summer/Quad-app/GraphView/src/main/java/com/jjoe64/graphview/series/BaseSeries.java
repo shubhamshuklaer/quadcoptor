@@ -376,6 +376,33 @@ public abstract class BaseSeries<E extends DataPointInterface> implements Series
     }
 
     /**
+     * Edited by Shubham Shukla
+     * append dataPoint to the Series without update
+     * You have to update manually later
+     * This can be helpful when you don't want to update too fast
+     * @param dataPoint
+     * @param maxDataPoints
+     */
+    public void appendDataWithoutUpdate(E dataPoint, int maxDataPoints){
+        checkValueOrder(dataPoint);
+
+        if (!mData.isEmpty() && dataPoint.getX() < mData.get(mData.size()-1).getX()) {
+            throw new IllegalArgumentException("new x-value must be greater then the last value. x-values has to be ordered in ASC.");
+        }
+        synchronized (mData) {
+            int curDataCount = mData.size();
+            if (curDataCount < maxDataPoints) {
+                // enough space
+                mData.add(dataPoint);
+            } else {
+                // we have to trim one data
+                mData.remove(0);
+                mData.add(dataPoint);
+            }
+        }
+    }
+
+    /**
      *
      * @param dataPoint values the values must be in the correct order!
      *                  x-value has to be ASC. First the lowest x value and at least the highest x value.

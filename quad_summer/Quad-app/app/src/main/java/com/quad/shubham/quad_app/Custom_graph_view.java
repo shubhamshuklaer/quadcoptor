@@ -31,6 +31,10 @@ public class Custom_graph_view extends LinearLayout {
     TextView graph_name_view;
     public final int view_port_size=50;
     boolean registered=false;
+    final long update_delay=500;//500ms
+    boolean update_now=true;
+    int cur_max_x;
+    boolean first_time=true;
 
     BroadcastReceiver receiver=new BroadcastReceiver() {
         @Override
@@ -47,13 +51,25 @@ public class Custom_graph_view extends LinearLayout {
                     if (data != null) {
                         String[] seperated = data.split(" ", 2);
                         if (seperated.length == 2) {
-                            try {
-                                DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
-                                series_list.get(index).appendData(point, false, view_port_size);
-                                graph_view.getViewport().setMinX(Integer.parseInt(seperated[0]) - view_port_size);
-                                graph_view.getViewport().setMaxX(Integer.parseInt(seperated[0]));
-                            } catch (Exception e) {
-                                Toast.makeText(context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                            DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
+                            series_list.get(index).appendDataWithoutUpdate(point,view_port_size);
+                            cur_max_x=Integer.parseInt(seperated[0]);
+                            if(update_now){
+                                update_now=false;
+                                Custom_graph_view.this.postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        try {
+                                            update_now=true;
+                                            graph_view.getViewport().setMinX(cur_max_x - view_port_size);
+                                            graph_view.getViewport().setMaxX(cur_max_x);
+                                            graph_view.onDataChanged(!first_time,false);
+                                            first_time=false;
+                                        } catch (Exception e) {
+                                            Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        }
+                                    }
+                                },update_delay);
                             }
                         }
                     }
