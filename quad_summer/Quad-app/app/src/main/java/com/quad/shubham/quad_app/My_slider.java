@@ -4,11 +4,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.IBinder;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -26,7 +28,7 @@ public class My_slider extends LinearLayout {
     EditText min_text, max_text;
     TextView min_label,max_label,cur_label,cur_text,name_label;
     protected LayoutParams seek_bar_params;
-    TextWatcher min_max_text_watcher,cur_text_watcher;
+    OnFocusChangeListener min_max_focus_change_listner, cur_text_focus_change_listner;
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
     String parameter_name;
     Context parent_context;
@@ -70,6 +72,10 @@ public class My_slider extends LinearLayout {
         }
 
         new_slider.parameter_name=_parameter_name;
+
+        new_slider.setClickable(true);
+        new_slider.setFocusableInTouchMode(true);
+        new_slider.setFocusable(true);
 
         new_slider.min_text =new EditText(context);
         new_slider.max_text =new EditText(context);
@@ -121,73 +127,57 @@ public class My_slider extends LinearLayout {
             }
         };
 
+//        new_slider.min_text.seton
 
 
-        new_slider.min_max_text_watcher=new TextWatcher() {
+        new_slider.min_max_focus_change_listner =new OnFocusChangeListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                int max_val,min_val,cur_val;
-                max_val=My_slider.try_parse_int(new_slider.max_text.getText().toString());
-                min_val=My_slider.try_parse_int(new_slider.min_text.getText().toString());
-                cur_val=My_slider.try_parse_int(new_slider.cur_text.getText().toString());
-                if(max_val<min_val){
-                    new_slider.max_text.setText(Integer.toString(min_val));
-                    max_val=min_val;
-                }else if(cur_val<min_val){
-                    new_slider.min_text.setText(Integer.toString(cur_val));
-                    min_val=cur_val;
-                }else if(cur_val>max_val){
-                    new_slider.max_text.setText(Integer.toString(cur_val));
-                    max_val=cur_val;
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus) {
+                    int max_val, min_val, cur_val;
+                    max_val = My_slider.try_parse_int(new_slider.max_text.getText().toString());
+                    min_val = My_slider.try_parse_int(new_slider.min_text.getText().toString());
+                    cur_val = My_slider.try_parse_int(new_slider.cur_text.getText().toString());
+                    if (max_val < min_val) {
+                        new_slider.max_text.setText(Integer.toString(min_val));
+                        max_val = min_val;
+                    } else if (cur_val < min_val) {
+                        new_slider.min_text.setText(Integer.toString(cur_val));
+                        min_val = cur_val;
+                    } else if (cur_val > max_val) {
+                        new_slider.max_text.setText(Integer.toString(cur_val));
+                        max_val = cur_val;
+                    }
+                    new_slider.seek_bar.setMax(max_val - min_val);
+                    new_slider.seek_bar.setProgress(cur_val - min_val);
+                    new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
+                    new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
                 }
-                new_slider.seek_bar.setMax(max_val - min_val);
-                new_slider.seek_bar.setProgress(cur_val - min_val);
-                new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
-                new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
             }
         };
 
-        new_slider.cur_text_watcher= new TextWatcher() {
+        new_slider.cur_text_focus_change_listner = new OnFocusChangeListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                int max_val,min_val,cur_val;
-                max_val=My_slider.try_parse_int(new_slider.max_text.getText().toString());
-                min_val=My_slider.try_parse_int(new_slider.min_text.getText().toString());
-                cur_val=My_slider.try_parse_int(new_slider.cur_text.getText().toString());
-                if(cur_val<min_val){
-                    new_slider.min_text.setText(Integer.toString(cur_val));
-                    min_val=cur_val;
-                    new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
-                    new_slider.seek_bar.setMax(max_val - min_val);
-                }else if(cur_val>max_val){
-                    new_slider.max_text.setText(Integer.toString(cur_val));
-                    max_val=cur_val;
-                    new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
-                    new_slider.seek_bar.setMax(max_val - min_val);
+            public void onFocusChange(View v, boolean hasFocus) {
+                if(!hasFocus) {
+                    int max_val, min_val, cur_val;
+                    max_val = My_slider.try_parse_int(new_slider.max_text.getText().toString());
+                    min_val = My_slider.try_parse_int(new_slider.min_text.getText().toString());
+                    cur_val = My_slider.try_parse_int(new_slider.cur_text.getText().toString());
+                    if (cur_val < min_val) {
+                        new_slider.min_text.setText(Integer.toString(cur_val));
+                        min_val = cur_val;
+                        new_slider.update_tuner_data(new_slider.parameter_name + "^min", Integer.toString(min_val));
+                        new_slider.seek_bar.setMax(max_val - min_val);
+                    } else if (cur_val > max_val) {
+                        new_slider.max_text.setText(Integer.toString(cur_val));
+                        max_val = cur_val;
+                        new_slider.update_tuner_data(new_slider.parameter_name + "^max", Integer.toString(max_val));
+                        new_slider.seek_bar.setMax(max_val - min_val);
+                    }
+                    new_slider.seek_bar.setProgress(cur_val - min_val);
+                    new_slider.update_tuner_data(new_slider.parameter_name + "^cur", Integer.toString(cur_val));
                 }
-                new_slider.seek_bar.setProgress(cur_val - min_val);
-                new_slider.update_tuner_data(new_slider.parameter_name + "^cur", Integer.toString(cur_val));
-//                Selection.setSelection(s,new_slider.cur_text.getText().length());
             }
         };
 
@@ -241,10 +231,12 @@ public class My_slider extends LinearLayout {
         new_slider.setLayoutParams(full_layout_params);
 
 
-        new_slider.min_text.addTextChangedListener(new_slider.min_max_text_watcher);
-        new_slider.max_text.addTextChangedListener(new_slider.min_max_text_watcher);
-        new_slider.cur_text.addTextChangedListener(new_slider.cur_text_watcher);
+        new_slider.min_text.setOnFocusChangeListener(new_slider.min_max_focus_change_listner);
+        new_slider.max_text.setOnFocusChangeListener(new_slider.min_max_focus_change_listner);
+        new_slider.cur_text.setOnFocusChangeListener(new_slider.cur_text_focus_change_listner);
         new_slider.seek_bar.setOnSeekBarChangeListener(new_slider.seek_bar_change_listner);
+
+        new_slider.setBackgroundColor(Color.CYAN);
 
         return new_slider;
     }
@@ -258,14 +250,12 @@ public class My_slider extends LinearLayout {
     }
 
     public void set_cur_text(String str) {
-        this.cur_text.removeTextChangedListener(this.cur_text_watcher);
         this.cur_text.setText(str);
         value_to_send=str;
         if(send_now) {
             send_now=false;
             this.postDelayed(send_command_runnable, send_interval);
         }
-        this.cur_text.addTextChangedListener(this.cur_text_watcher);
     }
 
     public void update_tuner_data(String key, String value){

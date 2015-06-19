@@ -151,6 +151,9 @@ public class My_fragment extends Fragment {
         });
 
 
+        layout.setClickable(true);
+        layout.setFocusableInTouchMode(true);
+        layout.setFocusable(true);
 
         return layout;
     }
