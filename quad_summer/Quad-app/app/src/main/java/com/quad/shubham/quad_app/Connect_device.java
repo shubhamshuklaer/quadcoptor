@@ -64,33 +64,6 @@ public class Connect_device extends Activity {
                 BluetoothDevice device = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(scanned_devices_addr.get(position));
 
                 if(device!=null) {
-//                    NotificationCompat.Builder m_builder=new NotificationCompat.Builder(Connect_device.this)
-//                            .setSmallIcon(R.drawable.notification_template_icon_bg).setContentTitle("Data logger").setContentText("Starting");
-//
-//                    Intent result_intent=new Intent(Connect_device.this,Data_logging_service.class);
-//
-//                    // The stack builder object will contain an artificial back stack for the
-//                    // started Activity.
-//                    // This ensures that navigating backward from the Activity leads out of
-//                    // your application to the Home screen.
-//                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(Connect_device.this);
-//                    // Adds the back stack for the Intent (but not the Intent itself)
-//                    stackBuilder.addParentStack(Data_logging_service.class);
-//                    // Adds the Intent that starts the Activity to the top of the stack
-//                    stackBuilder.addNextIntent(result_intent);
-//                    PendingIntent resultPendingIntent =
-//                            stackBuilder.getPendingIntent(
-//                                    0,
-//                                    PendingIntent.FLAG_UPDATE_CURRENT
-//                            );
-//
-//                    m_builder.setContentIntent(resultPendingIntent);
-//
-//                    Service.startForeground
-
-
-
-
                     Intent intent = new Intent(Connect_device.this, Data_logging_service.class);
                     intent.putExtra("bt_device",device);
                     startService(intent);

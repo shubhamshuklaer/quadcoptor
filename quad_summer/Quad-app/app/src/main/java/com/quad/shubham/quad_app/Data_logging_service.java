@@ -82,12 +82,6 @@ public class Data_logging_service extends IntentService{
             }
             destroy();
         }
-        try {
-            if(data_log_file_stream!=null)
-                data_log_file_stream.close();
-        }catch (IOException e){
-            Log.e("normal",e.getMessage());
-        }
         running=false;
     }
 
@@ -138,10 +132,6 @@ public class Data_logging_service extends IntentService{
             db_helper.insert_data_log();
             File data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt");
             data_log_file_stream=new FileOutputStream(data_log_file);
-            Map<String,String> cur_tune_data=Data_store.get_all(Data_logging_service.this,Data_store.TUNER_DATA_FILE);
-            for(Map.Entry<String,String> entry:cur_tune_data.entrySet()){
-                data_log_file_stream.write((entry.getKey()+" : "+entry.getValue()+"\n").getBytes());
-            }
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -157,6 +147,12 @@ public class Data_logging_service extends IntentService{
                 o_stream.close();
             if(socket!=null)
                 socket.close();
+
+            Map<String,String> cur_tune_data=Data_store.get_all(Data_logging_service.this,Data_store.TUNER_DATA_FILE);
+            for(Map.Entry<String,String> entry:cur_tune_data.entrySet()){
+                data_log_file_stream.write((entry.getKey()+" : "+entry.getValue()+"\n").getBytes());
+            }
+            data_log_file_stream.close();
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }
