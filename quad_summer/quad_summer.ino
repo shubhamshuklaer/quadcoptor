@@ -314,22 +314,19 @@ void loop(){
 void pid_init(){
     iterm_prev=millis();
 
-    //////////////////////////
-    ///////////////IMP
-    //////////////
-    /* unsigned long yaw_tune_start=micros(); */
-    /* while(micros()-yaw_tune_start<PROPER_YAW_TIME) */
-        /* update_ypr(); */
+    unsigned long yaw_tune_start=micros();
+    while(micros()-yaw_tune_start<PROPER_YAW_TIME)
+        update_ypr();
     
-    /* int desired_yaw; */
-    /* int yaw_average_count_copy=YAW_AVERAGE_COUNT; */
-    /* while(yaw_average_count_copy>0){ */
-        /* update_ypr(); */
-        /* desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0]; */
-        /* yaw_average_count_copy--; */
-    /* } */
+    int desired_yaw;
+    int yaw_average_count_copy=YAW_AVERAGE_COUNT;
+    while(yaw_average_count_copy>0){
+        update_ypr();
+        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0];
+        yaw_average_count_copy--;
+    }
 
-    /* desired_ypr[0]=desired_yaw; */
+    desired_ypr[0]=desired_yaw;
 }
 
 
@@ -579,16 +576,10 @@ void update_rc(){
                     }
                 }
             }else if(ch5<-CH5_EFFECT/2){
-                if(take_off_count>=take_off_gradient){
-                    take_off_count=0;
-                    if(base_speed<ch3)
-                        base_speed++;
-                }else{
-                    take_off_count++;
-                }
-                take_down_start=millis();
+                enable_pitch=false;
             }else{
                 enable_motors=true;
+                enable_pitch=true;
                 take_down_count=0;
                 take_off_count=0;
                 base_speed=ch3;
@@ -616,7 +607,7 @@ void update_rc(){
 
 int MY_RATIO=16;
 int ypr_yaw_bound=10;
-int ypr_bound=35;
+int ypr_bound=33;
 int gyro_yaw_bound=10;
 int gyro_bound=800;
 int pr_bound=800;
@@ -657,7 +648,6 @@ inline void calc_pid(){
     /* speed_ypr[1]=constrain(speed_ypr[1],-pr_bound,pr_bound); */
     /* speed_ypr[2]=constrain(speed_ypr[2],-pr_bound,pr_bound); */
 
-    speed_ypr[0]=0;
     speed_ypr[1]/=MY_RATIO;
     speed_ypr[2]/=MY_RATIO;
 }

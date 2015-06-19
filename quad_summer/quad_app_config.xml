@@ -37,6 +37,7 @@
     </tab>
     <tab name="Mix" num_cols="6" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="i milli" command="miterm=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="My_ratio" command="rat=%;"></slider>
     </tab>
 
 </root>
