@@ -25,8 +25,8 @@ int m1_speed, m2_speed, m3_speed, m4_speed;
 int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 
 int gyro_ypr[3];
-int pid_result[3];
-int desired_ypr[3]={0,0,0};
+long pid_result[3];
+int desired_angle[3]={0,0,0};
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
 float loop_ratio = 0, loop_enter, loop_leave, loop_count = 0;
@@ -35,7 +35,7 @@ float motor_ratio = 0, motor_enter, motor_leave, motor_count = 0;
 float mpu_ratio = 0, mpu_enter, mpu_leave, mpu_count = 0;
 float interpolate_ratio = 0, interpolate_enter, interpolate_leave, interpolate_count = 0;
 
-int kp[3] = {0, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0,0,0};
+int kp[3] = {1, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0,1,1};
 int i_prev_calc_time;
 
 String in_str, in_key, in_value, in_index, serial_send = "";
@@ -78,7 +78,7 @@ const int CH6_MIN=1000;
 const int CH1_EFFECT=20;
 const int CH2_EFFECT=100;
 const int CH3_MIN_EFFECT=1400;
-const int CH3_MAX_EFFECT=1600;
+const int CH3_MAX_EFFECT=1650;
 const int CH4_EFFECT=100;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
@@ -154,7 +154,7 @@ int16_t gx, gy, gz;
 // packet structure for InvenSense teapot demo
 // uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 
-void calc_pid(void);
+void update_pid(void);
 void motor_control(void);
 void get_data(void);
 
@@ -306,7 +306,7 @@ void loop(){
 
     update_rc();
     update_ypr();
-    calc_pid();
+    update_pid();
     motor_control();
     ApplicationMonitor.IAmAlive();
 }
@@ -326,7 +326,7 @@ void pid_init(){
         yaw_average_count_copy--;
     }
 
-    desired_ypr[0]=desired_yaw;
+    desired_angle[0]=desired_yaw;
 }
 
 
@@ -580,6 +580,7 @@ void update_rc(){
                 enable_pitch=false;
                 base_speed=ch3;
             }else{
+                enable_motors=true;
                 enable_pitch=true;
                 take_down_count=0;
                 take_off_count=0;
@@ -588,34 +589,24 @@ void update_rc(){
             }
         }else{
             enable_motors=false;
-            if(ch5>CH5_EFFECT/2){
-                show_ypr=true;
-                show_speed=false;
-            }else if(ch5<-CH5_EFFECT/2){
-                show_ypr=false;
-                show_speed=true;
-            }else{
-                show_ypr=false;
-                show_speed=false;
-            }
         }
     }
 
 }
 
 int moderation_ratio=16;
-int y_angle_limit=10;
+int y_angle_limit=120;
 int pr_angle_limit=33;
-int y_rate_limit=10;
-int pr_rate_limit=800;
+int y_rate_limit=10000;
+int pr_rate_limit=10000;//practically no bound
 int pid_pr_limit=800;
-int pid_y_limit=10;
-int i_pr_limit=200;
+int pid_y_limit=120;
+int i_pr_limit=40;
 int iy_bound=10;
-int i_term_calc_interval=50;
+int i_term_calc_interval=120;
 int i_term[3]={0,0,0};
 
-inline void calc_pid(){
+inline void update_pid(){
     constrained_angle[0]=constrain(int_angle[0],-y_angle_limit,y_angle_limit);
     constrained_angle[1]=constrain(int_angle[1],-pr_angle_limit,pr_angle_limit);
     constrained_angle[2]=constrain(int_angle[2],-pr_angle_limit,pr_angle_limit);
@@ -632,19 +623,18 @@ inline void calc_pid(){
         i_prev_calc_time=millis();
     }
 
-    pid_result[0]=-kp[0]*constrained_angle[0]+kd[0]*constrained_rate[0]+i_term[0];
+    pid_result[0]=-kp[0]*(desired_angle[0]-constrained_angle[0])+kd[0]*constrained_rate[0]+i_term[0];
     pid_result[1]=kp[1]*constrained_angle[1]+kd[1]*constrained_rate[1]+i_term[1];
     pid_result[2]=-kp[2]*constrained_angle[2]+kd[2]*constrained_rate[2]+i_term[2];
 
-    /* pid_result[0]=constrain(pid_result[0],-pid_y_limit,pid_y_limit); */
-    /* pid_result[1]=constrain(pid_result[1],-pid_pr_limit,pid_pr_limit); */
-    /* pid_result[2]=constrain(pid_result[2],-pid_pr_limit,pid_pr_limit); */
+    pid_result[0]=constrain(pid_result[0],-pid_y_limit,pid_y_limit);
+    pid_result[1]=constrain(pid_result[1],-pid_pr_limit,pid_pr_limit);
+    pid_result[2]=constrain(pid_result[2],-pid_pr_limit,pid_pr_limit);
 
-    pid_result[0]/=moderation_ratio;
+    /* pid_result[0]/=moderation_ratio; */
     pid_result[1]/=moderation_ratio;
     pid_result[2]/=moderation_ratio;
 
-    pid_result[0]=0;
 }
 
 
