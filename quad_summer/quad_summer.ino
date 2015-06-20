@@ -25,7 +25,7 @@ int m1_speed, m2_speed, m3_speed, m4_speed;
 int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 
 int gyro_ypr[3];
-int speed_ypr[3];
+int pid_result[3];
 int desired_ypr[3]={0,0,0};
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
@@ -35,8 +35,8 @@ float motor_ratio = 0, motor_enter, motor_leave, motor_count = 0;
 float mpu_ratio = 0, mpu_enter, mpu_leave, mpu_count = 0;
 float interpolate_ratio = 0, interpolate_enter, interpolate_leave, interpolate_count = 0;
 
-int kp[3] = {4, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {1, 1, 1};
-int iterm_prev;
+int kp[3] = {0, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0,0,0};
+int i_prev_calc_time;
 
 String in_str, in_key, in_value, in_index, serial_send = "";
 
@@ -142,10 +142,10 @@ int32_t prev_gyro_diff[3], sum_gyro[3];
 float euler[3];										// [psi, theta, phi]    Euler angle container
 float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 int ypr_int_offset[3]={0,-5,0};
-int ypr_int[3];
-int ypr_int_bound[3];
-int gyro_int_bound[3];
-int gyro_int[3];
+int int_angle[3];
+int constrained_angle[3];
+int constrained_rate[3];
+int int_rate[3];
 int gyro_int_offset[3]={-21,-8,8};
 int gyro_int_raw[3];
 float gyro_retain[3]={0.3,0.3,0.3};
@@ -219,7 +219,7 @@ void loop(){
     // earlier it was 0x40 but for processing graph I increased it
     // 0x40 is hex of 64 decimal i.e 01000000 and hence the bitwise and works
     // 0x100 is 256 in decimal
-    if(count_serial & 0x100){
+    if(count_serial & 0x200){
         unsigned long cur_milli=millis();
         count_serial = 0;
 
@@ -227,37 +227,37 @@ void loop(){
         Serial1.print("y ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(ypr_int[0]);
+        Serial1.println(int_angle[0]);
 
         //pitch
         Serial1.print("p ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(ypr_int[1]);
+        Serial1.println(int_angle[1]);
 
         //Roll
         Serial1.print("r ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(ypr_int[2]);
+        Serial1.println(int_angle[2]);
 
         //yaw gyro
         Serial1.print("gy ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(gyro_int[0]);
+        Serial1.println(int_rate[0]);
 
         //pitch gyro
         Serial1.print("gp ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(gyro_int[1]);
+        Serial1.println(int_rate[1]);
 
         //Roll gyro
         Serial1.print("gr ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(gyro_int[2]);
+        Serial1.println(int_rate[2]);
 
         //base speed
         Serial1.print("bs ");
@@ -281,19 +281,19 @@ void loop(){
         Serial1.print("sy ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(speed_ypr[0]);
+        Serial1.println(pid_result[0]);
 
         //Pid pitch
         Serial1.print("sp ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(speed_ypr[1]);
+        Serial1.println(pid_result[1]);
 
         //Pid roll
         Serial1.print("sr ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(speed_ypr[2]);
+        Serial1.println(pid_result[2]);
     }else{
         count_serial=count_serial+1;
     }
@@ -312,7 +312,7 @@ void loop(){
 }
 
 void pid_init(){
-    iterm_prev=millis();
+    i_prev_calc_time=millis();
 
     unsigned long yaw_tune_start=micros();
     while(micros()-yaw_tune_start<PROPER_YAW_TIME)
@@ -322,7 +322,7 @@ void pid_init(){
     int yaw_average_count_copy=YAW_AVERAGE_COUNT;
     while(yaw_average_count_copy>0){
         update_ypr();
-        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*ypr_int[0];
+        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*int_angle[0];
         yaw_average_count_copy--;
     }
 
@@ -519,13 +519,13 @@ void update_ypr(){
     gyro_int_raw[1]=gy*GYRO_RATIO+gyro_int_offset[1];
     gyro_int_raw[2]=gx*GYRO_RATIO+gyro_int_offset[2];
 
-    gyro_int[0]=gyro_int[0]*(1-gyro_retain[0])+gyro_retain[0]*gyro_int_raw[0];
-    gyro_int[1]=gyro_int[1]*(1-gyro_retain[1])+gyro_retain[1]*gyro_int_raw[1];
-    gyro_int[2]=gyro_int[2]*(1-gyro_retain[2])+gyro_retain[2]*gyro_int_raw[2];
+    int_rate[0]=int_rate[0]*(1-gyro_retain[0])+gyro_retain[0]*gyro_int_raw[0];
+    int_rate[1]=int_rate[1]*(1-gyro_retain[1])+gyro_retain[1]*gyro_int_raw[1];
+    int_rate[2]=int_rate[2]*(1-gyro_retain[2])+gyro_retain[2]*gyro_int_raw[2];
 
-    ypr_int[0]=ypr[0]*YPR_RATIO+ypr_int_offset[0];
-    ypr_int[1]=ypr[1]*YPR_RATIO+ypr_int_offset[1];
-    ypr_int[2]=ypr[2]*YPR_RATIO+ypr_int_offset[2];
+    int_angle[0]=ypr[0]*YPR_RATIO+ypr_int_offset[0];
+    int_angle[1]=ypr[1]*YPR_RATIO+ypr_int_offset[1];
+    int_angle[2]=ypr[2]*YPR_RATIO+ypr_int_offset[2];
 }
 
 void update_rc(){
@@ -576,9 +576,10 @@ void update_rc(){
                     }
                 }
             }else if(ch5<-CH5_EFFECT/2){
-                enable_pitch=false;
-            }else{
                 enable_motors=true;
+                enable_pitch=false;
+                base_speed=ch3;
+            }else{
                 enable_pitch=true;
                 take_down_count=0;
                 take_off_count=0;
@@ -598,58 +599,52 @@ void update_rc(){
                 show_speed=false;
             }
         }
-
-
-
     }
 
 }
 
-int MY_RATIO=16;
-int ypr_yaw_bound=10;
-int ypr_bound=33;
-int gyro_yaw_bound=10;
-int gyro_bound=800;
-int pr_bound=800;
-int y_bound=10;
-int ipr_bound=200;
+int moderation_ratio=16;
+int y_angle_limit=10;
+int pr_angle_limit=33;
+int y_rate_limit=10;
+int pr_rate_limit=800;
+int pid_pr_limit=800;
+int pid_y_limit=10;
+int i_pr_limit=200;
 int iy_bound=10;
-int num_millis_iterm=50;
-int iterm[3]={0,0,0};
+int i_term_calc_interval=50;
+int i_term[3]={0,0,0};
 
 inline void calc_pid(){
+    constrained_angle[0]=constrain(int_angle[0],-y_angle_limit,y_angle_limit);
+    constrained_angle[1]=constrain(int_angle[1],-pr_angle_limit,pr_angle_limit);
+    constrained_angle[2]=constrain(int_angle[2],-pr_angle_limit,pr_angle_limit);
 
-    /* gyro_int[0]/=3; */
-    /* gyro_int[1]/=3; */
-    /* gyro_int[2]/=3; */
+    constrained_rate[0]=constrain(int_rate[0],-y_rate_limit,y_rate_limit);
+    constrained_rate[1]=constrain(int_rate[1],-pr_rate_limit,pr_rate_limit);
+    constrained_rate[2]=constrain(int_rate[2],-pr_rate_limit,pr_rate_limit);
 
-    ypr_int_bound[0]=constrain(ypr_int[0],-ypr_yaw_bound,ypr_yaw_bound);
-    ypr_int_bound[1]=constrain(ypr_int[1],-ypr_bound,ypr_bound);
-    ypr_int_bound[2]=constrain(ypr_int[2],-ypr_bound,ypr_bound);
-
-    gyro_int_bound[0]=constrain(gyro_int[0],-gyro_yaw_bound,gyro_yaw_bound);
-    gyro_int_bound[1]=constrain(gyro_int[1],-gyro_bound,gyro_bound);
-    gyro_int_bound[2]=constrain(gyro_int[2],-gyro_bound,gyro_bound);
-
-    if(millis()-iterm_prev>num_millis_iterm){
-        iterm[1]+=kp[1]*ypr_int_bound[1];
-        iterm[2]+=kp[2]*ypr_int_bound[2];
-        iterm[1]=constrain(iterm[1],-ipr_bound,ipr_bound);
-        iterm[2]=constrain(iterm[2],-ipr_bound,ipr_bound);
-        iterm_prev=millis();
+    if(millis()-i_prev_calc_time>i_term_calc_interval){
+        i_term[1]+=ki[1]*constrained_angle[1];
+        i_term[2]+=ki[2]*constrained_angle[2];
+        i_term[1]=constrain(i_term[1],-i_pr_limit,i_pr_limit);
+        i_term[2]=constrain(i_term[2],-i_pr_limit,i_pr_limit);
+        i_prev_calc_time=millis();
     }
 
+    pid_result[0]=-kp[0]*constrained_angle[0]+kd[0]*constrained_rate[0]+i_term[0];
+    pid_result[1]=kp[1]*constrained_angle[1]+kd[1]*constrained_rate[1]+i_term[1];
+    pid_result[2]=-kp[2]*constrained_angle[2]+kd[2]*constrained_rate[2]+i_term[2];
 
-    speed_ypr[0]=-kp[0]*ypr_int_bound[0]+kd[0]*gyro_int_bound[0]+iterm[0];
-    speed_ypr[1]=kp[1]*ypr_int_bound[1]+kd[1]*gyro_int_bound[1]+iterm[1];
-    speed_ypr[2]=-kp[2]*ypr_int_bound[2]+kd[2]*gyro_int_bound[2]+iterm[2];
+    /* pid_result[0]=constrain(pid_result[0],-pid_y_limit,pid_y_limit); */
+    /* pid_result[1]=constrain(pid_result[1],-pid_pr_limit,pid_pr_limit); */
+    /* pid_result[2]=constrain(pid_result[2],-pid_pr_limit,pid_pr_limit); */
 
-    /* speed_ypr[0]=constrain(speed_ypr[0],-y_bound,y_bound); */
-    /* speed_ypr[1]=constrain(speed_ypr[1],-pr_bound,pr_bound); */
-    /* speed_ypr[2]=constrain(speed_ypr[2],-pr_bound,pr_bound); */
+    pid_result[0]/=moderation_ratio;
+    pid_result[1]/=moderation_ratio;
+    pid_result[2]/=moderation_ratio;
 
-    speed_ypr[1]/=MY_RATIO;
-    speed_ypr[2]/=MY_RATIO;
+    pid_result[0]=0;
 }
 
 
@@ -658,12 +653,12 @@ inline void motor_control()
 	motor_enter = micros();
 
 	// based on pitch
-	m1_speed = base_speed -ch2 -ch1 - speed_ypr[0] - speed_ypr[1]+ m1_speed_off;
-	m3_speed = base_speed +ch2 -ch1 -speed_ypr[0] + speed_ypr[1]+ m3_speed_off;
+	m1_speed = base_speed -ch2 -ch1 - pid_result[0] - pid_result[1]+ m1_speed_off;
+	m3_speed = base_speed +ch2 -ch1 -pid_result[0] + pid_result[1]+ m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 +ch1 +speed_ypr[0] - speed_ypr[2]+ m2_speed_off;
-	m4_speed = base_speed -ch4 +ch1 +speed_ypr[0] + speed_ypr[2]+ m4_speed_off;
+	m2_speed = base_speed +ch4 +ch1 +pid_result[0] - pid_result[2]+ m2_speed_off;
+	m4_speed = base_speed -ch4 +ch1 +pid_result[0] + pid_result[2]+ m4_speed_off;
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -723,23 +718,23 @@ inline void check_serial(){
 			int val = in_value.toInt();
 
             if(in_key=="rat"){
-                MY_RATIO=val;
+                moderation_ratio=val;
             }else if(in_key=="prb"){
-                ypr_bound=val;
+                pr_angle_limit=val;
             }else if(in_key=="gprb"){
-                gyro_bound=val;
+                pr_rate_limit=val;
             }else if(in_key=="iprb"){
-                ipr_bound=val;
+                i_pr_limit=val;
             }else if(in_key=="yprb"){
-                ypr_yaw_bound=val;
+                y_angle_limit=val;
             }else if(in_key=="ygprb"){
-                gyro_yaw_bound=val;
+                y_rate_limit=val;
             }else if(in_key=="yiprb"){
                 iy_bound=val;
             }else if(in_key=="miterm"){
-                num_millis_iterm=val;
+                i_term_calc_interval=val;
             }else if(in_key=="sb"){
-                pr_bound=val;
+                pid_pr_limit=val;
             }else if(in_key == "kd"){
                 kd[1] = kd[2] = val;
 			}else if(in_key == "kp"){

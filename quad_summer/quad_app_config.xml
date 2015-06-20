@@ -8,7 +8,7 @@
 
             <series name="gyro yaw" color="ff000000" prefix="gy"></series>
             <series name="gyro pitch" color="ff00FFFF" prefix="gp"></series>
-            <series name="gyro roll" color="ff0000FF" prefix="gr"></series>
+            <series name="gyro roll" color="ff008000" prefix="gr"></series>
 
             <series name="Pid yaw" color="ffDEB887" prefix="sy"></series>
             <series name="Pid pitch" color="ff7FFF00" prefix="sp"></series>

@@ -189,7 +189,7 @@ public class My_slider extends LinearLayout {
         new_slider.max_text.setText(Integer.toString(max));
         new_slider.set_cur_text(Integer.toString(cur));
         new_slider.seek_bar.setMax(max - min);
-        new_slider.seek_bar.setProgress(cur);
+        new_slider.seek_bar.setProgress(cur-min);
 
         new_slider.max_text.setInputType(InputType.TYPE_CLASS_NUMBER);
         new_slider.min_text.setInputType(InputType.TYPE_CLASS_NUMBER);
