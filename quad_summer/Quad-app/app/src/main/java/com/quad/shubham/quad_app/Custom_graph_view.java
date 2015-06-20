@@ -9,6 +9,7 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.Gravity;
+import android.view.View;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -41,7 +42,7 @@ public class Custom_graph_view extends LinearLayout {
     boolean update_now=true;
     int cur_max_x;
     boolean first_time=true;
-    int h_m=30,v_m=5;
+    int h_m=10,v_m=5;
 
     BroadcastReceiver receiver=new BroadcastReceiver() {
         @Override
@@ -71,6 +72,7 @@ public class Custom_graph_view extends LinearLayout {
                                             graph_view.getViewport().setMinX(cur_max_x - view_port_size);
                                             graph_view.getViewport().setMaxX(cur_max_x);
                                             graph_view.onDataChanged(!first_time, false);
+//                                            graph_view.onDataChanged(false, false);
                                             first_time=false;
                                         } catch (Exception e) {
                                             Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -93,6 +95,11 @@ public class Custom_graph_view extends LinearLayout {
         graph_name=_graph_name;
         this.setOrientation(VERTICAL);
 
+        graph_view=new GraphView(context);
+        graph_view.getViewport().setScalable(true);
+        graph_view.getViewport().setScrollable(true);
+        graph_view.getLegendRenderer().setVisible(true);
+
         top_layout=new LinearLayout(context);
 
         graph_name_view=new TextView(context);
@@ -107,33 +114,106 @@ public class Custom_graph_view extends LinearLayout {
                 Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
                 Integer.toString(view_port_size)));
 
-        view_port_size_text.addTextChangedListener(new TextWatcher() {
+        view_port_size_text.setOnFocusChangeListener(new OnFocusChangeListener() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                view_port_size = try_parse_int(view_port_size_text.getText().toString());
-                Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
-                        Integer.toString(view_port_size));
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus) {
+                    view_port_size = try_parse_int(view_port_size_text.getText().toString(), view_port_size);
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
+                            Integer.toString(view_port_size));
+                }
             }
         });
 
-        top_layout.addView(graph_name_view,new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.LEFT));
-        top_layout.addView(view_port_label, new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.RIGHT));
-        top_layout.addView(view_port_size_text, new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT,Gravity.RIGHT));
 
-        graph_view=new GraphView(context);
-        graph_view.getViewport().setScalable(true);
-        graph_view.getViewport().setScrollable(true);
-        graph_view.getLegendRenderer().setVisible(true);
+        CheckBox y_range_auto_box=new CheckBox(context);
+
+        y_range_auto_box.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    graph_view.getViewport().setYAxisBoundsManual(false);
+                    graph_view.onDataChanged(false, false);
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_range_auto", "true");
+                } else {
+                    graph_view.getViewport().setYAxisBoundsManual(true);
+                    int min_y=Integer.parseInt(Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_min", "0"));
+                    int max_y=Integer.parseInt(Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_max", "0"));
+                    graph_view.getViewport().setMinY(min_y);
+                    graph_view.getViewport().setMaxY(max_y);
+                    graph_view.onDataChanged(false, false);
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_range_auto", "false");
+                }
+            }
+        });
+
+
+        boolean checked=Boolean.parseBoolean(
+                Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_range_auto", "true"));
+        y_range_auto_box.setChecked(checked);
+        graph_view.getViewport().setYAxisBoundsManual(!checked);
+        if(!checked){
+            int min_y=Integer.parseInt(Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_min", "0"));
+            int max_y=Integer.parseInt(Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_max", "0"));
+            graph_view.getViewport().setMinY(min_y);
+            graph_view.getViewport().setMaxY(max_y);
+        }
+        graph_view.onDataChanged(false, false);
+        y_range_auto_box.setText("Y range auto");
+
+
+        TextView y_min_label=new TextView(context);
+        y_min_label.setText("Y min");
+        TextView y_max_label=new TextView(context);
+        y_max_label.setText("Y max");
+
+        EditText y_min_text=new EditText(context);
+        String y_min_val=Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_min", "0");
+        y_min_text.setText(y_min_val);
+        graph_view.getViewport().setMinY(Integer.parseInt(y_min_val));
+        y_min_text.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_CLASS_NUMBER);
+        y_min_text.setOnFocusChangeListener(new OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus) {
+                    int min_y = try_parse_int(((EditText) v).getText().toString(), 0);
+                    graph_view.getViewport().setMinY(min_y);
+                    graph_view.onDataChanged(false, false);
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_min", Integer.toString(min_y));
+                }
+            }
+        });
+
+        EditText y_max_text=new EditText(context);
+        String y_max_val=Data_store.get_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_max", "0");
+        y_max_text.setText(y_max_val);
+        graph_view.getViewport().setMaxY(Integer.parseInt(y_max_val));
+        y_max_text.setInputType(InputType.TYPE_NUMBER_FLAG_SIGNED | InputType.TYPE_CLASS_NUMBER);
+        y_max_text.setOnFocusChangeListener(new OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus) {
+                    int max_y = try_parse_int(((EditText) v).getText().toString(), 0);
+                    graph_view.getViewport().setMaxY(max_y);
+                    graph_view.onDataChanged(false,false);
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_max", Integer.toString(max_y));
+                }
+            }
+        });
+
+        LayoutParams top_layout_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
+        top_layout_params.setMargins(h_m, v_m, h_m, v_m);
+
+        top_layout.addView(graph_name_view, top_layout_params);
+        top_layout.addView(y_range_auto_box, top_layout_params);
+        top_layout.addView(y_min_label, top_layout_params);
+        top_layout.addView(y_min_text, top_layout_params);
+        top_layout.addView(y_max_label, top_layout_params);
+        top_layout.addView(y_max_text, top_layout_params);
+        top_layout.addView(view_port_label, top_layout_params);
+        top_layout.addView(view_port_size_text, top_layout_params);
+
+
 
         check_box_layout=new LinearLayout(context);
 
@@ -195,11 +275,11 @@ public class Custom_graph_view extends LinearLayout {
         }
     }
 
-    public int try_parse_int(String str){
+    public int try_parse_int(String str,int default_val){
         try{
             return Integer.parseInt(str);
         }catch (NumberFormatException e){
-            return view_port_size;
+            return default_val;
         }
     }
 }

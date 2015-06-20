@@ -174,7 +174,7 @@ public class My_slider extends LinearLayout {
                                 new_slider.parent_context,new_slider.parameter_name+"^cur",
                                 default_val);//take the previous value of cur_val or if not exists take the default value
 
-                        new_slider.cur_text.setText(cur_val_str);
+                        new_slider.set_cur_text(cur_val_str);
                         cur_val=Integer.parseInt(cur_val_str);
                     }
 
