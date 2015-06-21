@@ -705,7 +705,7 @@ inline void check_serial(){
 			serial_send = "";
 
 			// Convert the string to an integer
-			int val = in_value.toInt();
+			int val = in_value.toFloat;
 
             if(in_key=="rat"){
                 moderation_ratio=val;
