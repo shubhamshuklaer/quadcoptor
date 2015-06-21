@@ -173,24 +173,24 @@ public class My_slider extends LinearLayout {
                         min_text.setText(fix_decimal(min_val, prec_val));
 
                         if( min_val > cur_val){//even if its greater than max_val it will still be greater than cur_val
-                            String default_val=Float.toString(cur_val);
+                            String default_val=fix_decimal(cur_val, prec_val);
                             min_val=Float.parseFloat(Data_store.get_attribute(
                                     parent_context, parameter_name + "^min", default_val));
                             min_text.setText(fix_decimal(min_val, prec_val));
                         }
 
-                        update_tuner_data(parameter_name + "^min", Float.toString(min_val));
+                        update_tuner_data(parameter_name + "^min", fix_decimal(min_val, prec_val));
                     }else if(v.getId()==max_text_id){
                         max_val=Float.parseFloat(fix_decimal(max_val,prec_val));
                         max_text.setText(fix_decimal(max_val, prec_val));
 
                         if(max_val<cur_val){//even if its lesser than min_val it will still be lesser than cur_val
-                            String default_val=Float.toString(cur_val);
+                            String default_val=fix_decimal(cur_val, prec_val);
                             max_val=Float.parseFloat(Data_store.get_attribute(
                                     parent_context, parameter_name + "^max", default_val));
                             max_text.setText(fix_decimal(max_val, prec_val));
                         }
-                        update_tuner_data(parameter_name + "^max", Float.toString(max_val));
+                        update_tuner_data(parameter_name + "^max",fix_decimal(max_val, prec_val));
                     }
 
                     // no need to call the listner as it will again update cur_text
@@ -222,9 +222,9 @@ public class My_slider extends LinearLayout {
                     if(cur_val < min_val || cur_val > max_val){//Since user is changing cur val so that should be corrected and not min or max val
                         String default_val;
                         if(cur_val<min_val) {
-                            default_val = Float.toString(min_val);
+                            default_val = fix_decimal(min_val, prec_val);
                         }else {
-                            default_val = Float.toString(max_val);
+                            default_val = fix_decimal(max_val, prec_val);
                         }
 
                         String cur_val_str =Data_store.get_attribute(
@@ -242,7 +242,7 @@ public class My_slider extends LinearLayout {
                     seek_bar.setOnSeekBarChangeListener(null);
                     seek_bar.setProgress((int) ((cur_val - min_val) * Math.pow(10, prec_val)));
                     seek_bar.setOnSeekBarChangeListener(seek_bar_change_listner);
-                    update_tuner_data(parameter_name + "^cur", Float.toString(cur_val));
+                    update_tuner_data(parameter_name + "^cur", fix_decimal(cur_val, prec_val));
                 }
             }
         };
@@ -283,9 +283,9 @@ public class My_slider extends LinearLayout {
                     cur_text.setText(fix_decimal(cur_val, prec_val));
 
                     update_tuner_data(parameter_name + "^prec", Integer.toString(prec_val));
-                    update_tuner_data(parameter_name + "^max", Float.toString(max_val));
-                    update_tuner_data(parameter_name + "^min", Float.toString(min_val));
-                    update_tuner_data(parameter_name + "^cur", Float.toString(cur_val));
+                    update_tuner_data(parameter_name + "^max", fix_decimal(max_val, prec_val));
+                    update_tuner_data(parameter_name + "^min", fix_decimal(min_val, prec_val));
+                    update_tuner_data(parameter_name + "^cur", fix_decimal(cur_val, prec_val));
                 }
             }
         };
@@ -404,6 +404,7 @@ public class My_slider extends LinearLayout {
         NumberFormat formatter=NumberFormat.getNumberInstance();
         formatter.setMaximumFractionDigits(decimal_place);
         formatter.setMinimumFractionDigits(decimal_place);
+        formatter.setGroupingUsed(false);
         return formatter.format(val);
     }
 }

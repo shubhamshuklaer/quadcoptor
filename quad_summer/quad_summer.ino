@@ -25,7 +25,7 @@ int m1_speed, m2_speed, m3_speed, m4_speed;
 int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 
 int gyro_ypr[3];
-long pid_result[3];
+int pid_result[3];
 int desired_angle[3]={0,0,0};
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
@@ -35,7 +35,7 @@ float motor_ratio = 0, motor_enter, motor_leave, motor_count = 0;
 float mpu_ratio = 0, mpu_enter, mpu_leave, mpu_count = 0;
 float interpolate_ratio = 0, interpolate_enter, interpolate_leave, interpolate_count = 0;
 
-int kp[3] = {1, 24, 24}, kd[3] = {0, 1, 1}, ki[3] = {0,1,1};
+float kp[3] = {1.0f, 1.5f, 1.5f}, kd[3] = {0.0f, 0.0625f, 0.0625f}, ki[3] = {0.0f,0.0625f,0.0625f};
 int i_prev_calc_time;
 
 String in_str, in_key, in_value, in_index, serial_send = "";
@@ -75,11 +75,11 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-const int CH1_EFFECT=20;
-const int CH2_EFFECT=100;
-const int CH3_MIN_EFFECT=1400;
-const int CH3_MAX_EFFECT=1650;
-const int CH4_EFFECT=100;
+int CH1_EFFECT=20;
+int CH2_EFFECT=100;
+int CH3_MIN_EFFECT=1400;
+int CH3_MAX_EFFECT=1650;
+int CH4_EFFECT=100;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
@@ -594,7 +594,6 @@ void update_rc(){
 
 }
 
-int moderation_ratio=16;
 int y_angle_limit=120;
 int pr_angle_limit=33;
 int y_rate_limit=10000;
@@ -604,7 +603,7 @@ int pid_y_limit=120;
 int i_pr_limit=40;
 int iy_bound=10;
 int i_term_calc_interval=120;
-int i_term[3]={0,0,0};
+float i_term[3]={0,0,0};
 
 inline void update_pid(){
     constrained_angle[0]=constrain(int_angle[0],-y_angle_limit,y_angle_limit);
@@ -630,10 +629,6 @@ inline void update_pid(){
     pid_result[0]=constrain(pid_result[0],-pid_y_limit,pid_y_limit);
     pid_result[1]=constrain(pid_result[1],-pid_pr_limit,pid_pr_limit);
     pid_result[2]=constrain(pid_result[2],-pid_pr_limit,pid_pr_limit);
-
-    /* pid_result[0]/=moderation_ratio; */
-    pid_result[1]/=moderation_ratio;
-    pid_result[2]/=moderation_ratio;
 
 }
 
@@ -705,38 +700,68 @@ inline void check_serial(){
 			serial_send = "";
 
 			// Convert the string to an integer
-			int val = in_value.toFloat;
+			float val = in_value.toFloat();
 
-            if(in_key=="rat"){
-                moderation_ratio=val;
-            }else if(in_key=="prb"){
+            if(in_key=="prb"){
                 pr_angle_limit=val;
+                Serial.println(pr_angle_limit);
             }else if(in_key=="gprb"){
                 pr_rate_limit=val;
+                Serial.println(pr_rate_limit);
             }else if(in_key=="iprb"){
                 i_pr_limit=val;
+                Serial.println(i_pr_limit);
             }else if(in_key=="yprb"){
                 y_angle_limit=val;
+                Serial.println(y_angle_limit);
             }else if(in_key=="ygprb"){
                 y_rate_limit=val;
+                Serial.println(y_rate_limit);
             }else if(in_key=="yiprb"){
                 iy_bound=val;
+                Serial.println(iy_bound);
             }else if(in_key=="miterm"){
                 i_term_calc_interval=val;
-            }else if(in_key=="sb"){
+                Serial.println(i_term_calc_interval);
+            }else if(in_key=="sprb"){
                 pid_pr_limit=val;
+                Serial.println(pid_pr_limit);
+            }else if(in_key=="syb"){
+                pid_y_limit=val;
+                Serial.println(pid_y_limit);
+            }else if(in_key=="pe"){
+                CH2_EFFECT=val;
+                Serial.println(CH2_EFFECT);
+            }else if(in_key=="re"){
+                CH4_EFFECT=val;
+                Serial.println(CH4_EFFECT);
+            }else if(in_key=="ye"){
+                CH1_EFFECT=val;
+                Serial.println(CH1_EFFECT);
+            }else if(in_key=="tl"){
+                CH3_MIN_EFFECT=val;
+                Serial.println(CH3_MIN_EFFECT);
+            }else if(in_key=="th"){
+                CH3_MAX_EFFECT=val;
+                Serial.println(CH3_MAX_EFFECT);
             }else if(in_key == "kd"){
                 kd[1] = kd[2] = val;
+                Serial.println(kd[1]);
 			}else if(in_key == "kp"){
                 kp[1] = kp[2] = val;
+                Serial.println(kp[1]);
 			}else if(in_key == "ki"){
                 ki[1] = ki[2] = val;
+                Serial.println(ki[1]);
             }else if(in_key == "ykd"){
                 kd[0]= val;
+                Serial.println(kd[0]);
 			}else if(in_key == "ykp"){
                 kp[0]= val;
+                Serial.println(kp[0]);
 			}else if(in_key == "yki"){
                 ki[0] = val;
+                Serial.println(ki[0]);
 			}else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
