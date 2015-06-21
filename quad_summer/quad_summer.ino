@@ -92,19 +92,6 @@ const int take_off_gradient=100;
 const int take_down_gradient=14;
 const int take_down_diff=20;
 
-const int MAX_R_PID_EFFECT=800;
-const int MAX_yaw_R_PID_EFFECT=120;
-const int MAX_S_PID_EFFECT=1000;
-const int MAX_yaw_S_PID_EFFECT=120;
-const int MAX_S_PID_I_EFFECT=40;
-const int MAX_yaw_S_PID_I_EFFECT=20;
-const int MAX_R_PID_I_EFFECT=40;
-const int MAX_yaw_R_PID_I_EFFECT=20;
-
-
-const int RAW_RATIO=16;
-const int PID_SAMPLE_TIME=1000;
-
 byte sregRestore;
 
 const int YAW_AVERAGE_COUNT=40;
@@ -598,7 +585,7 @@ int y_angle_limit=120;
 int pr_angle_limit=33;
 int y_rate_limit=10000;
 int pr_rate_limit=10000;//practically no bound
-int pid_pr_limit=800;
+int pid_pr_limit=50;
 int pid_y_limit=120;
 int i_pr_limit=40;
 int iy_bound=10;
