@@ -602,24 +602,29 @@ void update_rc(){
 
 }
 
-int angle_pid_constraint[3]={0,0,0};
-int rate_pid_constraint[3]={0,0,0};
-int angle_i_constraint[3]={0,0,0};
-int rate_i_constraint[3]={0,0,0};
+int angle_pid_constraint[3]={120,1000,1000};
+int rate_pid_constraint[3]={8,50,50};
+int angle_i_constraint[3]={0,40,40};
+int rate_i_constraint[3]={0,4,4};
 int rate_i_term_calc_interval=120;
 int angle_i_term_calc_interval=120;
 float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-float angle_kp[3] = {1.0f, 1.5f, 1.5f}, angle_kd[3] = {0.0f, 0.0625f, 0.0625f}, angle_ki[3] = {0.0f,0.0625f,0.0625f};
-float rate_kp[3]={0.0f,0.0f,0.0f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
+float rate_kp[3]={0.0625f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 
 inline void update_pid(){
+    //PID direction
+    //angle y-reverse,p-direct,r-reverse
+    //rate y,p,r-reverse
+    //Reverse means -ve kp,kd,ki
+    //error is calculated using desired-actual
     if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
-        angle_i_term[0]+=angle_ki[0]*int_angle[0];
-        angle_i_term[1]+=angle_ki[1]*int_angle[1];
-        angle_i_term[2]+=angle_ki[2]*int_angle[2];
+        angle_i_term[0]+=-angle_ki[0]*(desired_angle[0]-int_angle[0]);
+        angle_i_term[1]+=angle_ki[1]*(desired_angle[1]-int_angle[1]);
+        angle_i_term[2]+=-angle_ki[2]*(desired_angle[2]-int_angle[2]);
 
         angle_i_term[0]=constrain(angle_i_term[0],-angle_i_constraint[0],angle_i_constraint[0]);
         angle_i_term[1]=constrain(angle_i_term[1],-angle_i_constraint[1],angle_i_constraint[1]);
@@ -629,17 +634,17 @@ inline void update_pid(){
     }
 
     angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0];
-    angle_pid_result[1]=angle_kp[1]*int_angle[1] + angle_i_term[1];
-    angle_pid_result[2]=-angle_kp[2]*int_angle[2] + angle_i_term[2];
+    angle_pid_result[1]=angle_kp[1]*(desired_angle[1]-int_angle[1]) + angle_i_term[1];
+    angle_pid_result[2]=-angle_kp[2]*(desired_angle[2]-int_angle[2]) + angle_i_term[2];
 
     angle_pid_result[0]=constrain(angle_pid_result[0],-angle_pid_constraint[0],angle_pid_constraint[0]);
     angle_pid_result[1]=constrain(angle_pid_result[1],-angle_pid_constraint[1],angle_pid_constraint[1]);
     angle_pid_result[2]=constrain(angle_pid_result[2],-angle_pid_constraint[2],angle_pid_constraint[2]);
 
     if(millis()-rate_i_prev_calc_time>rate_i_term_calc_interval){
-        rate_i_term[0]+=rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
-        rate_i_term[1]+=rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
-        rate_i_term[2]+=rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
+        rate_i_term[0]+=-rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
+        rate_i_term[1]+=-rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
+        rate_i_term[2]+=-rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
 
         rate_i_term[0]=constrain(rate_i_term[0],-rate_i_constraint[0],rate_i_constraint[0]);
         rate_i_term[1]=constrain(rate_i_term[1],-rate_i_constraint[1],rate_i_constraint[1]);
@@ -648,9 +653,9 @@ inline void update_pid(){
         rate_i_prev_calc_time=millis();
     }
 
-    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
-    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
-    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
+    rate_pid_result[0]=-rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
+    rate_pid_result[1]=-rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
+    rate_pid_result[2]=-rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
 
     rate_pid_result[0]=constrain(rate_pid_result[0],-rate_pid_constraint[0],rate_pid_constraint[0]);
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
