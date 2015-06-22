@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
-    <tab name="Graphs" num_cols="1" num_rows="1">
-        <graph name="All params" start_col="0" start_row="0" num_cols="1" num_rows="1">
+    <tab name="Input Graphs" num_cols="1" num_rows="1">
+        <graph name="input params" start_col="0" start_row="0" num_cols="1" num_rows="1">
             <series name="yaw" color="ffff0000" prefix="y"></series>
             <series name="pitch" color="ff00ff00" prefix="p"></series>
             <series name="roll" color="ff0000ff" prefix="r"></series>
@@ -9,41 +9,57 @@
             <series name="gyro yaw" color="ff000000" prefix="gy"></series>
             <series name="gyro pitch" color="ff00FFFF" prefix="gp"></series>
             <series name="gyro roll" color="ff008000" prefix="gr"></series>
+        </graph>
+    </tab>
+    <tab name="Output Graphs" num_cols="1" num_rows="1">
+        <graph name="output params" start_col="0" start_row="0" num_cols="1" num_rows="1">
+            <series name="angle pid yaw" color="ffDEB887" prefix="ay"></series>
+            <series name="angle pid pitch" color="ff7FFF00" prefix="ap"></series>
+            <series name="angle pid roll" color="ffFF7F50" prefix="ar"></series>
 
-            <series name="Pid yaw" color="ffDEB887" prefix="sy"></series>
-            <series name="Pid pitch" color="ff7FFF00" prefix="sp"></series>
-            <series name="Pid roll" color="ffFF7F50" prefix="sr"></series>
+            <series name="rate pid yaw" color="ff000000" prefix="ry"></series>
+            <series name="rate pid pitch" color="ff00FFFF" prefix="rp"></series>
+            <series name="rate pid roll" color="ff008000" prefix="rr"></series>
 
             <series name="base speed" color="ff00008B" prefix="bs"></series>
             <series name="m1 speed" color="ffFF1493" prefix="m1"></series>
             <series name="m2 speed" color="ffFFD700" prefix="m2"></series>
         </graph>
     </tab>
-    <tab name="PID constants" num_cols="6" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="kp" command="kp=%;"></slider>
-        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="kd" command="kd=%;"></slider>
-        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ki" command="ki=%;"></slider>
-        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="ykp" command="ykp=%;"></slider>
-        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="ykd" command="ykd=%;"></slider>
-        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="yki" command="yki=%;"></slider>
+    <tab name="PR constants" num_cols="7" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_kp" command="a_kp=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="a_kd" command="a_kd=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="a_ki" command="a_ki=%;"></slider>
+        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="a_kp" command="r_kp=%;"></slider>
+        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="a_kd" command="r_kd=%;"></slider>
+        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="a_ki" command="r_ki=%;"></slider>
+        <slider start_col="7" start_row="0" num_rows="1" num_cols="1" param_name="ar_m" command="ar_m=%;"></slider>
     </tab>
-    <tab name="PID bounds" num_cols="7" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="angle_pr_bound" command="prb=%;"></slider>
-        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="rate_pr_bound" command="gprb=%;"></slider>
-        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="i_pr_bound" command="iprb=%;"></slider>
-        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="angle_y_bound" command="yprb=%;"></slider>
-        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="rate_y_bound" command="ygprb=%;"></slider>
-        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="i_y_bound" command="yiprb=%;"></slider>
-        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="i_milli" command="miterm=%;"></slider>
+    <tab name="Y constants" num_cols="6" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="y_a_kp" command="y_a_kp=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="y_a_kd" command="y_a_kd=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_ki" command="y_a_ki=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kp" command="y_r_kp=%;"></slider>
+        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kd" command="y_r_kd=%;"></slider>
+        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="y_r_ki" command="y_r_ki=%;"></slider>
     </tab>
-    <tab name="RF effects and PId full bound" num_cols="7" num_rows="1">
+    <tab name="PID constraints" num_cols="4" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_c" command="a_c=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="r_c" command="r_c=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_c" command="y_a_c=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_c" command="y_r_c=%;"></slider>
+    </tab>
+    <tab name="I constraints" num_cols="4" num_rows="1">
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_i_c" command="a_i_c=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="r_i_c" command="r_i_c=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_i_c" command="y_a_i_c=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_i_c" command="y_r_i_c=%;"></slider>
+    </tab>
+    <tab name="RF effects" num_cols="5" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="pitch_effect" command="pe=%;"></slider>
         <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="roll_effect" command="re=%;"></slider>
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="yaw_effect" command="ye=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="throttle_min" command="tl=%;"></slider>
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="throttle_max" command="th=%;"></slider>
-        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="pid_pr_bound" command="sprb=%;"></slider>
-        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="pid_y_bound" command="syb=%;"></slider>
     </tab>
-
 </root>

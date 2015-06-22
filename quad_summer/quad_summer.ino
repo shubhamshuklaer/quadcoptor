@@ -743,9 +743,8 @@ inline void check_serial(){
                 rate_i_constraint[1]=rate_i_constraint[2]=val;
             }else if(in_key=="y_r_i_c"){
                 rate_i_constraint[0]=val;
-            }else if(in_key=="a_m"){
+            }else if(in_key=="ar_m"){
                 angle_i_term_calc_interval=val;
-            }else if(in_key=="r_m"){
                 rate_i_term_calc_interval=val;
             }else if(in_key=="pe"){
                 CH2_EFFECT=val;
