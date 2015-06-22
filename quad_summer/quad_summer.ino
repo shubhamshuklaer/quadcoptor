@@ -94,9 +94,9 @@ const int take_down_diff=20;
 
 byte sregRestore;
 
-const int YAW_AVERAGE_COUNT=40;
-const unsigned long PROPER_YAW_TIME=20000000UL;
-const float YAW_AVERAGE_RETAIN=0.3;
+const int NUM_SAMPLES_FOR_YAW_AVERAGE=40;
+const unsigned long TIME_TILL_PROPER_YAW=15000UL;
+const float YAW_AVERAGE_RETAIN=0.7;
 
 /* #define LED_PIN 13// (Arduino is 13, Teensy is 11, Teensy++ is 6) */
 const int GYRO_RATIO=1;
@@ -140,7 +140,7 @@ int16_t gx, gy, gz;
 // uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 
 void update_pid(void);
-void motor_control(void);
+void update_esc(void);
 void get_data(void);
 
 int ESC_1=4;
@@ -148,6 +148,7 @@ int ESC_2=5;
 int ESC_3=6;
 int ESC_4=7;
 int ESC_MIN=1000;
+int ESC_MAX=2000;
 
 volatile bool mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmp_data_ready() {
@@ -155,11 +156,11 @@ void dmp_data_ready() {
 }
 
 //Setup functions
-void mpu_init();
+void init_mpu();
 void xbee_init();
-void esc_init();
-void rc_init();
-void pid_init();
+void init_esc();
+void init_rc();
+void init_pid();
 void reset_motor();
 
 //Loop functions
@@ -180,19 +181,18 @@ void setup(){
     Serial1.begin(9600);
     Serial.begin(9600);
     while (!Serial1); // wait for Leonardo enumeration, others continue immediately
-    mpu_init();
-    /* xbee_init(); */
-    esc_init();
-    rc_init();
-    pid_init();
+    while (!Serial); // wait for Leonardo enumeration, others continue immediately
+
+    init_mpu();
+    init_esc();
+    init_rc();
+    init_pid();
 
 	/* mpu_enter = mpu_leave = micros(); */
 	/* serial_enter = serial_leave = micros(); */
 	/* loop_enter = loop_leave = micros(); */
 	/* pid_enter = pid_leave = micros(); */
 	/* interpolate_enter = interpolate_leave = micros(); */
-    enable_pitch=false;
-    enable_roll=true;
     /* ApplicationMonitor.Dump(Serial1); */
     ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
 }
@@ -317,21 +317,22 @@ void loop(){
     update_rc();
     update_ypr();
     update_pid();
-    motor_control();
+    update_esc();
     ApplicationMonitor.IAmAlive();
 }
 
-void pid_init(){
-    unsigned long yaw_tune_start=micros();
-    while(micros()-yaw_tune_start<PROPER_YAW_TIME)
+void init_pid(){
+    unsigned long yaw_tune_start=millis();
+    while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
         update_ypr();
 
     int desired_yaw;
-    int yaw_average_count_copy=YAW_AVERAGE_COUNT;
-    while(yaw_average_count_copy>0){
+    int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
+
+    while(num_samples_for_yaw_average_copy>0){
         update_ypr();
         desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*int_angle[0];
-        yaw_average_count_copy--;
+        num_samples_for_yaw_average_copy--;
     }
 
     desired_angle[0]=desired_yaw;
@@ -387,7 +388,7 @@ void ch6_change(){
     }
 }
 
-void mpu_init(){
+void init_mpu(){
     // join I2C bus (I2Cdev library doesn't do this automatically)
     #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
         Wire.begin(true);
@@ -437,16 +438,15 @@ void mpu_init(){
 
 }
 
-void xbee_init(){
-}
-
-void esc_init(){
-  m1.attach(ESC_1);
-  m2.attach(ESC_2);
-  m3.attach(ESC_3);
-  m4.attach(ESC_4);
-  delay(100);
-  stop_motors();
+void init_esc(){
+    m1.attach(ESC_1,ESC_MIN,ESC_MAX);
+    m2.attach(ESC_2,ESC_MIN,ESC_MAX);
+    m3.attach(ESC_3,ESC_MIN,ESC_MAX);
+    m4.attach(ESC_4,ESC_MIN,ESC_MAX);
+    delay(100);
+    stop_motors();
+    enable_pitch=false;
+    enable_roll=true;
 }
 
 void stop_motors(){
@@ -457,7 +457,7 @@ void stop_motors(){
 }
 
 
-void rc_init(){
+void init_rc(){
     pinMode(CH1_PIN, INPUT);
     pinMode(CH2_PIN, INPUT);
     pinMode(CH3_PIN, INPUT);
@@ -663,7 +663,7 @@ inline void update_pid(){
 }
 
 
-inline void motor_control()
+inline void update_esc()
 {
 	motor_enter = micros();
 
