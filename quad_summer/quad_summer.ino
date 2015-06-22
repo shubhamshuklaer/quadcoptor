@@ -25,7 +25,8 @@ int m1_speed, m2_speed, m3_speed, m4_speed;
 int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
 
 int gyro_ypr[3];
-int pid_result[3];
+int angle_pid_result[3];
+int rate_pid_result[3];
 int desired_angle[3]={0,0,0};
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
@@ -35,8 +36,7 @@ float motor_ratio = 0, motor_enter, motor_leave, motor_count = 0;
 float mpu_ratio = 0, mpu_enter, mpu_leave, mpu_count = 0;
 float interpolate_ratio = 0, interpolate_enter, interpolate_leave, interpolate_count = 0;
 
-float kp[3] = {1.0f, 1.5f, 1.5f}, kd[3] = {0.0f, 0.0625f, 0.0625f}, ki[3] = {0.0f,0.0625f,0.0625f};
-int i_prev_calc_time;
+
 
 String in_str, in_key, in_value, in_index, serial_send = "";
 
@@ -130,8 +130,6 @@ float euler[3];										// [psi, theta, phi]    Euler angle container
 float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
 int ypr_int_offset[3]={0,-5,0};
 int int_angle[3];
-int constrained_angle[3];
-int constrained_rate[3];
 int int_rate[3];
 int gyro_int_offset[3]={-21,-8,8};
 int gyro_int_raw[3];
@@ -265,30 +263,55 @@ void loop(){
         Serial1.println(m2_speed);
 
         //Pid yaw
-        Serial1.print("sy ");
+        Serial1.print("ay ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(pid_result[0]);
+        Serial1.println(angle_pid_result[0]);
 
         //Pid pitch
-        Serial1.print("sp ");
+        Serial1.print("ap ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(pid_result[1]);
+        Serial1.println(angle_pid_result[1]);
 
         //Pid roll
-        Serial1.print("sr ");
+        Serial1.print("ar ");
         Serial1.print(cur_milli);
         Serial1.print(" ");
-        Serial1.println(pid_result[2]);
+        Serial1.println(angle_pid_result[2]);
+
+        //Pid yaw
+        Serial1.print("ry ");
+        Serial1.print(cur_milli);
+        Serial1.print(" ");
+        Serial1.println(rate_pid_result[0]);
+
+        //Pid pitch
+        Serial1.print("rp ");
+        Serial1.print(cur_milli);
+        Serial1.print(" ");
+        Serial1.println(rate_pid_result[1]);
+
+        //Pid roll
+        Serial1.print("rr ");
+        Serial1.print(cur_milli);
+        Serial1.print(" ");
+        Serial1.println(rate_pid_result[2]);
+
+        /* Serial.print(int_rate[0]); */
+        /* Serial.print("\t"); */
+        /* Serial.print(int_rate[1]); */
+        /* Serial.print("\t"); */
+        /* Serial.println(int_rate[2]); */
     }else{
         count_serial=count_serial+1;
     }
 
-    if(count_check_serial & 0x40)
+    if(count_check_serial & 0x40){
         check_serial();
-    else
+    }else{
         count_check_serial=count_check_serial+1;
+    }
 
 
     update_rc();
@@ -299,12 +322,10 @@ void loop(){
 }
 
 void pid_init(){
-    i_prev_calc_time=millis();
-
     unsigned long yaw_tune_start=micros();
     while(micros()-yaw_tune_start<PROPER_YAW_TIME)
         update_ypr();
-    
+
     int desired_yaw;
     int yaw_average_count_copy=YAW_AVERAGE_COUNT;
     while(yaw_average_count_copy>0){
@@ -326,7 +347,7 @@ void ch1_change(){
     }
 }
 void ch2_change(){
-    if(digitalRead(CH2_PIN) == HIGH){ 
+    if(digitalRead(CH2_PIN) == HIGH){
         ch2_prev = micros();
     }else{
         ch2_val=micros()-ch2_prev;
@@ -581,42 +602,59 @@ void update_rc(){
 
 }
 
-int y_angle_limit=120;
-int pr_angle_limit=33;
-int y_rate_limit=10000;
-int pr_rate_limit=10000;//practically no bound
-int pid_pr_limit=50;
-int pid_y_limit=120;
-int i_pr_limit=40;
-int iy_bound=10;
-int i_term_calc_interval=120;
-float i_term[3]={0,0,0};
+int angle_pid_constraint[3]={0,0,0};
+int rate_pid_constraint[3]={0,0,0};
+int angle_i_constraint[3]={0,0,0};
+int rate_i_constraint[3]={0,0,0};
+int rate_i_term_calc_interval=120;
+int angle_i_term_calc_interval=120;
+float angle_i_term[3]={0,0,0};
+float rate_i_term[3]={0,0,0};
+int angle_i_prev_calc_time=0;
+int rate_i_prev_calc_time=0;
+float angle_kp[3] = {1.0f, 1.5f, 1.5f}, angle_kd[3] = {0.0f, 0.0625f, 0.0625f}, angle_ki[3] = {0.0f,0.0625f,0.0625f};
+float rate_kp[3]={0.0f,0.0f,0.0f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 
 inline void update_pid(){
-    constrained_angle[0]=constrain(int_angle[0],-y_angle_limit,y_angle_limit);
-    constrained_angle[1]=constrain(int_angle[1],-pr_angle_limit,pr_angle_limit);
-    constrained_angle[2]=constrain(int_angle[2],-pr_angle_limit,pr_angle_limit);
+    if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
+        angle_i_term[0]+=angle_ki[0]*int_angle[0];
+        angle_i_term[1]+=angle_ki[1]*int_angle[1];
+        angle_i_term[2]+=angle_ki[2]*int_angle[2];
 
-    constrained_rate[0]=constrain(int_rate[0],-y_rate_limit,y_rate_limit);
-    constrained_rate[1]=constrain(int_rate[1],-pr_rate_limit,pr_rate_limit);
-    constrained_rate[2]=constrain(int_rate[2],-pr_rate_limit,pr_rate_limit);
+        angle_i_term[0]=constrain(angle_i_term[0],-angle_i_constraint[0],angle_i_constraint[0]);
+        angle_i_term[1]=constrain(angle_i_term[1],-angle_i_constraint[1],angle_i_constraint[1]);
+        angle_i_term[2]=constrain(angle_i_term[2],-angle_i_constraint[2],angle_i_constraint[2]);
 
-    if(millis()-i_prev_calc_time>i_term_calc_interval){
-        i_term[1]+=ki[1]*constrained_angle[1];
-        i_term[2]+=ki[2]*constrained_angle[2];
-        i_term[1]=constrain(i_term[1],-i_pr_limit,i_pr_limit);
-        i_term[2]=constrain(i_term[2],-i_pr_limit,i_pr_limit);
-        i_prev_calc_time=millis();
+        angle_i_prev_calc_time=millis();
     }
 
-    pid_result[0]=-kp[0]*(desired_angle[0]-constrained_angle[0])+kd[0]*constrained_rate[0]+i_term[0];
-    pid_result[1]=kp[1]*constrained_angle[1]+kd[1]*constrained_rate[1]+i_term[1];
-    pid_result[2]=-kp[2]*constrained_angle[2]+kd[2]*constrained_rate[2]+i_term[2];
+    angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0];
+    angle_pid_result[1]=angle_kp[1]*int_angle[1] + angle_i_term[1];
+    angle_pid_result[2]=-angle_kp[2]*int_angle[2] + angle_i_term[2];
 
-    pid_result[0]=constrain(pid_result[0],-pid_y_limit,pid_y_limit);
-    pid_result[1]=constrain(pid_result[1],-pid_pr_limit,pid_pr_limit);
-    pid_result[2]=constrain(pid_result[2],-pid_pr_limit,pid_pr_limit);
+    angle_pid_result[0]=constrain(angle_pid_result[0],-angle_pid_constraint[0],angle_pid_constraint[0]);
+    angle_pid_result[1]=constrain(angle_pid_result[1],-angle_pid_constraint[1],angle_pid_constraint[1]);
+    angle_pid_result[2]=constrain(angle_pid_result[2],-angle_pid_constraint[2],angle_pid_constraint[2]);
 
+    if(millis()-rate_i_prev_calc_time>rate_i_term_calc_interval){
+        rate_i_term[0]+=rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
+        rate_i_term[1]+=rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
+        rate_i_term[2]+=rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
+
+        rate_i_term[0]=constrain(rate_i_term[0],-rate_i_constraint[0],rate_i_constraint[0]);
+        rate_i_term[1]=constrain(rate_i_term[1],-rate_i_constraint[1],rate_i_constraint[1]);
+        rate_i_term[2]=constrain(rate_i_term[2],-rate_i_constraint[2],rate_i_constraint[2]);
+
+        rate_i_prev_calc_time=millis();
+    }
+
+    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
+    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
+    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
+
+    rate_pid_result[0]=constrain(rate_pid_result[0],-rate_pid_constraint[0],rate_pid_constraint[0]);
+    rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
+    rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 }
 
 
@@ -625,12 +663,12 @@ inline void motor_control()
 	motor_enter = micros();
 
 	// based on pitch
-	m1_speed = base_speed -ch2 -ch1 - pid_result[0] - pid_result[1]+ m1_speed_off;
-	m3_speed = base_speed +ch2 -ch1 -pid_result[0] + pid_result[1]+ m3_speed_off;
+    m1_speed = base_speed -ch2 -ch1 - rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
+	m3_speed = base_speed +ch2 -ch1 -rate_pid_result[0] + rate_pid_result[1]+ m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 +ch1 +pid_result[0] - pid_result[2]+ m2_speed_off;
-	m4_speed = base_speed -ch4 +ch1 +pid_result[0] + pid_result[2]+ m4_speed_off;
+	m2_speed = base_speed +ch4 +ch1 +rate_pid_result[0] - rate_pid_result[2]+ m2_speed_off;
+	m4_speed = base_speed -ch4 +ch1 +rate_pid_result[0] + rate_pid_result[2]+ m4_speed_off;
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -689,66 +727,77 @@ inline void check_serial(){
 			// Convert the string to an integer
 			float val = in_value.toFloat();
 
-            if(in_key=="prb"){
-                pr_angle_limit=val;
-                Serial.println(pr_angle_limit);
-            }else if(in_key=="gprb"){
-                pr_rate_limit=val;
-                Serial.println(pr_rate_limit);
-            }else if(in_key=="iprb"){
-                i_pr_limit=val;
-                Serial.println(i_pr_limit);
-            }else if(in_key=="yprb"){
-                y_angle_limit=val;
-                Serial.println(y_angle_limit);
-            }else if(in_key=="ygprb"){
-                y_rate_limit=val;
-                Serial.println(y_rate_limit);
-            }else if(in_key=="yiprb"){
-                iy_bound=val;
-                Serial.println(iy_bound);
-            }else if(in_key=="miterm"){
-                i_term_calc_interval=val;
-                Serial.println(i_term_calc_interval);
-            }else if(in_key=="sprb"){
-                pid_pr_limit=val;
-                Serial.println(pid_pr_limit);
-            }else if(in_key=="syb"){
-                pid_y_limit=val;
-                Serial.println(pid_y_limit);
+            if(in_key=="a_c"){
+                angle_pid_constraint[1]=angle_pid_constraint[2]=val;
+            }else if(in_key=="y_a_c"){
+                angle_pid_constraint[0]=val;
+            }else if(in_key=="r_c"){
+                rate_pid_constraint[1]=rate_pid_constraint[2]=val;
+            }else if(in_key=="y_r_c"){
+                rate_pid_constraint[0]=val;
+            }else if(in_key=="a_i_c"){
+                angle_i_constraint[1]=angle_i_constraint[2]=val;
+            }else if(in_key=="y_a_i_c"){
+                angle_i_constraint[0]=val;
+            }else if(in_key=="r_i_c"){
+                rate_i_constraint[1]=rate_i_constraint[2]=val;
+            }else if(in_key=="y_r_i_c"){
+                rate_i_constraint[0]=val;
+            }else if(in_key=="a_m"){
+                angle_i_term_calc_interval=val;
+            }else if(in_key=="r_m"){
+                rate_i_term_calc_interval=val;
             }else if(in_key=="pe"){
                 CH2_EFFECT=val;
-                Serial.println(CH2_EFFECT);
+                /* Serial.println(CH2_EFFECT); */
             }else if(in_key=="re"){
                 CH4_EFFECT=val;
-                Serial.println(CH4_EFFECT);
+                /* Serial.println(CH4_EFFECT); */
             }else if(in_key=="ye"){
                 CH1_EFFECT=val;
-                Serial.println(CH1_EFFECT);
+                /* Serial.println(CH1_EFFECT); */
             }else if(in_key=="tl"){
                 CH3_MIN_EFFECT=val;
-                Serial.println(CH3_MIN_EFFECT);
+                /* Serial.println(CH3_MIN_EFFECT); */
             }else if(in_key=="th"){
                 CH3_MAX_EFFECT=val;
-                Serial.println(CH3_MAX_EFFECT);
-            }else if(in_key == "kd"){
-                kd[1] = kd[2] = val;
-                Serial.println(kd[1]);
-			}else if(in_key == "kp"){
-                kp[1] = kp[2] = val;
-                Serial.println(kp[1]);
-			}else if(in_key == "ki"){
-                ki[1] = ki[2] = val;
-                Serial.println(ki[1]);
-            }else if(in_key == "ykd"){
-                kd[0]= val;
-                Serial.println(kd[0]);
-			}else if(in_key == "ykp"){
-                kp[0]= val;
-                Serial.println(kp[0]);
-			}else if(in_key == "yki"){
-                ki[0] = val;
-                Serial.println(ki[0]);
+                /* Serial.println(CH3_MAX_EFFECT); */
+            }else if(in_key == "r_kd"){
+                rate_kd[1] = rate_kd[2] = val;
+                /* Serial.println(rate_kd[1]); */
+			}else if(in_key == "r_kp"){
+                rate_kp[1] = rate_kp[2] = val;
+                /* Serial.println(rate_kp[1]); */
+			}else if(in_key == "r_ki"){
+                rate_ki[1] = rate_ki[2] = val;
+                /* Serial.println(rate_ki[1]); */
+            }else if(in_key == "y_r_kd"){
+                rate_kd[0]= val;
+                /* Serial.println(rate_kd[0]); */
+			}else if(in_key == "y_r_kp"){
+                rate_kp[0]= val;
+                /* Serial.println(rate_kp[0]); */
+			}else if(in_key == "y_r_ki"){
+                rate_ki[0] = val;
+                /* Serial.println(rate_ki[0]); */
+            }else if(in_key == "a_kd"){
+                angle_kd[1] = angle_kd[2] = val;
+                /* Serial.println(angle_kd[1]); */
+			}else if(in_key == "a_kp"){
+                angle_kp[1] = angle_kp[2] = val;
+                /* Serial.println(angle_kp[1]); */
+			}else if(in_key == "a_ki"){
+                angle_ki[1] = angle_ki[2] = val;
+                /* Serial.println(angle_ki[1]); */
+            }else if(in_key == "y_a_kd"){
+                angle_kd[0]= val;
+                /* Serial.println(angle_kd[0]); */
+			}else if(in_key == "y_a_kp"){
+                angle_kp[0]= val;
+                /* Serial.println(angle_kp[0]); */
+			}else if(in_key == "y_a_ki"){
+                angle_ki[0] = val;
+                /* Serial.println(angle_ki[0]); */
 			}else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
