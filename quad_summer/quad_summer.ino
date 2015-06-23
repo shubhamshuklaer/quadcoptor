@@ -78,8 +78,8 @@ const int CH6_MIN=1000;
 
 int CH1_EFFECT=20;
 int CH2_EFFECT=100;
-int CH3_MIN_EFFECT=1400;
-int CH3_MAX_EFFECT=1650;
+int CH3_MIN_EFFECT=1450;
+int CH3_MAX_EFFECT=1700;
 int CH4_EFFECT=100;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
@@ -199,7 +199,7 @@ void setup(){
 }
 
 
-char buf[1024];
+char buf[200];
 
 void loop(){
     unsigned long loop_start=micros();
@@ -209,25 +209,25 @@ void loop(){
     // 0x100 is 256 in decimal
     // block in this if else if.... executes at constant interval of 512 iterations
     if(count_serial ==512){//512
-        unsigned long cur_milli=millis();
         count_serial = 0;
-        sprintf(buf,"cm %lu\r\ny %d\r\np %d\r\nr %d\r\n",cur_milli,int_angle[0],int_angle[1],int_angle[2]);
-        Serial.print(buf);
+        sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
+        Serial1.print(buf);
     }else if(count_serial ==256){//256
         sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
-        Serial.print(buf);
+        Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==128){//128
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
-        Serial.print(buf);
+        Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==64){//64
         sprintf(buf,"ay %d\r\nap %d\r\nar %d\r\n",angle_pid_result[0],angle_pid_result[1],angle_pid_result[2]);
-        Serial.print(buf);
+        Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==32){//32
-        sprintf(buf,"ry %d\r\nrp %d\r\nrr %d\r\n",rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
-        Serial.print(buf);
+        unsigned long cur_milli=millis();
+        sprintf(buf,"cm %lu\r\nry %d\r\nrp %d\r\nrr %d\r\n",cur_milli,rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
+        Serial1.print(buf);
         count_serial=count_serial+1;
     }else{
         count_serial=count_serial+1;
