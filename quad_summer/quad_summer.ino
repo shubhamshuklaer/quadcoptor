@@ -7,6 +7,7 @@
 #include <Servo.h>
 #include <avr/pgmspace.h>
 #include <MemoryFree.h>
+#include <stdarg.h>//for sprintf
 
 
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
@@ -198,111 +199,40 @@ void setup(){
 }
 
 
+char buf[1024];
 
 void loop(){
+    unsigned long loop_start=micros();
 
     // earlier it was 0x40 but for processing graph I increased it
     // 0x40 is hex of 64 decimal i.e 01000000 and hence the bitwise and works
     // 0x100 is 256 in decimal
-    if(count_serial & 0x200){
+    // block in this if else if.... executes at constant interval of 512 iterations
+    if(count_serial ==512){//512
         unsigned long cur_milli=millis();
         count_serial = 0;
-
-        //yaw
-        Serial1.print("y ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_angle[0]);
-
-        //pitch
-        Serial1.print("p ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_angle[1]);
-
-        //Roll
-        Serial1.print("r ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_angle[2]);
-
-        //yaw gyro
-        Serial1.print("gy ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_rate[0]);
-
-        //pitch gyro
-        Serial1.print("gp ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_rate[1]);
-
-        //Roll gyro
-        Serial1.print("gr ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(int_rate[2]);
-
-        //base speed
-        Serial1.print("bs ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(base_speed);
-
-        //m1 speed
-        Serial1.print("m1 ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(m1_speed);
-
-        //m2 speed
-        Serial1.print("m2 ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(m2_speed);
-
-        //Pid yaw
-        Serial1.print("ay ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(angle_pid_result[0]);
-
-        //Pid pitch
-        Serial1.print("ap ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(angle_pid_result[1]);
-
-        //Pid roll
-        Serial1.print("ar ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(angle_pid_result[2]);
-
-        //Pid yaw
-        Serial1.print("ry ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(rate_pid_result[0]);
-
-        //Pid pitch
-        Serial1.print("rp ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(rate_pid_result[1]);
-
-        //Pid roll
-        Serial1.print("rr ");
-        Serial1.print(cur_milli);
-        Serial1.print(" ");
-        Serial1.println(rate_pid_result[2]);
-
-        /* Serial.print(int_rate[0]); */
-        /* Serial.print("\t"); */
-        /* Serial.print(int_rate[1]); */
-        /* Serial.print("\t"); */
-        /* Serial.println(int_rate[2]); */
+        sprintf(buf,"y %lu %d\np %lu %d\nr %lu %d\n",cur_milli,int_angle[0],cur_milli,int_angle[1],cur_milli,int_angle[2]);
+        Serial1.print(buf);
+    }else if(count_serial ==256){//256
+        unsigned long cur_milli=millis();
+        sprintf(buf,"gy %lu %d\ngp %lu %d\ngr %lu %d\n",cur_milli,int_rate[0],cur_milli,int_rate[1],cur_milli,int_rate[2]);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
+    }else if(count_serial==128){//128
+        unsigned long cur_milli=millis();
+        sprintf(buf,"bs %lu %d\nm1 %lu %d\nm2 %lu %d\n",cur_milli,base_speed,cur_milli,m1_speed,cur_milli,m2_speed);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
+    }else if(count_serial==64){//64
+        unsigned long cur_milli=millis();
+        sprintf(buf,"ay %lu %d\nap %lu %d\nar %lu %d\n",cur_milli,angle_pid_result[0],cur_milli,angle_pid_result[1],cur_milli,angle_pid_result[2]);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
+    }else if(count_serial==32){//32
+        unsigned long cur_milli=millis();
+        sprintf(buf,"ry %lu %d\nrp %lu %d\nrr %lu %d\n",cur_milli,rate_pid_result[0],cur_milli,rate_pid_result[1],cur_milli,rate_pid_result[2]);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
     }else{
         count_serial=count_serial+1;
     }
@@ -603,7 +533,8 @@ void update_rc(){
 }
 
 int angle_pid_constraint[3]={120,1000,1000};
-int rate_pid_constraint[3]={8,50,50};
+/* int rate_pid_constraint[3]={8,50,50}; */
+int rate_pid_constraint[3]={120,800,800};
 int angle_i_constraint[3]={0,40,40};
 int rate_i_constraint[3]={0,4,4};
 int rate_i_term_calc_interval=120;
@@ -612,8 +543,11 @@ float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,0.0f,0.0f};
-float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+/* float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f}; */
+/* float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f}; */
+/* float rate_kp[3]={0.0f,1.0f,1.0f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f}; */
+int angle_kp[3] = {1, 24, 24}, angle_kd[3] = {0, 0, 0}, angle_ki[3] = {0, 1, 1};
+int rate_kp[3] = {1, 1, 1}, rate_kd[3] = {0, 0, 0}, rate_ki[3] = {0, 0, 0};
 
 inline void update_pid(){
     //PID direction
@@ -662,6 +596,9 @@ inline void update_pid(){
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
     rate_pid_result[0]=angle_pid_result[0];//not using rate pid for yaw axis
+    rate_pid_result[1]=rate_pid_result[1]/16;
+    rate_pid_result[2]=rate_pid_result[2]/16;
+
 }
 
 
