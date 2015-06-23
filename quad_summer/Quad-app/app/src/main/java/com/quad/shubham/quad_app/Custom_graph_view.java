@@ -34,7 +34,7 @@ public class Custom_graph_view extends LinearLayout {
     TextView view_port_label;
     EditText view_port_size_text;
     ArrayList<String> prefix_list;
-    String graph_name;
+    String graph_name,x_prefix,cur_x;
     TextView graph_name_view;
     public int view_port_size=1000;
     boolean registered=false;
@@ -87,12 +87,13 @@ public class Custom_graph_view extends LinearLayout {
         }
     };
 
-    public Custom_graph_view(Context _context, ArrayList<LineGraphSeries> _series_list, ArrayList<String> _prefix_list,String _graph_name) {
+    public Custom_graph_view(Context _context, ArrayList<LineGraphSeries> _series_list, ArrayList<String> _prefix_list,String _graph_name,String _x_prefix) {
         super(_context);
         context=_context;
         series_list=_series_list;
         prefix_list=_prefix_list;
         graph_name=_graph_name;
+        x_prefix=_x_prefix;
         this.setOrientation(VERTICAL);
 
         graph_view=new GraphView(context);
@@ -264,6 +265,7 @@ public class Custom_graph_view extends LinearLayout {
             if(((CheckBox)check_box_layout.getChildAt(i)).isChecked())
                 filter.addAction(Data_logging_service.intent_filter_prefix+prefix_list.get(i));
         }
+        filter.addAction(Data_logging_service.intent_filter_prefix+x_prefix);
         LocalBroadcastManager.getInstance(context).registerReceiver(receiver,filter);
         registered=true;
     }

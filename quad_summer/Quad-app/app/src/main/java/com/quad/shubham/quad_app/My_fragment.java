@@ -107,6 +107,7 @@ public class My_fragment extends Fragment {
 
                                 NodeList graph_childs=temp_element.getChildNodes();
                                 String graph_name=temp_element.getAttribute("name");
+                                String x_prefix=temp_element.getAttribute("x_prefix");
 
                                 for(int j=0;j<graph_childs.getLength();j++) {
                                     Node graph_child=graph_childs.item(j);
@@ -125,7 +126,7 @@ public class My_fragment extends Fragment {
                                     }
                                 }
 
-                                Custom_graph_view custom_graph_view=new Custom_graph_view(parent_activity,temp_series_list,temp_prefix_list,graph_name);
+                                Custom_graph_view custom_graph_view=new Custom_graph_view(parent_activity,temp_series_list,temp_prefix_list,graph_name,x_prefix);
 
                                 custom_graph_views.add(custom_graph_view);
 

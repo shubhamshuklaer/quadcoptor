@@ -184,7 +184,7 @@ public class Data_logging_service extends IntentService{
                         //The trim function also removes the \n or \r characters from the ends in addition to spaces at ends
                         data_log_file_stream.write((data_line+"\n").getBytes());
 
-                        if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+\\s-?[0-9]+$")) {
+                        if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+$")) {
                             String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
                             Intent intent = new Intent(Data_logging_service.intent_filter_prefix + seperated[0]);
                             intent.putExtra("data", seperated[1]);
