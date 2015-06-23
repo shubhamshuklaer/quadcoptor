@@ -5,9 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.support.v4.content.LocalBroadcastManager;
-import android.text.Editable;
 import android.text.InputType;
-import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.CheckBox;
@@ -31,16 +29,16 @@ public class Custom_graph_view extends LinearLayout {
     ArrayList<LineGraphSeries> series_list;
     Context context;
     LinearLayout check_box_layout,top_layout;
-    TextView view_port_label;
-    EditText view_port_size_text;
+    TextView num_points_label;
+    EditText num_points_text;
     ArrayList<String> prefix_list;
-    String graph_name,x_prefix,cur_x;
+    ArrayList<String> cur_x_list;
+    String graph_name,x_prefix;
     TextView graph_name_view;
-    public int view_port_size=1000;
+    public int max_points=50;
     boolean registered=false;
     final long update_delay=500;//500ms
     boolean update_now=true;
-    int cur_max_x;
     boolean first_time=true;
     int h_m=10,v_m=5;
 
@@ -54,32 +52,35 @@ public class Custom_graph_view extends LinearLayout {
                     .equals(Data_logging_service.intent_filter_prefix)) {
 
                 String prefix=action.substring(Data_logging_service.intent_filter_prefix.length());
-                int index=prefix_list.indexOf(prefix);
-                if(index!=-1) {
-                    if (data != null) {
-                        String[] seperated = data.split(" ", 2);
-                        if (seperated.length == 2) {
-                            DataPoint point = new DataPoint(Integer.parseInt(seperated[0]), Integer.parseInt(seperated[1]));
-                            series_list.get(index).appendDataWithoutUpdate(point,view_port_size);
-                            cur_max_x=Integer.parseInt(seperated[0]);
-                            if(update_now){
-                                update_now=false;
-                                Custom_graph_view.this.postDelayed(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        try {
-                                            update_now=true;
-                                            graph_view.getViewport().setMinX(cur_max_x - view_port_size);
-                                            graph_view.getViewport().setMaxX(cur_max_x);
-                                            graph_view.onDataChanged(!first_time, false);
-//                                            graph_view.onDataChanged(false, false);
-                                            first_time=false;
-                                        } catch (Exception e) {
-                                            Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
-                                        }
+                if(prefix.equals(x_prefix)){
+                    if(cur_x_list.size()<max_points) {
+                        cur_x_list.add(data);
+                    }else{
+                        if(cur_x_list.size()>0)
+                            cur_x_list.remove(0);
+                        cur_x_list.add(data);
+                    }
+                }else {
+                    int index = prefix_list.indexOf(prefix);
+                    if (index != -1 && cur_x_list.size()>0) {//wait till you get correct cur_x ignore all data till then
+                        DataPoint point = new DataPoint(Double.parseDouble(cur_x_list.get(cur_x_list.size() - 1)), Double.parseDouble(data));
+                        series_list.get(index).appendDataWithoutUpdate(point, max_points);
+                        if (update_now) {
+                            update_now = false;
+                            Custom_graph_view.this.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    try {
+                                        update_now = true;
+                                        graph_view.getViewport().setMinX(Double.parseDouble(cur_x_list.get(0)));
+                                        graph_view.getViewport().setMaxX(Double.parseDouble(cur_x_list.get(cur_x_list.size() - 1)));
+                                        graph_view.onDataChanged(!first_time, false);
+                                        first_time = false;
+                                    } catch (Exception e) {
+                                        Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
                                     }
-                                },update_delay);
-                            }
+                                }
+                            }, update_delay);
                         }
                     }
                 }
@@ -94,9 +95,11 @@ public class Custom_graph_view extends LinearLayout {
         prefix_list=_prefix_list;
         graph_name=_graph_name;
         x_prefix=_x_prefix;
+        cur_x_list=new ArrayList<String>();
         this.setOrientation(VERTICAL);
 
         graph_view=new GraphView(context);
+        //SetScalable or setScrollable true was causig app to freeze
         graph_view.getViewport().setScalable(true);
         graph_view.getViewport().setScrollable(true);
         graph_view.getLegendRenderer().setVisible(true);
@@ -106,22 +109,25 @@ public class Custom_graph_view extends LinearLayout {
         graph_name_view=new TextView(context);
         graph_name_view.setText(graph_name);
 
-        view_port_label=new TextView(context);
-        view_port_label.setText("View port size");
+        num_points_label =new TextView(context);
+        num_points_label.setText("Num points");
 
-        view_port_size_text=new EditText(context);
-        view_port_size_text.setInputType(InputType.TYPE_CLASS_NUMBER);
-        view_port_size_text.setText(Data_store.get_attribute(context,
-                Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
-                Integer.toString(view_port_size)));
+        num_points_text =new EditText(context);
+        num_points_text.setInputType(InputType.TYPE_CLASS_NUMBER);
+        num_points_text.setText(Data_store.get_attribute(context,
+                Data_store.USER_SETTING_PREFIX + graph_name + ":max_points",
+                Integer.toString(max_points)));
 
-        view_port_size_text.setOnFocusChangeListener(new OnFocusChangeListener() {
+        num_points_text.setOnFocusChangeListener(new OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
                 if (!hasFocus) {
-                    view_port_size = try_parse_int(view_port_size_text.getText().toString(), view_port_size);
-                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":view_port_size",
-                            Integer.toString(view_port_size));
+                    max_points = try_parse_int(num_points_text.getText().toString(), max_points);
+                    while (cur_x_list.size()>0 && cur_x_list.size()>max_points) {//just a precaution if max_points is -ve
+                        cur_x_list.remove(0);
+                    }
+                    Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":max_points",
+                            Integer.toString(max_points));
                 }
             }
         });
@@ -211,8 +217,8 @@ public class Custom_graph_view extends LinearLayout {
         top_layout.addView(y_min_text, top_layout_params);
         top_layout.addView(y_max_label, top_layout_params);
         top_layout.addView(y_max_text, top_layout_params);
-        top_layout.addView(view_port_label, top_layout_params);
-        top_layout.addView(view_port_size_text, top_layout_params);
+        top_layout.addView(num_points_label, top_layout_params);
+        top_layout.addView(num_points_text, top_layout_params);
 
 
 
