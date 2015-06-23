@@ -211,27 +211,23 @@ void loop(){
     if(count_serial ==512){//512
         unsigned long cur_milli=millis();
         count_serial = 0;
-        sprintf(buf,"y %lu %d\np %lu %d\nr %lu %d\n",cur_milli,int_angle[0],cur_milli,int_angle[1],cur_milli,int_angle[2]);
-        Serial1.print(buf);
+        sprintf(buf,"cm %lu\r\ny %d\r\np %d\r\nr %d\r\n",cur_milli,int_angle[0],int_angle[1],int_angle[2]);
+        Serial.print(buf);
     }else if(count_serial ==256){//256
-        unsigned long cur_milli=millis();
-        sprintf(buf,"gy %lu %d\ngp %lu %d\ngr %lu %d\n",cur_milli,int_rate[0],cur_milli,int_rate[1],cur_milli,int_rate[2]);
-        Serial1.print(buf);
+        sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
+        Serial.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==128){//128
-        unsigned long cur_milli=millis();
-        sprintf(buf,"bs %lu %d\nm1 %lu %d\nm2 %lu %d\n",cur_milli,base_speed,cur_milli,m1_speed,cur_milli,m2_speed);
-        Serial1.print(buf);
+        sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
+        Serial.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==64){//64
-        unsigned long cur_milli=millis();
-        sprintf(buf,"ay %lu %d\nap %lu %d\nar %lu %d\n",cur_milli,angle_pid_result[0],cur_milli,angle_pid_result[1],cur_milli,angle_pid_result[2]);
-        Serial1.print(buf);
+        sprintf(buf,"ay %d\r\nap %d\r\nar %d\r\n",angle_pid_result[0],angle_pid_result[1],angle_pid_result[2]);
+        Serial.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==32){//32
-        unsigned long cur_milli=millis();
-        sprintf(buf,"ry %lu %d\nrp %lu %d\nrr %lu %d\n",cur_milli,rate_pid_result[0],cur_milli,rate_pid_result[1],cur_milli,rate_pid_result[2]);
-        Serial1.print(buf);
+        sprintf(buf,"ry %d\r\nrp %d\r\nrr %d\r\n",rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
+        Serial.print(buf);
         count_serial=count_serial+1;
     }else{
         count_serial=count_serial+1;

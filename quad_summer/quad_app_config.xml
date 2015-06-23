@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
     <tab name="Input Graphs" num_cols="1" num_rows="1">
-        <graph name="input params" start_col="0" start_row="0" num_cols="1" num_rows="1">
+        <graph name="input params" start_col="0" start_row="0" num_cols="1" num_rows="1" x_prefix="cm">
             <series name="yaw" color="ffff0000" prefix="y"></series>
             <series name="pitch" color="ff00ff00" prefix="p"></series>
             <series name="roll" color="ff0000ff" prefix="r"></series>
@@ -12,7 +12,7 @@
         </graph>
     </tab>
     <tab name="Output Graphs" num_cols="1" num_rows="1">
-        <graph name="output params" start_col="0" start_row="0" num_cols="1" num_rows="1">
+        <graph name="output params" start_col="0" start_row="0" num_cols="1" num_rows="1" x_prefix="cm">
             <series name="angle pid yaw" color="ffDEB887" prefix="ay"></series>
             <series name="angle pid pitch" color="ff7FFF00" prefix="ap"></series>
             <series name="angle pid roll" color="ffFF7F50" prefix="ar"></series>
