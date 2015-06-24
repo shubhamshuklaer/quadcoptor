@@ -529,8 +529,7 @@ void update_rc(){
 }
 
 int angle_pid_constraint[3]={120,1000,1000};
-/* int rate_pid_constraint[3]={8,50,50}; */
-int rate_pid_constraint[3]={120,800,800};
+int rate_pid_constraint[3]={8,50,50};
 int angle_i_constraint[3]={0,40,40};
 int rate_i_constraint[3]={0,4,4};
 int rate_i_term_calc_interval=120;
@@ -539,11 +538,8 @@ float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-/* float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f}; */
-/* float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f}; */
-/* float rate_kp[3]={0.0f,1.0f,1.0f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f}; */
-int angle_kp[3] = {1, 24, 24}, angle_kd[3] = {0, 0, 0}, angle_ki[3] = {0, 1, 1};
-int rate_kp[3] = {1, 1, 1}, rate_kd[3] = {0, 0, 0}, rate_ki[3] = {0, 0, 0};
+float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
+float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 
 inline void update_pid(){
     //PID direction
@@ -592,9 +588,6 @@ inline void update_pid(){
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
     rate_pid_result[0]=angle_pid_result[0];//not using rate pid for yaw axis
-    rate_pid_result[1]=rate_pid_result[1]/16;
-    rate_pid_result[2]=rate_pid_result[2]/16;
-
 }
 
 
