@@ -9,6 +9,10 @@
             <series name="gyro yaw" color="ff000000" prefix="gy"></series>
             <series name="gyro pitch" color="ff00FFFF" prefix="gp"></series>
             <series name="gyro roll" color="ff008000" prefix="gr"></series>
+
+            <series name="ch_pitch" color="ffDEB887" prefix="chp"></series>
+            <series name="ch_roll" color="ff7FFF00" prefix="chr"></series>
+            <series name="ch_yaw" color="ffFF7F50" prefix="chy"></series>
         </graph>
     </tab>
     <tab name="Output Graphs" num_cols="1" num_rows="1">
