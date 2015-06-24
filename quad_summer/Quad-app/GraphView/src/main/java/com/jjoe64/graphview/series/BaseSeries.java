@@ -395,8 +395,12 @@ public abstract class BaseSeries<E extends DataPointInterface> implements Series
                 // enough space
                 mData.add(dataPoint);
             } else {
-                // we have to trim one data
-                mData.remove(0);
+                // we have to trim data
+                //Edited by shubham since we are taking maxDataPoints in every call
+                //it makes sence that user should be able to change it
+                //so if its 10 previously and we make it 5 we have to remove all 5 and not just 1
+                while(mData.size()>0 && mData.size()>=maxDataPoints)
+                    mData.remove(0);
                 mData.add(dataPoint);
             }
         }
@@ -422,8 +426,12 @@ public abstract class BaseSeries<E extends DataPointInterface> implements Series
                 // enough space
                 mData.add(dataPoint);
             } else {
-                // we have to trim one data
-                mData.remove(0);
+                // we have to trim data
+                //Edited by shubham since we are taking maxDataPoints in every call
+                //it makes sence that user should be able to change it
+                //so if its 10 previously and we make it 5 we have to remove all 5 and not just 1
+                while(mData.size()>0 && mData.size()>=maxDataPoints)
+                    mData.remove(0);
                 mData.add(dataPoint);
             }
         }

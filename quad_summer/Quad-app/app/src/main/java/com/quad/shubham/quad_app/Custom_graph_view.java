@@ -72,9 +72,11 @@ public class Custom_graph_view extends LinearLayout {
                                 public void run() {
                                     try {
                                         update_now = true;
-                                        graph_view.getViewport().setMinX(Double.parseDouble(cur_x_list.get(0)));
-                                        graph_view.getViewport().setMaxX(Double.parseDouble(cur_x_list.get(cur_x_list.size() - 1)));
-                                        graph_view.onDataChanged(!first_time, false);
+                                        if(cur_x_list.size()>0) {//cur_x_list might have been empty when this was called(caused its caused delayed)
+                                            graph_view.getViewport().setMinX(Double.parseDouble(cur_x_list.get(0)));
+                                            graph_view.getViewport().setMaxX(Double.parseDouble(cur_x_list.get(cur_x_list.size() - 1)));
+                                            graph_view.onDataChanged(!first_time, false);
+                                        }
                                         first_time = false;
                                     } catch (Exception e) {
                                         Toast.makeText(Custom_graph_view.this.context.getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -99,9 +101,9 @@ public class Custom_graph_view extends LinearLayout {
         this.setOrientation(VERTICAL);
 
         graph_view=new GraphView(context);
-        //SetScalable or setScrollable true was causig app to freeze
         graph_view.getViewport().setScalable(true);
         graph_view.getViewport().setScrollable(true);
+        graph_view.getViewport().setXAxisBoundsManual(true);
         graph_view.getLegendRenderer().setVisible(true);
 
         top_layout=new LinearLayout(context);
@@ -114,9 +116,11 @@ public class Custom_graph_view extends LinearLayout {
 
         num_points_text =new EditText(context);
         num_points_text.setInputType(InputType.TYPE_CLASS_NUMBER);
-        num_points_text.setText(Data_store.get_attribute(context,
+        max_points=try_parse_int(Data_store.get_attribute(context,
                 Data_store.USER_SETTING_PREFIX + graph_name + ":max_points",
-                Integer.toString(max_points)));
+                Integer.toString(max_points)),max_points);
+
+        num_points_text.setText(Integer.toString(max_points));
 
         num_points_text.setOnFocusChangeListener(new OnFocusChangeListener() {
             @Override
