@@ -203,31 +203,27 @@ char buf[200];
 void loop(){
     unsigned long loop_start=micros();
 
-    // earlier it was 0x40 but for processing graph I increased it
-    // 0x40 is hex of 64 decimal i.e 01000000 and hence the bitwise and works
-    // 0x100 is 256 in decimal
-    // block in this if else if.... executes at constant interval of 512 iterations
-    if(count_serial ==512){//512
+    if(count_serial ==480){
         count_serial = 0;
         sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
         Serial1.print(buf);
-    }else if(count_serial ==256){//256
+    }else if(count_serial ==400){
         sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==128){//128
+    }else if(count_serial==320){
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==64){//64
+    }else if(count_serial==240){
         sprintf(buf,"chp %d\r\nchr %d\r\nchy %d\r\n",ch2,ch4,ch1);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==32){//32
+    }else if(count_serial==160){
         sprintf(buf,"ay %d\r\nap %d\r\nar %d\r\n",angle_pid_result[0],angle_pid_result[1],angle_pid_result[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==16){
+    }else if(count_serial==80){
         unsigned long cur_milli=millis();
         sprintf(buf,"cm %lu\r\nry %d\r\nrp %d\r\nrr %d\r\n",cur_milli,rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
         Serial1.print(buf);
@@ -248,6 +244,7 @@ void loop(){
     pid_update();
     esc_update();
     ApplicationMonitor.IAmAlive();
+    Serial.println(micros()-loop_start);
 }
 
 void pid_init(){
