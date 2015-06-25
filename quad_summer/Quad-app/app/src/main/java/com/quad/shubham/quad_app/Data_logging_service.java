@@ -148,6 +148,7 @@ public class Data_logging_service extends IntentService{
             if(socket!=null)
                 socket.close();
 
+            data_log_file_stream.write("##########".getBytes());
             Map<String,String> cur_tune_data=Data_store.get_all(Data_logging_service.this,Data_store.TUNER_DATA_FILE);
             for(Map.Entry<String,String> entry:cur_tune_data.entrySet()){
                 data_log_file_stream.write((entry.getKey()+" : "+entry.getValue()+"\n").getBytes());

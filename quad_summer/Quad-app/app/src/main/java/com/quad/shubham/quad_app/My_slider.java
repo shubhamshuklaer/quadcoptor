@@ -4,6 +4,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.graphics.Color;
 import android.os.IBinder;
 import android.text.InputType;
 import android.view.Gravity;
@@ -42,6 +43,8 @@ public class My_slider extends LinearLayout {
     boolean send_now=true;
     final int min_text_id=19,max_text_id=21;
     final int max_prec=5;
+    final int disconnected_color=Color.CYAN;
+    final int connected_color=Color.WHITE;
 
     LinearLayout max_layout,min_layout,cur_layout,prec_layout;
 
@@ -115,14 +118,17 @@ public class My_slider extends LinearLayout {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
                     my_binder = (My_binder) service;
+                    My_slider.this.setBackgroundColor(connected_color);
                 }
 
                 @Override
                 public void onServiceDisconnected(ComponentName name) {
                     my_binder = null;
+                    My_slider.this.setBackgroundColor(disconnected_color);
                 }
             };
         }
+        this.setBackgroundColor(disconnected_color);
         this.parent_context.bindService(new Intent(this.parent_context, Data_logging_service.class), conn, Context.BIND_DEBUG_UNBIND);
     }
 
