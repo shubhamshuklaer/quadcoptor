@@ -244,7 +244,6 @@ void loop(){
     pid_update();
     esc_update();
     ApplicationMonitor.IAmAlive();
-    Serial.println(micros()-loop_start);
 }
 
 void pid_init(){
@@ -365,10 +364,10 @@ void mpu_init(){
 }
 
 void esc_init(){
-    m1.attach(ESC_1,ESC_MIN,ESC_MAX);
-    m2.attach(ESC_2,ESC_MIN,ESC_MAX);
-    m3.attach(ESC_3,ESC_MIN,ESC_MAX);
-    m4.attach(ESC_4,ESC_MIN,ESC_MAX);
+    m1.attach(ESC_1);
+    m2.attach(ESC_2);
+    m3.attach(ESC_3);
+    m4.attach(ESC_4);
     delay(100);
     stop_motors();
     enable_pitch=false;
