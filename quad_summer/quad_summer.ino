@@ -29,6 +29,7 @@ int gyro_ypr[3];
 int angle_pid_result[3];
 int rate_pid_result[3];
 int desired_angle[3]={0,0,0};
+int desired_yaw;
 
 float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
 float loop_ratio = 0, loop_enter, loop_leave, loop_count = 0;
@@ -76,11 +77,11 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-int CH1_EFFECT=20;
-int CH2_EFFECT=100;
+int CH1_EFFECT=10;
+int CH2_EFFECT=30;
 int CH3_MIN_EFFECT=1500;
 int CH3_MAX_EFFECT=1700;
-int CH4_EFFECT=100;
+int CH4_EFFECT=30;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
@@ -251,7 +252,6 @@ void pid_init(){
     while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
         ypr_update();
 
-    int desired_yaw;
     int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
 
     while(num_samples_for_yaw_average_copy>0){
@@ -601,6 +601,10 @@ void rc_update(){
         ch4=map(ch4,CH4_MIN,CH4_MAX,-CH4_EFFECT,CH4_EFFECT);
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
+
+        desired_angle[0]=desired_yaw+ch1;
+        desired_angle[1]=ch2;
+        desired_angle[2]=ch4;
 
 
         if(ch6>0){
