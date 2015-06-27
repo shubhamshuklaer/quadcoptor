@@ -143,6 +143,10 @@ int gyro_int_raw[3];
 float gyro_retain[3]={0.3,0.3,0.3};
 int16_t gx, gy, gz;
 
+float pi=3.14f;//value of PI actually yaw value is from [0,PI],[-PI,0] so the correction
+int num_rounds=0;
+float yaw_prev=-1;
+
 // packet structure for InvenSense teapot demo
 // uint8_t teapotPacket[14] = { '$', 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0x00, 0x00, '\r', '\n' };
 
@@ -244,8 +248,8 @@ void loop(){
     }
 
 
-    rc_update();
     ypr_update();
+    rc_update();
     pid_update();
     esc_update();
     ApplicationMonitor.IAmAlive();
@@ -254,7 +258,7 @@ void loop(){
 void pid_init(){
     unsigned long yaw_tune_start=millis();
     while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
-        ypr_update();
+        ypr_update();//we could have used delay but then we could have gotten fifo overflow or stale values
 
     int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
 
@@ -467,6 +471,21 @@ void ypr_update(){
     int_rate[0]=int_rate[0]*(1-gyro_retain[0])+gyro_retain[0]*gyro_int_raw[0];
     int_rate[1]=int_rate[1]*(1-gyro_retain[1])+gyro_retain[1]*gyro_int_raw[1];
     int_rate[2]=int_rate[2]*(1-gyro_retain[2])+gyro_retain[2]*gyro_int_raw[2];
+
+    if(ypr[0]<0)
+        ypr[0]=2*pi+ypr[0];//converted from [0,PI][-PI,0] to [0,2*PI]
+    //this yaw is still wrong cause we are asked to maintain yaw at around 2*PI then
+    //the yaw jumps from 2*Pi to 0 here
+    if(yaw_prev!=-1){
+        if(yaw_prev-ypr[0]>1.5*pi)//actually difference will be close to 2*pi
+            num_rounds++;
+        else if(ypr[0]-yaw_prev>1.5*pi)
+            num_rounds--;
+    }
+
+    yaw_prev=ypr[0];
+    ypr[0]+=2*pi*num_rounds;
+
 
     int_angle[0]=ypr[0]*YPR_RATIO+ypr_int_offset[0];
     int_angle[1]=ypr[1]*YPR_RATIO+ypr_int_offset[1];
