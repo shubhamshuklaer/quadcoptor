@@ -82,7 +82,7 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-int CH1_EFFECT=10;
+int CH1_EFFECT=30;
 int CH2_EFFECT=30;
 int CH3_MIN_EFFECT=1500;
 int CH3_MAX_EFFECT=1700;
@@ -488,11 +488,6 @@ float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angl
 float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 
 inline void pid_update(){
-    //PID direction
-    //angle y-reverse,p-direct,r-reverse
-    //rate y,p,r-reverse
-    //Reverse means -ve kp,kd,ki
-    //error is calculated using desired-actual
     if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
         angle_i_term[0]+=-angle_ki[0]*(desired_angle[0]-int_angle[0]);
         angle_i_term[1]+=angle_ki[1]*(desired_angle[1]-int_angle[1]);
@@ -542,7 +537,7 @@ inline void esc_update()
 	motor_enter = micros();
 
 	// based on pitch
-    m1_speed = base_speed - rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
+    m1_speed = base_speed -rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
 	m3_speed = base_speed -rate_pid_result[0] + rate_pid_result[1]+ m3_speed_off;
 
 	// based on roll
@@ -634,9 +629,11 @@ void rc_update(){
             ch5=CH5_EFFECT;
         }
 
-        desired_angle[0]=desired_yaw+ch1;
-        desired_angle[1]=ch2;
-        desired_angle[2]=ch4;
+
+        //- is there so that the channel values correspond to angle sign
+        desired_angle[0]=desired_yaw-ch1;
+        desired_angle[1]=-ch2;
+        desired_angle[2]=-ch4;
 
 
         if(ch6>0){
