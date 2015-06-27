@@ -51,7 +51,8 @@ int count_check_serial=0,count_serial=0;
 MPU6050 mpu;
 
 int ch1=0,ch2=0,ch3=0,ch4=0,ch5=0,ch6=0;
-int ch3_old=0;
+int ch1_old=0,ch2_old=0,ch3_old=0,ch4_old=0;
+float CH_RETAIN=0.1;
 volatile int count_ch5=0;
 volatile int ch1_val=0,ch2_val=0,ch3_val=0,ch4_val=0,ch5_val=0,ch6_val=0;
 volatile unsigned long prev_ch_update;
@@ -614,6 +615,16 @@ void rc_update(){
         ch4=map(ch4,CH4_MIN,CH4_MAX,-CH4_EFFECT,CH4_EFFECT);
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
+
+        ch1=ch1_old*(1-CH_RETAIN)+CH_RETAIN*ch1;
+        ch2=ch2_old*(1-CH_RETAIN)+CH_RETAIN*ch2;
+        ch3=ch3_old*(1-CH_RETAIN)+CH_RETAIN*ch3;
+        ch4=ch4_old*(1-CH_RETAIN)+CH_RETAIN*ch4;
+
+        ch1_old=ch1;
+        ch2_old=ch2;
+        ch3_old=ch3;
+        ch4_old=ch4;
 
         if(receiver_lost){
             //landing
