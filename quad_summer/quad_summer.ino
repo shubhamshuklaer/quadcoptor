@@ -20,6 +20,7 @@ Watchdog::CApplicationMonitor ApplicationMonitor;
 Servo m1, m2, m3, m4;
 
 int base_speed = 1330, max_speed = 1900, min_speed = 1000;
+int esc_problem_threashold=1400;
 
 int m1_speed, m2_speed, m3_speed, m4_speed;
 
@@ -53,6 +54,9 @@ int ch1=0,ch2=0,ch3=0,ch4=0,ch5=0,ch6=0;
 int ch3_old=0;
 volatile int count_ch5=0;
 volatile int ch1_val=0,ch2_val=0,ch3_val=0,ch4_val=0,ch5_val=0,ch6_val=0;
+volatile unsigned long prev_ch_update;
+unsigned long prev_ch_update_copy;
+int receiver_lost_threashold=100;//in ms
 volatile int ch1_prev=0,ch2_prev=0,ch3_prev=0,ch4_prev=0,ch5_prev=0,ch6_prev=0;
 bool ch_changed=false;
 
@@ -176,7 +180,6 @@ void ch4_change();
 void ch5_change();
 void ch6_change();
 
-
 void setup(){
     ApplicationMonitor.DisableWatchdog();
     Serial1.begin(9600);
@@ -194,8 +197,8 @@ void setup(){
 	/* loop_enter = loop_leave = micros(); */
 	/* pid_enter = pid_leave = micros(); */
 	/* interpolate_enter = interpolate_leave = micros(); */
-    /* ApplicationMonitor.Dump(Serial1); */
-    ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_1s);
+    ApplicationMonitor.Dump(Serial);
+    ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_500ms);
 }
 
 
@@ -270,6 +273,7 @@ void ch1_change(){
     }else{
         ch1_val=micros()-ch1_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 void ch2_change(){
@@ -278,6 +282,7 @@ void ch2_change(){
     }else{
         ch2_val=micros()-ch2_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 void ch3_change(){
@@ -286,6 +291,7 @@ void ch3_change(){
     }else{
         ch3_val=micros()-ch3_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 void ch4_change(){
@@ -294,6 +300,7 @@ void ch4_change(){
     }else{
         ch4_val=micros()-ch4_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 void ch5_change(){
@@ -302,6 +309,7 @@ void ch5_change(){
     }else{
         ch5_val=micros()-ch5_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 void ch6_change(){
@@ -310,6 +318,7 @@ void ch6_change(){
     }else{
         ch6_val=micros()-ch6_prev;
         ch_changed=true;
+        prev_ch_update=millis();
     }
 }
 
@@ -370,7 +379,7 @@ void esc_init(){
     m4.attach(ESC_4);
     delay(100);
     stop_motors();
-    enable_pitch=false;
+    enable_pitch=true;
     enable_roll=true;
 }
 
@@ -389,6 +398,8 @@ void rc_init(){
     pinMode(CH4_PIN, INPUT);
     pinMode(CH5_PIN, INPUT);
     pinMode(CH6_PIN, INPUT);
+
+    prev_ch_update=millis();
 
     enableInterrupt(CH1_PIN, ch1_change,CHANGE);
     enableInterrupt(CH2_PIN, ch2_change,CHANGE);
@@ -530,12 +541,12 @@ inline void esc_update()
 	motor_enter = micros();
 
 	// based on pitch
-    m1_speed = base_speed -ch2 -ch1 - rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
-	m3_speed = base_speed +ch2 -ch1 -rate_pid_result[0] + rate_pid_result[1]+ m3_speed_off;
+    m1_speed = base_speed - rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
+	m3_speed = base_speed -rate_pid_result[0] + rate_pid_result[1]+ m3_speed_off;
 
 	// based on roll
-	m2_speed = base_speed +ch4 +ch1 +rate_pid_result[0] - rate_pid_result[2]+ m2_speed_off;
-	m4_speed = base_speed -ch4 +ch1 +rate_pid_result[0] + rate_pid_result[2]+ m4_speed_off;
+	m2_speed = base_speed  +rate_pid_result[0] - rate_pid_result[2]+ m2_speed_off;
+	m4_speed = base_speed  +rate_pid_result[0] + rate_pid_result[2]+ m4_speed_off;
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -568,7 +579,8 @@ inline void esc_update()
 
 
 void rc_update(){
-    if(ch_changed){
+    boolean receiver_lost=millis()-prev_ch_update_copy>receiver_lost_threashold;
+    if(ch_changed || receiver_lost){
         ch_changed=false;
         sregRestore = SREG;
         cli(); // clear the global interrupt enable flag
@@ -578,6 +590,7 @@ void rc_update(){
         ch4=ch4_val;
         ch5=ch5_val;
         ch6=ch6_val;
+        prev_ch_update_copy=prev_ch_update;
         SREG = sregRestore; // restore the status register to its previous value
 
         ch1 = (ch1==0)?(CH1_MAX+CH1_MIN)/2:ch1;
@@ -602,6 +615,14 @@ void rc_update(){
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
 
+        if(receiver_lost){
+            //landing
+            ch1=0;
+            ch2=0;
+            ch4=0;
+            ch5=CH5_EFFECT;
+        }
+
         desired_angle[0]=desired_yaw+ch1;
         desired_angle[1]=ch2;
         desired_angle[2]=ch4;
@@ -619,12 +640,17 @@ void rc_update(){
                     }
                 }
             }else if(ch5<-CH5_EFFECT/2){
+                //for startup
+                angle_i_term[0]=0;
+                angle_i_term[1]=0;
+                angle_i_term[2]=0;
+                rate_i_term[0]=0;
+                rate_i_term[1]=0;
+                rate_i_term[2]=0;
+                base_speed=esc_problem_threashold;
                 enable_motors=true;
-                enable_pitch=false;
-                base_speed=ch3;
             }else{
                 enable_motors=true;
-                enable_pitch=true;
                 take_down_count=0;
                 take_off_count=0;
                 base_speed=ch3;
