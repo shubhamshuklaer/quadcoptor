@@ -24,8 +24,6 @@ int esc_problem_threashold=1400;
 
 int m1_speed, m2_speed, m3_speed, m4_speed;
 
-int m1_speed_off = 0, m2_speed_off = 0, m3_speed_off = 0, m4_speed_off = 0;
-
 int gyro_ypr[3];
 int angle_pid_result[3];
 int rate_pid_result[3];
@@ -82,11 +80,11 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-int CH1_EFFECT=30;
-int CH2_EFFECT=30;
+int CH1_EFFECT=50;
+int CH2_EFFECT=50;
 int CH3_MIN_EFFECT=1500;
 int CH3_MAX_EFFECT=1700;
-int CH4_EFFECT=30;
+int CH4_EFFECT=50;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
@@ -384,8 +382,10 @@ void esc_init(){
     m4.attach(ESC_4);
     delay(100);
     stop_motors();
-    enable_pitch=true;
+    enable_pitch=false;
     enable_roll=true;
+    /* enable_pitch=true; */
+    /* enable_roll=false; */
 }
 
 void stop_motors(){
@@ -493,7 +493,7 @@ void ypr_update(){
 }
 
 
-int angle_pid_constraint[3]={120,1000,1000};
+int angle_pid_constraint[3]={50,1000,1000};
 int rate_pid_constraint[3]={8,50,50};
 int angle_i_constraint[3]={0,40,40};
 int rate_i_constraint[3]={0,4,4};
@@ -528,9 +528,9 @@ inline void pid_update(){
     angle_pid_result[2]=constrain(angle_pid_result[2],-angle_pid_constraint[2],angle_pid_constraint[2]);
 
     if(millis()-rate_i_prev_calc_time>rate_i_term_calc_interval){
-        rate_i_term[0]+=-rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
-        rate_i_term[1]+=-rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
-        rate_i_term[2]+=-rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
+        rate_i_term[0]+=rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
+        rate_i_term[1]+=rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
+        rate_i_term[2]+=rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
 
         rate_i_term[0]=constrain(rate_i_term[0],-rate_i_constraint[0],rate_i_constraint[0]);
         rate_i_term[1]=constrain(rate_i_term[1],-rate_i_constraint[1],rate_i_constraint[1]);
@@ -539,9 +539,9 @@ inline void pid_update(){
         rate_i_prev_calc_time=millis();
     }
 
-    rate_pid_result[0]=-rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
-    rate_pid_result[1]=-rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
-    rate_pid_result[2]=-rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
+    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
+    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
+    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
 
     rate_pid_result[0]=constrain(rate_pid_result[0],-rate_pid_constraint[0],rate_pid_constraint[0]);
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
@@ -554,14 +554,20 @@ inline void pid_update(){
 inline void esc_update()
 {
 	motor_enter = micros();
+    
+    //The output of second pid is according to desired_rate-cur_rate i.e its proportional
+    //to what extra rate must be given to achieve the desired rate.
+    //PID signs are according to this extra rate
+    //Reference is +ve extra rate
+    //if extra rate is +ve which all speeds should gain from it and which all will loose from it
 
 	// based on pitch
-    m1_speed = base_speed -rate_pid_result[0] - rate_pid_result[1]+ m1_speed_off;
-	m3_speed = base_speed -rate_pid_result[0] + rate_pid_result[1]+ m3_speed_off;
+    m1_speed = base_speed + rate_pid_result[0] + rate_pid_result[1];
+	m3_speed = base_speed + rate_pid_result[0] - rate_pid_result[1];
 
 	// based on roll
-	m2_speed = base_speed  +rate_pid_result[0] - rate_pid_result[2]+ m2_speed_off;
-	m4_speed = base_speed  +rate_pid_result[0] + rate_pid_result[2]+ m4_speed_off;
+	m2_speed = base_speed - rate_pid_result[0] + rate_pid_result[2];
+	m4_speed = base_speed - rate_pid_result[0] - rate_pid_result[2];
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -651,8 +657,8 @@ void rc_update(){
 
         //- is there so that the channel values correspond to angle sign
         desired_angle[0]=desired_yaw-ch1;
-        desired_angle[1]=-ch2;
-        desired_angle[2]=-ch4;
+        desired_angle[1]=0-ch2;
+        desired_angle[2]=0-ch4;
 
 
         if(ch6>0){
