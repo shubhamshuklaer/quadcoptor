@@ -91,9 +91,9 @@ const int take_down_diff=20;
 
 byte sregRestore;
 
-const int NUM_SAMPLES_FOR_YAW_AVERAGE=40;
+const int NUM_SAMPLES_FOR_YAW_AVERAGE=50;
 const unsigned long TIME_TILL_PROPER_YAW=15000UL;
-float yaw_average_retain=0.7;
+float yaw_average_retain=0.9;
 
 /* #define LED_PIN 13// (Arduino is 13, Teensy is 11, Teensy++ is 6) */
 const int YPR_RATIO=128;
@@ -229,8 +229,10 @@ void loop(){
 void desired_yaw_update(){
     if(!desired_yaw_got){
         int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
+        desired_yaw=0;
 
         while(num_samples_for_yaw_average_copy>0){
+            delay(2);//ms delay to get freash values
             ypr_update();
             desired_yaw=desired_yaw*(1-yaw_average_retain)+yaw_average_retain*int_angle[0];
             num_samples_for_yaw_average_copy--;
@@ -245,6 +247,8 @@ void pid_init(){
     unsigned long yaw_tune_start=millis();
     while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
         ypr_update();//we could have used delay but then we could have gotten fifo overflow or stale values
+
+    desired_yaw_update();
 
 }
 
@@ -649,7 +653,6 @@ void rc_update(){
                 rate_i_term[0]=0;
                 rate_i_term[1]=0;
                 rate_i_term[2]=0;
-                desired_yaw_update();
             }else{
                 desired_yaw_got=false;
                 enable_motors=true;
@@ -666,6 +669,11 @@ void rc_update(){
             rate_i_term[0]=0;
             rate_i_term[1]=0;
             rate_i_term[2]=0;
+            if(ch5>CH5_EFFECT/2){//down
+            }else if(ch5<-CH5_EFFECT/2){
+                desired_yaw_update();//up
+            }else{//mid
+            }
         }
     }
 

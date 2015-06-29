@@ -42,7 +42,7 @@ public class My_slider extends LinearLayout {
     long send_interval=500;//in ms;
     boolean send_now=true;
     final int min_text_id=19,max_text_id=21;
-    final int max_prec=5;
+    final int max_prec=10;
     final int disconnected_color=Color.CYAN;
     final int connected_color=Color.WHITE;
 
@@ -97,9 +97,8 @@ public class My_slider extends LinearLayout {
         }
     }
 
-    public void set_cur_text(String str) {
-        this.cur_text.setText(str);
-        value_to_send=str;
+    public void send_command() {
+        value_to_send=cur_text.getText().toString();
         if(send_now) {
             send_now=false;
             this.postDelayed(send_command_runnable, send_interval);
@@ -146,9 +145,11 @@ public class My_slider extends LinearLayout {
                 int prec_val=My_slider.try_parse_int(prec_text.getText().toString(), 0);
                 int divider=(int)Math.pow(10,prec_val);
 
-                set_cur_text(fix_decimal(
+                cur_text.setText(fix_decimal(
                         (float) progress / divider + My_slider.try_parse_float(min_text.getText().toString(), 0)
                         , prec_val));
+
+                send_command();
             }
 
             @Override
@@ -236,10 +237,11 @@ public class My_slider extends LinearLayout {
                         String cur_val_str =Data_store.get_attribute(
                                 parent_context,parameter_name+"^cur",
                                 default_val);//take the previous value of cur_val or if not exists take the default value
-
-                        set_cur_text(cur_val_str);
+                        cur_text.setText(cur_val_str);
                         cur_val=Float.parseFloat(cur_val_str);
                     }
+
+                    send_command();
 
                     // no need to call the listner as it will again update cur_text
                     // Also seek_bar has discrete values so if it sets cur_text then its
@@ -352,7 +354,8 @@ public class My_slider extends LinearLayout {
 
         min_text.setText(fix_decimal(min,prec));
         max_text.setText(fix_decimal(max, prec));
-        set_cur_text(fix_decimal(cur, prec));
+        cur_text.setText(fix_decimal(cur, prec));
+        send_command();
         prec_text.setText(Integer.toString(prec));
         // no need to call the listner as it will again update cur_text
         // Also seek_bar has discrete values so if it sets cur_text then its
