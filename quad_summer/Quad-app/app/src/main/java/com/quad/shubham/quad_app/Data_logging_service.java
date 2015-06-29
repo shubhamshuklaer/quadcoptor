@@ -9,13 +9,8 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.Binder;
-import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.support.v4.content.LocalBroadcastManager;
@@ -48,7 +43,8 @@ public class Data_logging_service extends IntentService{
     public static final int START_NOTIFICATION_ID =19;
     public static final int STOP_NOTIFICATION_ID =21;
     public static final String send_intent_filter="com.quad.shubham.quad_app_send";
-    private FileOutputStream data_log_file_stream;
+    private FileOutputStream receive_data_log_file_stream;
+    private FileOutputStream send_data_log_file_stream;
     public static boolean running;
     volatile boolean stop;
 
@@ -126,12 +122,14 @@ public class Data_logging_service extends IntentService{
             IntentFilter filter=new IntentFilter(Data_logging_service.send_intent_filter);
 //            registerReceiver(data_receiver,filter,null,this.getHa)
 
-            sender_thread=new Sender_thread("Sender_thread",o_stream);
-            sender_thread.start();
             Db_helper db_helper=new Db_helper(Data_logging_service.this);
             db_helper.insert_data_log();
-            File data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_log.txt");
-            data_log_file_stream=new FileOutputStream(data_log_file);
+            File receive_data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_receive_log.txt");
+            File send_data_log_file=new File(getExternalFilesDir(null), Integer.toString(db_helper.get_num_rows(Db_helper.DATA_LOGS_TBL_NAME))+"_send_log.txt");
+            receive_data_log_file_stream =new FileOutputStream(receive_data_log_file);
+            send_data_log_file_stream=new  FileOutputStream(send_data_log_file);
+            sender_thread=new Sender_thread("Sender_thread",o_stream,send_data_log_file_stream);
+            sender_thread.start();
             return true;
         }catch (IOException e){
             Log.e("normal", e.getMessage());
@@ -140,6 +138,7 @@ public class Data_logging_service extends IntentService{
     }
 
     private void destroy(){
+        sender_thread.quit();
         try {
             if(i_stream!=null)
                 i_stream.close();
@@ -148,16 +147,16 @@ public class Data_logging_service extends IntentService{
             if(socket!=null)
                 socket.close();
 
-            data_log_file_stream.write("##########".getBytes());
+            receive_data_log_file_stream.write("##########".getBytes());
             Map<String,String> cur_tune_data=Data_store.get_all(Data_logging_service.this,Data_store.TUNER_DATA_FILE);
             for(Map.Entry<String,String> entry:cur_tune_data.entrySet()){
-                data_log_file_stream.write((entry.getKey()+" : "+entry.getValue()+"\n").getBytes());
+                receive_data_log_file_stream.write((entry.getKey() + " : " + entry.getValue() + "\n").getBytes());
             }
-            data_log_file_stream.close();
+            receive_data_log_file_stream.close();
+            send_data_log_file_stream.close();
         }catch (IOException e){
             Log.e("normal", e.getMessage());
         }
-        sender_thread.quit();
         Notification service_stopped_notification=new NotificationCompat.Builder(this)
                 .setContentTitle("Quad app")
                 .setContentText("Data logging stopped")
@@ -183,7 +182,7 @@ public class Data_logging_service extends IntentService{
                         String data_line = new String(data, 0, buffer_pos, "UTF-8");//this will give us till \r
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
                         //The trim function also removes the \n or \r characters from the ends in addition to spaces at ends
-                        data_log_file_stream.write((data_line+"\n").getBytes());
+                        receive_data_log_file_stream.write((data_line + "\n").getBytes());
 
                         if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+$")) {
                             String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"

@@ -5,6 +5,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.util.Log;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -14,10 +15,12 @@ import java.io.OutputStream;
 public class Sender_thread extends HandlerThread {
     Handler m_handler;
     OutputStream o_stream;
+    FileOutputStream send_data_log_file_stream;
 
-    public Sender_thread(String name,OutputStream _o_stream) {
+    public Sender_thread(String name,OutputStream _o_stream,FileOutputStream _send_data_log_file_stream) {
         super(name,android.os.Process.THREAD_PRIORITY_FOREGROUND);
         o_stream=_o_stream;
+        send_data_log_file_stream=_send_data_log_file_stream;
     }
 
     @Override
@@ -29,6 +32,7 @@ public class Sender_thread extends HandlerThread {
                 String data=(String)msg.obj;
                 try {
                     o_stream.write(data.getBytes("UTF-8"));
+                    send_data_log_file_stream.write(data.getBytes("UTF-8"));
                 }catch (IOException e){
                     Log.e("normal", e.getMessage());
                 }
