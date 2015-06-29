@@ -20,7 +20,6 @@ Watchdog::CApplicationMonitor ApplicationMonitor;
 Servo m1, m2, m3, m4;
 
 int base_speed = 1330, max_speed = 1900, min_speed = 1000;
-int esc_problem_threashold=1400;
 
 int m1_speed, m2_speed, m3_speed, m4_speed;
 
@@ -29,35 +28,30 @@ int angle_pid_result[3];
 int rate_pid_result[3];
 int desired_angle[3]={0,0,0};
 int desired_yaw;
-
-float serial_ratio = 0, serial_enter, serial_leave, serial_count = 0;
-float loop_ratio = 0, loop_enter, loop_leave, loop_count = 0;
-float pid_ratio = 0, pid_enter, pid_leave, pid_count = 0;
-float motor_ratio = 0, motor_enter, motor_leave, motor_count = 0;
-float mpu_ratio = 0, mpu_enter, mpu_leave, mpu_count = 0;
-float interpolate_ratio = 0, interpolate_enter, interpolate_leave, interpolate_count = 0;
-
-
+boolean desired_yaw_got=false;
 
 String in_str, in_key, in_value, in_index, serial_send = "";
 
-bool in_str_arr = false, show_speed = false, show_ypr = false, enable_motors = false,
-	enable_pitch = false, enable_yaw = false, enable_roll = false, show_diff = false;
+boolean enable_motors = false,	enable_pitch = false, enable_roll = false;
 
 int count_check_serial=0,count_serial=0;
 
 MPU6050 mpu;
+// orientation/motion vars
+Quaternion q;           // [w, x, y, z]         quaternion container
+VectorFloat gravity;    // [x, y, z]            gravity vector
 
 int ch1=0,ch2=0,ch3=0,ch4=0,ch5=0,ch6=0;
 int ch1_old=0,ch2_old=0,ch3_old=0,ch4_old=0;
-float CH_RETAIN=0.1;
+float ch_angle_retain=0.1;
+float ch_throttle_retain=0.9;
 volatile int count_ch5=0;
 volatile int ch1_val=0,ch2_val=0,ch3_val=0,ch4_val=0,ch5_val=0,ch6_val=0;
 volatile unsigned long prev_ch_update;
 unsigned long prev_ch_update_copy;
 int receiver_lost_threashold=100;//in ms
 volatile int ch1_prev=0,ch2_prev=0,ch3_prev=0,ch4_prev=0,ch5_prev=0,ch6_prev=0;
-bool ch_changed=false;
+boolean ch_changed=false;
 
 const int CH1_PIN=13;
 const int CH2_PIN=12;
@@ -82,18 +76,16 @@ const int CH6_MIN=1000;
 
 int CH1_EFFECT=50;
 int CH2_EFFECT=50;
-int CH3_MIN_EFFECT=1500;
+int CH3_MIN_EFFECT=1400;
 int CH3_MAX_EFFECT=1700;
 int CH4_EFFECT=50;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
-int take_off_count=0;
 int take_down_count=0;
 unsigned long take_down_start=0;
 const int take_down_cutoff=1500;
-const int take_off_gradient=100;
 const int take_down_gradient=14;
 const int take_down_diff=20;
 
@@ -101,44 +93,29 @@ byte sregRestore;
 
 const int NUM_SAMPLES_FOR_YAW_AVERAGE=40;
 const unsigned long TIME_TILL_PROPER_YAW=15000UL;
-const float YAW_AVERAGE_RETAIN=0.7;
+float yaw_average_retain=0.7;
 
 /* #define LED_PIN 13// (Arduino is 13, Teensy is 11, Teensy++ is 6) */
-const int GYRO_RATIO=1;
 const int YPR_RATIO=128;
-const int AUTO_CYCLES=5;
-const int MAX_BUFFER=5;
-const float Q_RETAIN=0.5;
 
-bool blinkState = false;
 
 // MPU control/status vars
-bool dmp_ready = false;  // set true if DMP init was successful
+boolean dmp_ready = false;  // set true if DMP init was successful
 uint8_t mpu_int_status;   // holds actual interrupt status byte from MPU
 uint8_t dev_status;      // return status after each device operation (0 = success, !0 = error)
 uint16_t packet_size;    // expected DMP packet size (default is 42 bytes)
 uint16_t fifo_count;     // count of all bytes currently in FIFO
 uint8_t fifo_buffer[64]; // FIFO storage buffer
 
-// orientation/motion vars
-Quaternion q, q_past, q_res;           // [w, x, y, z]         quaternion container
-
-VectorInt16 aa;         // [x, y, z]            accel sensor measurements
-VectorInt16 aa_real;     // [x, y, z]            gravity-free accel sensor measurements
-VectorInt16 aaW_world;    // [x, y, z]            world-frame accel sensor measurements
-VectorFloat gravity;    // [x, y, z]            gravity vector
 
 int rate_ypr[3];
-float gyroPitch, gyroRoll;
-int32_t prev_gyro_diff[3], sum_gyro[3];
-float euler[3];										// [psi, theta, phi]    Euler angle container
-float ypr[3], ypr_deg[3], ypr_past[3];				// [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+float ypr[3];
 int ypr_int_offset[3]={0,-5,0};
 int int_angle[3];
 int int_rate[3];
 int gyro_int_offset[3]={-21,-8,8};
 int gyro_int_raw[3];
-float gyro_retain[3]={0.3,0.3,0.3};
+float gyro_retain=0.3;
 int16_t gx, gy, gz;
 
 float pi=3.14f;//value of PI actually yaw value is from [0,PI],[-PI,0] so the correction
@@ -159,7 +136,7 @@ int ESC_4=7;
 int ESC_MIN=1000;
 int ESC_MAX=2000;
 
-volatile bool mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
+volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmp_data_ready() {
     mpu_interrupt = true;
 }
@@ -195,11 +172,6 @@ void setup(){
     rc_init();
     pid_init();
 
-	/* mpu_enter = mpu_leave = micros(); */
-	/* serial_enter = serial_leave = micros(); */
-	/* loop_enter = loop_leave = micros(); */
-	/* pid_enter = pid_leave = micros(); */
-	/* interpolate_enter = interpolate_leave = micros(); */
     ApplicationMonitor.Dump(Serial);
     ApplicationMonitor.EnableWatchdog(Watchdog::CApplicationMonitor::Timeout_500ms);
 }
@@ -253,20 +225,27 @@ void loop(){
     ApplicationMonitor.IAmAlive();
 }
 
+
+void desired_yaw_update(){
+    if(!desired_yaw_got){
+        int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
+
+        while(num_samples_for_yaw_average_copy>0){
+            ypr_update();
+            desired_yaw=desired_yaw*(1-yaw_average_retain)+yaw_average_retain*int_angle[0];
+            num_samples_for_yaw_average_copy--;
+        }
+
+        desired_angle[0]=desired_yaw;
+        desired_yaw_got=true;
+    }
+}
+
 void pid_init(){
     unsigned long yaw_tune_start=millis();
     while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
         ypr_update();//we could have used delay but then we could have gotten fifo overflow or stale values
 
-    int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
-
-    while(num_samples_for_yaw_average_copy>0){
-        ypr_update();
-        desired_yaw=desired_yaw*(1-YAW_AVERAGE_RETAIN)+YAW_AVERAGE_RETAIN*int_angle[0];
-        num_samples_for_yaw_average_copy--;
-    }
-
-    desired_angle[0]=desired_yaw;
 }
 
 
@@ -382,9 +361,9 @@ void esc_init(){
     m4.attach(ESC_4);
     delay(100);
     stop_motors();
-    enable_pitch=false;
+    /* enable_pitch=false; */
     enable_roll=true;
-    /* enable_pitch=true; */
+    enable_pitch=true;
     /* enable_roll=false; */
 }
 
@@ -424,7 +403,6 @@ void ypr_update(){
 
         // get current FIFO count
         fifo_count = mpu.getFIFOCount();
-        /* loop_leave=fifo_count; */
 
         // check for overflow (this should never happen unless our code is too inefficient)
         if ((mpu_int_status & 0x10) || fifo_count == 1024) {
@@ -438,10 +416,6 @@ void ypr_update(){
             // wait for correct available data length, should be a VERY short wait
 
             if (fifo_count >= packet_size) {
-
-                // fifo_count = mpu.getFIFOCount();
-
-                q_past = q;
 
                 // read a packet from FIFO
                 mpu.getFIFOBytes(fifo_buffer, packet_size);
@@ -462,15 +436,15 @@ void ypr_update(){
     }
 
     mpu.getRotation(&gx,&gy,&gz);
-    gyro_int_raw[0]=gz*GYRO_RATIO+gyro_int_offset[0];
+    gyro_int_raw[0]=gz+gyro_int_offset[0];
     // x and y are reversed to match pitch and roll.
     // pitch is about y axis and roll about x axis
-    gyro_int_raw[1]=gy*GYRO_RATIO+gyro_int_offset[1];
-    gyro_int_raw[2]=gx*GYRO_RATIO+gyro_int_offset[2];
+    gyro_int_raw[1]=gy+gyro_int_offset[1];
+    gyro_int_raw[2]=gx+gyro_int_offset[2];
 
-    int_rate[0]=int_rate[0]*(1-gyro_retain[0])+gyro_retain[0]*gyro_int_raw[0];
-    int_rate[1]=int_rate[1]*(1-gyro_retain[1])+gyro_retain[1]*gyro_int_raw[1];
-    int_rate[2]=int_rate[2]*(1-gyro_retain[2])+gyro_retain[2]*gyro_int_raw[2];
+    int_rate[0]=int_rate[0]*(1-gyro_retain)+gyro_retain*gyro_int_raw[0];
+    int_rate[1]=int_rate[1]*(1-gyro_retain)+gyro_retain*gyro_int_raw[1];
+    int_rate[2]=int_rate[2]*(1-gyro_retain)+gyro_retain*gyro_int_raw[2];
 
     if(ypr[0]<0)
         ypr[0]=2*pi+ypr[0];//converted from [0,PI][-PI,0] to [0,2*PI]
@@ -547,14 +521,12 @@ inline void pid_update(){
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
-    rate_pid_result[0]=angle_pid_result[0];//not using rate pid for yaw axis
+    rate_pid_result[0]=-angle_pid_result[0];//not using rate pid for yaw axis
 }
 
 
 inline void esc_update()
 {
-	motor_enter = micros();
-    
     //The output of second pid is according to desired_rate-cur_rate i.e its proportional
     //to what extra rate must be given to achieve the desired rate.
     //PID signs are according to this extra rate
@@ -592,9 +564,6 @@ inline void esc_update()
 		m4.writeMicroseconds(1000);
 		m2.writeMicroseconds(1000);
 	}
-
-	motor_ratio = 0.5*motor_ratio + 0.5*(micros() - motor_enter)/(micros() - motor_leave);
-	motor_leave = micros();
 
 }
 
@@ -636,10 +605,10 @@ void rc_update(){
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
 
-        ch1=ch1_old*(1-CH_RETAIN)+CH_RETAIN*ch1;
-        ch2=ch2_old*(1-CH_RETAIN)+CH_RETAIN*ch2;
-        ch3=ch3_old*(1-CH_RETAIN)+CH_RETAIN*ch3;
-        ch4=ch4_old*(1-CH_RETAIN)+CH_RETAIN*ch4;
+        ch1=ch1_old*(1-ch_angle_retain)+ch_angle_retain*ch1;
+        ch2=ch2_old*(1-ch_angle_retain)+ch_angle_retain*ch2;
+        ch3=ch3_old*(1-ch_throttle_retain)+ch_throttle_retain*ch3;
+        ch4=ch4_old*(1-ch_angle_retain)+ch_angle_retain*ch4;
 
         ch1_old=ch1;
         ch2_old=ch2;
@@ -680,12 +649,11 @@ void rc_update(){
                 rate_i_term[0]=0;
                 rate_i_term[1]=0;
                 rate_i_term[2]=0;
-                base_speed=esc_problem_threashold;
-                enable_motors=true;
+                desired_yaw_update();
             }else{
+                desired_yaw_got=false;
                 enable_motors=true;
                 take_down_count=0;
-                take_off_count=0;
                 base_speed=ch3;
                 take_down_start=millis();
             }
@@ -814,6 +782,14 @@ inline void check_serial(){
                 angle_i_term[0]=0;
                 rate_i_term[0]=0;
                 /* Serial.println(angle_ki[0]); */
+			}else if(in_key == "car"){
+                ch_angle_retain=val;
+			}else if(in_key == "ctr"){
+                ch_throttle_retain=val;
+			}else if(in_key == "yar"){
+                yaw_average_retain=val;
+			}else if(in_key == "g_r"){
+                gyro_retain=val;
 			}else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
