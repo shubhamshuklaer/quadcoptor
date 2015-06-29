@@ -635,6 +635,7 @@ void rc_update(){
 
 
         if(ch6>0){
+            desired_yaw_got=false;
             if(ch5>CH5_EFFECT/2){
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
@@ -654,7 +655,6 @@ void rc_update(){
                 rate_i_term[1]=0;
                 rate_i_term[2]=0;
             }else{
-                desired_yaw_got=false;
                 enable_motors=true;
                 take_down_count=0;
                 base_speed=ch3;
@@ -670,9 +670,11 @@ void rc_update(){
             rate_i_term[1]=0;
             rate_i_term[2]=0;
             if(ch5>CH5_EFFECT/2){//down
+                desired_yaw_got=false;
             }else if(ch5<-CH5_EFFECT/2){
                 desired_yaw_update();//up
             }else{//mid
+                desired_yaw_got=false;
             }
         }
     }

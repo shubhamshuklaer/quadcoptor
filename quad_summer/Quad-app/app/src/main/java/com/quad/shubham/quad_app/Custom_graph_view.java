@@ -53,6 +53,14 @@ public class Custom_graph_view extends LinearLayout {
 
                 String prefix=action.substring(Data_logging_service.intent_filter_prefix.length());
                 if(prefix.equals(x_prefix)){
+
+                    //This is for when we press reset on arduino while the bluetooth connection is still present
+                    if(cur_x_list.size()>0 && Double.parseDouble(cur_x_list.get(cur_x_list.size()-1))>=Double.parseDouble(data)){
+                        cur_x_list.clear();
+                        for(LineGraphSeries temp_series:series_list){
+                            temp_series.resetData(new DataPoint[0]);
+                        }
+                    }
                     if(cur_x_list.size()<max_points) {
                         cur_x_list.add(data);
                     }else{
