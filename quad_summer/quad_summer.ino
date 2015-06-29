@@ -471,8 +471,8 @@ void ypr_update(){
 }
 
 
-int angle_pid_constraint[3]={50,1000,1000};
-int rate_pid_constraint[3]={8,50,50};
+int angle_pid_constraint[3]={1000,1000,1000};
+int rate_pid_constraint[3]={50,50,50};
 int angle_i_constraint[3]={0,40,40};
 int rate_i_constraint[3]={0,4,4};
 int rate_i_term_calc_interval=120;
@@ -481,8 +481,8 @@ float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-float angle_kp[3] = {1.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
-float rate_kp[3]={0.0f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+float angle_kp[3] = {10.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
+float rate_kp[3]={0.0625f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 
 inline void pid_update(){
     if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
@@ -525,7 +525,7 @@ inline void pid_update(){
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
-    rate_pid_result[0]=-angle_pid_result[0];//not using rate pid for yaw axis
+    /* rate_pid_result[0]=-angle_pid_result[0];//not using rate pid for yaw axis */
 }
 
 
@@ -538,12 +538,12 @@ inline void esc_update()
     //if extra rate is +ve which all speeds should gain from it and which all will loose from it
 
 	// based on pitch
-    m1_speed = base_speed + rate_pid_result[0] + rate_pid_result[1];
-	m3_speed = base_speed + rate_pid_result[0] - rate_pid_result[1];
+    m1_speed = base_speed - rate_pid_result[0] + rate_pid_result[1];
+	m3_speed = base_speed - rate_pid_result[0] - rate_pid_result[1];
 
 	// based on roll
-	m2_speed = base_speed - rate_pid_result[0] + rate_pid_result[2];
-	m4_speed = base_speed - rate_pid_result[0] - rate_pid_result[2];
+	m2_speed = base_speed + rate_pid_result[0] + rate_pid_result[2];
+	m4_speed = base_speed + rate_pid_result[0] - rate_pid_result[2];
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
