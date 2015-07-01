@@ -214,7 +214,7 @@ public class Custom_graph_view extends LinearLayout {
                 if (!hasFocus) {
                     int max_y = try_parse_int(((EditText) v).getText().toString(), 0);
                     graph_view.getViewport().setMaxY(max_y);
-                    graph_view.onDataChanged(false,false);
+                    graph_view.onDataChanged(false, false);
                     Data_store.set_attribute(context, Data_store.USER_SETTING_PREFIX + graph_name + ":y_max", Integer.toString(max_y));
                 }
             }
@@ -269,11 +269,21 @@ public class Custom_graph_view extends LinearLayout {
             check_box_layout.addView(temp_check_box);
         }
 
-        register_receiver();
-
         this.addView(top_layout,new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY));
         this.addView(graph_view, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.FILL));
         this.addView(check_box_layout, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT, Gravity.NO_GRAVITY));
+
+        this.addOnAttachStateChangeListener(new OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                register_receiver();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                unregister_receiver();
+            }
+        });
     }
 
     public void register_receiver(){
@@ -301,5 +311,17 @@ public class Custom_graph_view extends LinearLayout {
         }catch (NumberFormatException e){
             return default_val;
         }
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        register_receiver();
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        unregister_receiver();
     }
 }

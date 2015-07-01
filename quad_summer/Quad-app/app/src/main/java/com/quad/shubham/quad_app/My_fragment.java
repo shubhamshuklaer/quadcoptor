@@ -33,7 +33,6 @@ public class My_fragment extends Fragment {
     int num_columns;
     int num_rows;
     final int margin=10;
-    ArrayList<Custom_graph_view> custom_graph_views;
 
     public static My_fragment newInstance(int _position){
         My_fragment fragment=new My_fragment();
@@ -47,7 +46,6 @@ public class My_fragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         position=getArguments().getInt("position");
-        custom_graph_views=new ArrayList<Custom_graph_view>();
     }
 
     @Nullable
@@ -128,8 +126,6 @@ public class My_fragment extends Fragment {
 
                                 Custom_graph_view custom_graph_view=new Custom_graph_view(parent_activity,temp_series_list,temp_prefix_list,graph_name,x_prefix);
 
-                                custom_graph_views.add(custom_graph_view);
-
                                 layout.addView(custom_graph_view, element_layout_params);
 
                             }else if("slider".equals(temp_element.getNodeName())){
@@ -144,9 +140,6 @@ public class My_fragment extends Fragment {
                             }
                         }
                     }
-
-                    for(int i=0;i<custom_graph_views.size();i++)
-                        custom_graph_views.get(i).register_receiver();
                 }
             }
         });
@@ -157,20 +150,6 @@ public class My_fragment extends Fragment {
         layout.setFocusable(true);
 
         return layout;
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        for(int i=0;i<custom_graph_views.size();i++)
-            custom_graph_views.get(i).unregister_receiver();
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        for(int i=0;i<custom_graph_views.size();i++)
-            custom_graph_views.get(i).register_receiver();
     }
 
     public static int try_parse_hex_int(String str){

@@ -1,12 +1,16 @@
 package com.quad.shubham.quad_app;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
@@ -27,7 +31,7 @@ public class My_slider extends LinearLayout {
     public enum Direction{HORIZONTAL,VERTICAL};
     SeekBar seek_bar;
     EditText min_text, max_text, prec_text,cur_text;
-    TextView min_label,max_label,cur_label,name_label, prec_label;
+    TextView min_label,max_label,cur_label,name_label, prec_label,act_text;
     protected LayoutParams seek_bar_params;
     OnFocusChangeListener min_max_focus_change_listner, cur_text_focus_change_listner,prec_text_focus_change_listner;
     SeekBar.OnSeekBarChangeListener seek_bar_change_listner;
@@ -37,26 +41,45 @@ public class My_slider extends LinearLayout {
     String command;
     ServiceConnection conn;
     private final String replace_str="%";
-    String value_to_send;
     final int margin=10;
     long send_interval=500;//in ms;
     boolean send_now=true;
     final int min_text_id=19,max_text_id=21;
     final int max_prec=10;
     final int disconnected_color=Color.CYAN;
-    final int connected_color=Color.WHITE;
+    final int default_color =Color.WHITE;
+    final int act_val_mismatch_color =Color.RED;
 
-    LinearLayout max_layout,min_layout,cur_layout,prec_layout;
+    LinearLayout max_layout,min_layout,cur_layout,prec_layout,act_layout;
+    final String garbage="Err";
 
     Runnable send_command_runnable =new Runnable() {
         @Override
         public void run() {
+            String value_to_send=cur_text.getText().toString();
             if (my_binder != null) {
+                String act_val=act_text.getText().toString();
+                if(!act_val.equals(value_to_send))
+                    My_slider.this.setBackgroundColor(act_val_mismatch_color);
                 my_binder.send_data(command.replace(replace_str, value_to_send));
             }
             //delayed update cur sharedPreference also
             update_tuner_data(parameter_name + "^cur", value_to_send);
             send_now=true;
+        }
+    };
+
+    BroadcastReceiver receiver=new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String data=intent.getStringExtra("data");
+            int prec_val= My_slider.try_parse_int(prec_text.getText().toString(), 0);
+            act_text.setText(fix_decimal(Float.parseFloat(data),prec_val));
+            if(act_text.getText().toString().equals(cur_text.getText().toString()))
+                My_slider.this.setBackgroundColor(default_color);
+            else
+                My_slider.this.setBackgroundColor(act_val_mismatch_color);
+
         }
     };
 
@@ -74,6 +97,7 @@ public class My_slider extends LinearLayout {
         new_slider.parameter_name=_parameter_name;
 
         new_slider.initialize_components(dir);
+
         new_slider.set_component_vals();
         new_slider.setup_listners();
         new_slider.setup_layout();
@@ -98,7 +122,6 @@ public class My_slider extends LinearLayout {
     }
 
     public void send_command() {
-        value_to_send=cur_text.getText().toString();
         if(send_now) {
             send_now=false;
             this.postDelayed(send_command_runnable, send_interval);
@@ -117,7 +140,7 @@ public class My_slider extends LinearLayout {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
                     my_binder = (My_binder) service;
-                    My_slider.this.setBackgroundColor(connected_color);
+                    My_slider.this.setBackgroundColor(default_color);
                 }
 
                 @Override
@@ -127,8 +150,13 @@ public class My_slider extends LinearLayout {
                 }
             };
         }
-        this.setBackgroundColor(disconnected_color);
-        this.parent_context.bindService(new Intent(this.parent_context, Data_logging_service.class), conn, Context.BIND_DEBUG_UNBIND);
+        setBackgroundColor(disconnected_color);
+        parent_context.bindService(new Intent(this.parent_context, Data_logging_service.class), conn, Context.BIND_DEBUG_UNBIND);
+
+        IntentFilter filter=new IntentFilter(Data_logging_service.intent_filter_prefix+command);
+        LocalBroadcastManager.getInstance(parent_context).registerReceiver(receiver, filter);
+
+        send_command();
     }
 
     @Override
@@ -136,6 +164,7 @@ public class My_slider extends LinearLayout {
         super.onDetachedFromWindow();
         this.parent_context.unbindService(conn);
         conn=null;
+        LocalBroadcastManager.getInstance(parent_context).unregisterReceiver(receiver);
     }
 
     public void setup_listners(){
@@ -321,6 +350,7 @@ public class My_slider extends LinearLayout {
         max_text.setId(max_text_id);
         cur_text =new EditText(parent_context);
         prec_text=new EditText(parent_context);
+        act_text=new TextView(parent_context);
         min_label=new TextView(parent_context);
         max_label=new TextView(parent_context);
         cur_label=new TextView(parent_context);
@@ -331,6 +361,7 @@ public class My_slider extends LinearLayout {
         min_layout=new LinearLayout(parent_context);
         cur_layout=new LinearLayout(parent_context);
         prec_layout=new LinearLayout(parent_context);
+        act_layout=new LinearLayout(parent_context);
 
 
         max_text.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -345,6 +376,7 @@ public class My_slider extends LinearLayout {
         cur_label.setText("cur");
         name_label.setText(parameter_name);
         prec_label.setText("Prec");
+        act_text.setText(garbage);
 
 
         float min=Float.parseFloat(Data_store.get_attribute(parent_context, parameter_name + "^min", "0"));
@@ -355,7 +387,6 @@ public class My_slider extends LinearLayout {
         min_text.setText(fix_decimal(min,prec));
         max_text.setText(fix_decimal(max, prec));
         cur_text.setText(fix_decimal(cur, prec));
-        send_command();
         prec_text.setText(Integer.toString(prec));
         // no need to call the listner as it will again update cur_text
         // Also seek_bar has discrete values so if it sets cur_text then its
@@ -379,6 +410,9 @@ public class My_slider extends LinearLayout {
 
         prec_layout.addView(prec_label);
         prec_layout.addView(prec_text);
+
+
+        act_layout.addView(act_text);
     }
 
     public void setup_layout(){
@@ -399,6 +433,7 @@ public class My_slider extends LinearLayout {
         addView(seek_bar, seek_bar_params);
         addView(cur_layout, temp_layout_params);
         addView(prec_layout, temp_layout_params);
+        addView(act_layout,temp_layout_params);
 
         LayoutParams full_layout_params=new LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT);
         full_layout_params.leftMargin=margin;
@@ -416,5 +451,6 @@ public class My_slider extends LinearLayout {
         formatter.setGroupingUsed(false);
         return formatter.format(val);
     }
+
 }
 

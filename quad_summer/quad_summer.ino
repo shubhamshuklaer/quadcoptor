@@ -692,15 +692,8 @@ inline void check_serial(){
 			in_key = in_str;
 			in_str = "";
 		}else if(ch == ';'){
+            boolean wrong_command=false;
 			in_value = in_str;
-			// print the incoming string
-			serial_send += "Key: ";
-			serial_send += in_key;
-			serial_send += "\t\t";
-			serial_send += "Value: ";
-			serial_send += in_value;
-			Serial.println(serial_send);//to terminal
-			serial_send = "";
 
 			// Convert the string to an integer
 			float val = in_value.toFloat();
@@ -798,6 +791,13 @@ inline void check_serial(){
 			}else if(in_key == "g_r"){
                 gyro_retain=val;
 			}else{
+                wrong_command=true;
+            }
+
+            if(!wrong_command){
+                Serial1.println(in_key+"=%; "+in_value);
+                Serial.println(in_key+"=%; "+in_value);
+            }else{
 				serial_send += "Error with the input ";
 				serial_send += in_key;
                 //It will print on terminal

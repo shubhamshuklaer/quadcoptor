@@ -181,14 +181,17 @@ public class Data_logging_service extends IntentService{
                     if (read_byte == new_line_ascii) {//println does "\r\n"
                         String data_line = new String(data, 0, buffer_pos, "UTF-8");//this will give us till \r
                         data_line = data_line.trim().replaceAll("\\s+", " ");//Will trim and convert all multiple spaces to single
-                        //The trim function also removes the \n or \r characters from the ends in addition to spaces at ends
-                        receive_data_log_file_stream.write((data_line + "\n").getBytes());
 
-                        if(data_line.matches("^[a-zA-Z0-9]+\\s-?[0-9]+$")) {
+                        //\S+ represent any string with no whitespace chars
+                        if(data_line.matches("^\\S++\\s-?[0-9]+(\\.[0-9]+)?$")) {
+                            //The trim function also removes the \n or \r characters from the ends in addition to spaces at ends
+                            receive_data_log_file_stream.write((data_line + "\n").getBytes());
                             String[] seperated = data_line.split(" ", 2);// Data line will be of format "prefix int int\n"
                             Intent intent = new Intent(Data_logging_service.intent_filter_prefix + seperated[0]);
                             intent.putExtra("data", seperated[1]);
                             LocalBroadcastManager.getInstance(Data_logging_service.this.getApplicationContext()).sendBroadcast(intent);
+                        }else{
+                            receive_data_log_file_stream.write(("Wrong Format: "+data_line+"\n").getBytes());
                         }
                         buffer_pos = 0;
                     } else {
