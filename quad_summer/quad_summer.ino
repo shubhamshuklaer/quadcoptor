@@ -74,18 +74,19 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-int CH1_EFFECT=50;
-int CH2_EFFECT=50;
+float CH1_EFFECT=0.39f;
+float CH2_EFFECT=0.39f;
+float CH4_EFFECT=0.39f;
+
 int CH3_MIN_EFFECT=1400;
 int CH3_MAX_EFFECT=1700;
-int CH4_EFFECT=50;
 const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
 int take_down_count=0;
 unsigned long take_down_start=0;
-const int take_down_cutoff=1500;
+const int take_down_cutoff=1400;
 const int take_down_gradient=14;
 const int take_down_diff=20;
 
@@ -612,10 +613,10 @@ void rc_update(){
         ch5=constrain(ch5,CH5_MIN,CH5_MAX);
         ch6=constrain(ch6,CH6_MIN,CH6_MAX);
 
-        ch1=map(ch1,CH1_MIN,CH1_MAX,-CH1_EFFECT,CH1_EFFECT);
-        ch2=map(ch2,CH2_MIN,CH2_MAX,-CH2_EFFECT,CH2_EFFECT);
+        ch1=map(ch1,CH1_MIN,CH1_MAX,-CH1_EFFECT*YPR_RATIO,CH1_EFFECT*YPR_RATIO);
+        ch2=map(ch2,CH2_MIN,CH2_MAX,-CH2_EFFECT*YPR_RATIO,CH2_EFFECT*YPR_RATIO);
         ch3=map(ch3,CH3_MIN,CH3_MAX,CH3_MIN_EFFECT,CH3_MAX_EFFECT);
-        ch4=map(ch4,CH4_MIN,CH4_MAX,-CH4_EFFECT,CH4_EFFECT);
+        ch4=map(ch4,CH4_MIN,CH4_MAX,-CH4_EFFECT*YPR_RATIO,CH4_EFFECT*YPR_RATIO);
         ch5=map(ch5,CH5_MIN,CH5_MAX,-CH5_EFFECT,CH5_EFFECT);
         ch6=map(ch6,CH6_MIN,CH6_MAX,-CH6_EFFECT,CH6_EFFECT);
 
