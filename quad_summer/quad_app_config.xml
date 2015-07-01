@@ -24,10 +24,15 @@
             <series name="rate pid yaw" color="ff000000" prefix="ry"></series>
             <series name="rate pid pitch" color="ff00FFFF" prefix="rp"></series>
             <series name="rate pid roll" color="ff008000" prefix="rr"></series>
-
+        </graph>
+    </tab>
+    <tab name="motor speeds" num_cols="1" num_rows="1">
+        <graph name="motor speeds" start_col="0" start_row="0" num_cols="1" num_rows="1" x_prefix="cm">
             <series name="base speed" color="ff00008B" prefix="bs"></series>
             <series name="m1 speed" color="ffFF1493" prefix="m1"></series>
             <series name="m2 speed" color="ffFFD700" prefix="m2"></series>
+            <series name="m3 speed" color="ff000000" prefix="m3"></series>
+            <series name="m4 speed" color="ff00FFFF" prefix="m4"></series>
         </graph>
     </tab>
     <tab name="PR constants" num_cols="7" num_rows="1">
@@ -52,12 +57,6 @@
         <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="r_c" command="r_c=%;"></slider>
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_c" command="y_a_c=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_c" command="y_r_c=%;"></slider>
-    </tab>
-    <tab name="I constraints" num_cols="4" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_i_c" command="a_i_c=%;"></slider>
-        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="r_i_c" command="r_i_c=%;"></slider>
-        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_i_c" command="y_a_i_c=%;"></slider>
-        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_i_c" command="y_r_i_c=%;"></slider>
     </tab>
     <tab name="RF effects" num_cols="5" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="pitch_effect" command="pe=%;"></slider>

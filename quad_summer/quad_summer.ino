@@ -182,16 +182,20 @@ char buf[200];
 void loop(){
     unsigned long loop_start=micros();
 
-    if(count_serial ==480){
+    if(count_serial ==560){
         count_serial = 0;
-        sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
+        sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
+    }else if(count_serial ==480){
+        sprintf(buf,"m3 %d\r\nm4 %d\r\n",m3_speed,m4_speed);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
     }else if(count_serial ==400){
-        sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
+        sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==320){
-        sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
+        sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial==240){
@@ -465,8 +469,6 @@ void ypr_update(){
 
 int angle_pid_constraint[3]={1000,1000,1000};
 int rate_pid_constraint[3]={50,50,50};
-int angle_i_constraint[3]={0,40,40};
-int rate_i_constraint[3]={0,4,4};
 int rate_i_term_calc_interval=120;
 int angle_i_term_calc_interval=120;
 float angle_i_term[3]={0,0,0};
@@ -502,10 +504,6 @@ inline void pid_update(){
         prev_angle[1]=int_angle[1];
         prev_angle[2]=int_angle[2];
 
-        angle_i_term[0]=constrain(angle_i_term[0],-angle_i_constraint[0],angle_i_constraint[0]);
-        angle_i_term[1]=constrain(angle_i_term[1],-angle_i_constraint[1],angle_i_constraint[1]);
-        angle_i_term[2]=constrain(angle_i_term[2],-angle_i_constraint[2],angle_i_constraint[2]);
-
         angle_i_prev_calc_time=millis();
     }
 
@@ -530,10 +528,6 @@ inline void pid_update(){
         prev_rate[1]=int_rate[1];
         prev_rate[2]=int_rate[2];
 
-        rate_i_term[0]=constrain(rate_i_term[0],-rate_i_constraint[0],rate_i_constraint[0]);
-        rate_i_term[1]=constrain(rate_i_term[1],-rate_i_constraint[1],rate_i_constraint[1]);
-        rate_i_term[2]=constrain(rate_i_term[2],-rate_i_constraint[2],rate_i_constraint[2]);
-
         rate_i_prev_calc_time=millis();
     }
 
@@ -545,7 +539,6 @@ inline void pid_update(){
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
-    /* rate_pid_result[0]=-angle_pid_result[0];//not using rate pid for yaw axis */
 }
 
 
@@ -726,14 +719,6 @@ inline void check_serial(){
                 rate_pid_constraint[1]=rate_pid_constraint[2]=val;
             }else if(in_key=="y_r_c"){
                 rate_pid_constraint[0]=val;
-            }else if(in_key=="a_i_c"){
-                angle_i_constraint[1]=angle_i_constraint[2]=val;
-            }else if(in_key=="y_a_i_c"){
-                angle_i_constraint[0]=val;
-            }else if(in_key=="r_i_c"){
-                rate_i_constraint[1]=rate_i_constraint[2]=val;
-            }else if(in_key=="y_r_i_c"){
-                rate_i_constraint[0]=val;
             }else if(in_key=="ar_m"){
                 angle_i_term_calc_interval=val;
                 rate_i_term_calc_interval=val;
