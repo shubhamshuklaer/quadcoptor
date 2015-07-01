@@ -243,14 +243,6 @@ void desired_yaw_update(){
     }
 }
 
-void pid_init(){
-    unsigned long yaw_tune_start=millis();
-    while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
-        ypr_update();//we could have used delay but then we could have gotten fifo overflow or stale values
-
-    desired_yaw_update();
-
-}
 
 
 void ch1_change(){
@@ -483,12 +475,32 @@ int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
 float angle_kp[3] = {10.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
 float rate_kp[3]={0.0625f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+int prev_angle[3]={0,0,0};
+int prev_rate[3]={0,0,0};
+int angle_d_term[3]={0,0,0};
+int rate_d_term[3]={0,0,0};
+
+void pid_init(){
+    unsigned long yaw_tune_start=millis();
+    while(millis()-yaw_tune_start<TIME_TILL_PROPER_YAW)
+        ypr_update();//we could have used delay but then we could have gotten fifo overflow or stale values
+    desired_yaw_update();
+    prev_angle[0]=desired_yaw;
+}
 
 inline void pid_update(){
     if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
         angle_i_term[0]+=-angle_ki[0]*(desired_angle[0]-int_angle[0]);
         angle_i_term[1]+=angle_ki[1]*(desired_angle[1]-int_angle[1]);
         angle_i_term[2]+=-angle_ki[2]*(desired_angle[2]-int_angle[2]);
+
+        angle_d_term[0]=-angle_kd[0]*(int_angle[0]-prev_angle[0]);
+        angle_d_term[1]=angle_kd[1]*(int_angle[1]-prev_angle[1]);
+        angle_d_term[2]=-angle_kd[2]*(int_angle[2]-prev_angle[2]);
+
+        prev_angle[0]=int_angle[0];
+        prev_angle[1]=int_angle[1];
+        prev_angle[2]=int_angle[2];
 
         angle_i_term[0]=constrain(angle_i_term[0],-angle_i_constraint[0],angle_i_constraint[0]);
         angle_i_term[1]=constrain(angle_i_term[1],-angle_i_constraint[1],angle_i_constraint[1]);
@@ -497,9 +509,9 @@ inline void pid_update(){
         angle_i_prev_calc_time=millis();
     }
 
-    angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0];
-    angle_pid_result[1]=angle_kp[1]*(desired_angle[1]-int_angle[1]) + angle_i_term[1];
-    angle_pid_result[2]=-angle_kp[2]*(desired_angle[2]-int_angle[2]) + angle_i_term[2];
+    angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0] + angle_d_term[0];
+    angle_pid_result[1]=angle_kp[1]*(desired_angle[1]-int_angle[1]) + angle_i_term[1] + angle_d_term[1];
+    angle_pid_result[2]=-angle_kp[2]*(desired_angle[2]-int_angle[2]) + angle_i_term[2] + angle_d_term[2];
 
     angle_pid_result[0]=constrain(angle_pid_result[0],-angle_pid_constraint[0],angle_pid_constraint[0]);
     angle_pid_result[1]=constrain(angle_pid_result[1],-angle_pid_constraint[1],angle_pid_constraint[1]);
@@ -510,6 +522,14 @@ inline void pid_update(){
         rate_i_term[1]+=rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
         rate_i_term[2]+=rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
 
+        rate_d_term[0]=rate_kd[0]*(int_rate[0]-prev_rate[0]);
+        rate_d_term[1]=rate_kd[1]*(int_rate[1]-prev_rate[1]);
+        rate_d_term[2]=rate_kd[2]*(int_rate[2]-prev_rate[2]);
+
+        prev_rate[0]=int_rate[0];
+        prev_rate[1]=int_rate[1];
+        prev_rate[2]=int_rate[2];
+
         rate_i_term[0]=constrain(rate_i_term[0],-rate_i_constraint[0],rate_i_constraint[0]);
         rate_i_term[1]=constrain(rate_i_term[1],-rate_i_constraint[1],rate_i_constraint[1]);
         rate_i_term[2]=constrain(rate_i_term[2],-rate_i_constraint[2],rate_i_constraint[2]);
@@ -517,9 +537,9 @@ inline void pid_update(){
         rate_i_prev_calc_time=millis();
     }
 
-    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0];
-    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1];
-    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2];
+    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0] + rate_d_term[0];
+    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1] + rate_d_term[1];
+    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2] + rate_d_term[2];
 
     rate_pid_result[0]=constrain(rate_pid_result[0],-rate_pid_constraint[0],rate_pid_constraint[0]);
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
