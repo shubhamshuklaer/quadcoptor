@@ -318,6 +318,7 @@ public class My_slider extends LinearLayout {
                     max_text.setText(fix_decimal(max_val, prec_val));
                     min_text.setText(fix_decimal(min_val, prec_val));
                     cur_text.setText(fix_decimal(cur_val, prec_val));
+                    send_command();
 
                     update_tuner_data(parameter_name + "^prec", Integer.toString(prec_val));
                     update_tuner_data(parameter_name + "^max", fix_decimal(max_val, prec_val));

@@ -86,7 +86,7 @@ const int CH3_MIN_CUTOFF=50;
 
 int take_down_count=0;
 unsigned long take_down_start=0;
-const int take_down_cutoff=1400;
+const int take_down_cutoff=1300;
 const int take_down_gradient=14;
 const int take_down_diff=20;
 
@@ -582,6 +582,24 @@ inline void esc_update()
 
 }
 
+void clear_i_terms(int which){
+    if(which==0){//Clear all
+        angle_i_term[0]=0;
+        angle_i_term[1]=0;
+        angle_i_term[2]=0;
+        rate_i_term[0]=0;
+        rate_i_term[1]=0;
+        rate_i_term[2]=0;
+    }else if(which==1){//clear pitch/roll
+        angle_i_term[1]=0;
+        angle_i_term[2]=0;
+        rate_i_term[1]=0;
+        rate_i_term[2]=0;
+    }else if(which==2){//clear yaw
+        angle_i_term[0]=0;
+        rate_i_term[0]=0;
+    }
+}
 
 void rc_update(){
     boolean receiver_lost=millis()-prev_ch_update_copy>receiver_lost_threashold;
@@ -659,12 +677,7 @@ void rc_update(){
                 }
             }else if(ch5<-CH5_EFFECT/2){
                 //for startup
-                angle_i_term[0]=0;
-                angle_i_term[1]=0;
-                angle_i_term[2]=0;
-                rate_i_term[0]=0;
-                rate_i_term[1]=0;
-                rate_i_term[2]=0;
+                clear_i_terms(0);
             }else{
                 enable_motors=true;
                 take_down_count=0;
@@ -674,12 +687,7 @@ void rc_update(){
         }else{
             enable_motors=false;
             //SO the error do not accumulate while sitting
-            angle_i_term[0]=0;
-            angle_i_term[1]=0;
-            angle_i_term[2]=0;
-            rate_i_term[0]=0;
-            rate_i_term[1]=0;
-            rate_i_term[2]=0;
+            clear_i_terms(0);
             if(ch5>CH5_EFFECT/2){//down
                 desired_yaw_got=false;
             }else if(ch5<-CH5_EFFECT/2){
@@ -720,8 +728,9 @@ inline void check_serial(){
                 rate_pid_constraint[1]=rate_pid_constraint[2]=val;
             }else if(in_key=="y_r_c"){
                 rate_pid_constraint[0]=val;
-            }else if(in_key=="ar_m"){
+            }else if(in_key=="a_m"){
                 angle_i_term_calc_interval=val;
+            }else if(in_key=="r_m"){
                 rate_i_term_calc_interval=val;
             }else if(in_key=="pe"){
                 CH2_EFFECT=val;
@@ -748,10 +757,7 @@ inline void check_serial(){
                 rate_ki[1] = rate_ki[2] = val;
                 //Should reset the previously accumulated error
                 //cause they are calculated with a differnet ki
-                angle_i_term[1]=0;
-                angle_i_term[2]=0;
-                rate_i_term[1]=0;
-                rate_i_term[2]=0;
+                clear_i_terms(1);
                 /* Serial.println(rate_ki[1]); */
             }else if(in_key == "y_r_kd"){
                 rate_kd[0]= val;
@@ -761,8 +767,7 @@ inline void check_serial(){
                 /* Serial.println(rate_kp[0]); */
 			}else if(in_key == "y_r_ki"){
                 rate_ki[0] = val;
-                angle_i_term[0]=0;
-                rate_i_term[0]=0;
+                clear_i_terms(2);
                 /* Serial.println(rate_ki[0]); */
             }else if(in_key == "a_kd"){
                 angle_kd[1] = angle_kd[2] = val;
@@ -772,10 +777,7 @@ inline void check_serial(){
                 /* Serial.println(angle_kp[1]); */
 			}else if(in_key == "a_ki"){
                 angle_ki[1] = angle_ki[2] = val;
-                angle_i_term[1]=0;
-                angle_i_term[2]=0;
-                rate_i_term[1]=0;
-                rate_i_term[2]=0;
+                clear_i_terms(1);
                 /* Serial.println(angle_ki[1]); */
             }else if(in_key == "y_a_kd"){
                 angle_kd[0]= val;
@@ -785,8 +787,7 @@ inline void check_serial(){
                 /* Serial.println(angle_kp[0]); */
 			}else if(in_key == "y_a_ki"){
                 angle_ki[0] = val;
-                angle_i_term[0]=0;
-                rate_i_term[0]=0;
+                clear_i_terms(2);
                 /* Serial.println(angle_ki[0]); */
 			}else if(in_key == "car"){
                 ch_angle_retain=val;
