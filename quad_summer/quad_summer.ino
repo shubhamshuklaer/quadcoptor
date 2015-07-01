@@ -110,10 +110,10 @@ uint8_t fifo_buffer[64]; // FIFO storage buffer
 
 int rate_ypr[3];
 float ypr[3];
-int ypr_int_offset[3]={0,-5,0};
+int ypr_int_offset[3]={0,-2,2};
 int int_angle[3];
 int int_rate[3];
-int gyro_int_offset[3]={-21,-8,8};
+int gyro_int_offset[3]={-21,-10,8};
 int gyro_int_raw[3];
 float gyro_retain=0.3;
 int16_t gx, gy, gz;
@@ -537,13 +537,10 @@ inline void esc_update()
     //Reference is +ve extra rate
     //if extra rate is +ve which all speeds should gain from it and which all will loose from it
 
-	// based on pitch
-    m1_speed = base_speed - rate_pid_result[0] + rate_pid_result[1];
-	m3_speed = base_speed - rate_pid_result[0] - rate_pid_result[1];
-
-	// based on roll
-	m2_speed = base_speed + rate_pid_result[0] + rate_pid_result[2];
-	m4_speed = base_speed + rate_pid_result[0] - rate_pid_result[2];
+    m1_speed = base_speed - rate_pid_result[0]/2 + rate_pid_result[1]/2 - rate_pid_result[2]/2;
+	m2_speed = base_speed + rate_pid_result[0]/2 + rate_pid_result[1]/2 + rate_pid_result[2]/2;
+	m3_speed = base_speed - rate_pid_result[0]/2 - rate_pid_result[1]/2 + rate_pid_result[2]/2;
+	m4_speed = base_speed + rate_pid_result[0]/2 - rate_pid_result[1]/2 - rate_pid_result[2]/2;
 	
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
