@@ -20,8 +20,11 @@ public class Test extends Activity {
         super.onCreate(savedInstanceState);
         layout=new LinearLayout(Test.this);
         edit_text=new EditText(Test.this);
+        edit_text.setHint("Text");
         pattern_text=new EditText(Test.this);
+        pattern_text.setHint("Pattern");
         btn=new Button(Test.this);
+        btn.setText("Test text with pattern");
         btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
