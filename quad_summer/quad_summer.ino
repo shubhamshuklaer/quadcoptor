@@ -74,9 +74,9 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-float CH1_EFFECT=0.39f;
-float CH2_EFFECT=0.39f;
-float CH4_EFFECT=0.39f;
+float CH1_EFFECT=0.40f;
+float CH2_EFFECT=0.40f;
+float CH4_EFFECT=0.80f;
 
 int CH3_MIN_EFFECT=1400;
 int CH3_MAX_EFFECT=1700;
@@ -87,7 +87,7 @@ const int CH3_MIN_CUTOFF=50;
 int take_down_count=0;
 unsigned long take_down_start=0;
 const int take_down_cutoff=1300;
-const int take_down_gradient=14;
+const int take_down_gradient=15;
 const int take_down_diff=20;
 
 byte sregRestore;
@@ -468,16 +468,16 @@ void ypr_update(){
 }
 
 
-int angle_pid_constraint[3]={1000,1000,1000};
-int rate_pid_constraint[3]={50,50,50};
-int rate_i_term_calc_interval=120;
-int angle_i_term_calc_interval=120;
+int angle_pid_constraint[3]={3000,3000,3000};
+int rate_pid_constraint[3]={100,100,100};
+int rate_i_term_calc_interval=200;
+int angle_i_term_calc_interval=50;
 float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-float angle_kp[3] = {10.0f, 24.0f, 24.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.0f,1.0f,1.0f};
-float rate_kp[3]={0.0625f,0.0625f,0.0625f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+float angle_kp[3] = {50.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
+float rate_kp[3]={0.03f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 int prev_angle[3]={0,0,0};
 int prev_rate[3]={0,0,0};
 int angle_d_term[3]={0,0,0};
