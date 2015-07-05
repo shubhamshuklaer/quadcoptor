@@ -468,16 +468,16 @@ void ypr_update(){
 }
 
 
-int angle_pid_constraint[3]={3000,3000,3000};
+int angle_pid_constraint[3]={4000,3000,3000};
 int rate_pid_constraint[3]={100,100,100};
-int rate_i_term_calc_interval=200;
+int rate_i_term_calc_interval=800;
 int angle_i_term_calc_interval=50;
 float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 int angle_i_prev_calc_time=0;
 int rate_i_prev_calc_time=0;
-float angle_kp[3] = {50.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
-float rate_kp[3]={0.03f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
+float angle_kp[3] = {60.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
+float rate_kp[3]={0.035f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.00001f,0.00001f};
 int prev_angle[3]={0,0,0};
 int prev_rate[3]={0,0,0};
 int angle_d_term[3]={0,0,0};
