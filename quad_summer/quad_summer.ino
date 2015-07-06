@@ -76,7 +76,7 @@ const int CH6_MIN=1000;
 
 float CH1_EFFECT=0.40f;
 float CH2_EFFECT=0.40f;
-float CH4_EFFECT=0.80f;
+float CH4_EFFECT=1.5f;
 
 int CH3_MIN_EFFECT=1400;
 int CH3_MAX_EFFECT=1700;
@@ -394,6 +394,12 @@ void rc_init(){
     enableInterrupt(CH6_PIN, ch6_change,CHANGE);
 }
 
+
+float epsilon=0.5f;
+boolean close_by(float a,float b){
+    return abs(a-b)<epsilon;
+}
+
 void ypr_update(){
 
 	// wait for MPU interrupt or extra packet(s) available
@@ -452,9 +458,9 @@ void ypr_update(){
     //this yaw is still wrong cause we are asked to maintain yaw at around 2*PI then
     //the yaw jumps from 2*Pi to 0 here
     if(yaw_prev!=-1){
-        if(yaw_prev-ypr[0]>1.5*pi)//actually difference will be close to 2*pi
+        if(close_by(yaw_prev,2*pi)&&close_by(ypr[0],0))
             num_rounds++;
-        else if(ypr[0]-yaw_prev>1.5*pi)
+        else if(close_by(yaw_prev,0)&&close_by(ypr[0],2*pi))
             num_rounds--;
     }
 
