@@ -16,10 +16,9 @@ mkdir -p output
 #using basename to get the filename from path
 prefix=$(basename $1)"_"
 matlab -nodesktop -nosplash -nodisplay -r "process_data('"$prefix"');exit;"
-rm -rf temp
 
-for file_name in output/*; do
-    #file_name will be of forrmat output/something.something
+for file_name in temp/*; do
+    #file_name will be of forrmat temp/something.something
     base_file_name=$(basename $file_name) #will get something.something
     if [[ $base_file_name =~ ^$prefix.* ]]
     then
@@ -34,5 +33,6 @@ then
     eval $merge_cmd
 fi
 
+rm -rf temp
 echo "output graphs are stored in output dir you can use pdf viewer to open"
 echo "file prefix is "$prefix

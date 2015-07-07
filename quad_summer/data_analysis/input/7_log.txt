@@ -45905,7 +45905,6 @@ m2 1013
 gy 0
 gp 0
 gr 0
-##########
 throttle_min^max : 1600
 y_a_c^cur : 120
 y_a_kp^max : 10.0
