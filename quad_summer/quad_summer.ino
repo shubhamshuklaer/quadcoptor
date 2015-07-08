@@ -573,7 +573,7 @@ int height_d_term=0;
 int height_pid_result=0;
 int prev_height=0;
 int height_pid_constraint=50;
-int height_kp=0,height_ki=0,height_kd=0;
+float height_kp=0,height_ki=0,height_kd=0;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
@@ -907,6 +907,16 @@ inline void check_serial(){
                 yaw_average_retain=val;
 			}else if(in_key == "g_r"){
                 gyro_retain=val;
+			}else if(in_key == "h_kp"){
+                height_kp=val;
+			}else if(in_key == "h_kd"){
+                height_kd=val;
+			}else if(in_key == "h_ki"){
+                height_ki=val;
+			}else if(in_key == "h_m"){
+                height_i_term_calc_interval=val;
+			}else if(in_key == "h_c"){
+                height_pid_constraint=val;
 			}else{
                 wrong_command=true;
             }
