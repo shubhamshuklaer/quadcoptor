@@ -146,6 +146,7 @@ int num_loops_for_ping_read=50;
 int num_loops_for_ping=0;
 int cur_height=0;
 int desired_height=0;
+boolean alt_hold=false;
 
 
 
@@ -204,7 +205,7 @@ void loop(){
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
     }else if(count_serial ==480){
-        sprintf(buf,"m3 %d\r\nm4 %d\r\n",m3_speed,m4_speed);
+        sprintf(buf,"m3 %d\r\nm4 %d\r\nh %d\r\n",m3_speed,m4_speed,cur_height);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial ==400){
@@ -521,12 +522,10 @@ void ping_update(){
         cur_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
-        // According to Parallax's datasheet for the PING))), there are
-        // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per
-        // second).  This gives the distance travelled by the ping, outbound
-        // and return, so we divide by 2 to get the distance of the obstacle.
-        // See: http://www.parallax.com/dl/docs/prod/acc/28015-PING-v1.3.pdf
-        cur_height=cur_height/74/2;
+        // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+        // The ping travels out and back, so to find the distance of the
+        // object we take half of the distance travelled.
+        cur_height=cur_height/29/2;//cur_height in cm
     }
 
     //we cannot read every loop we need some delay between each read
@@ -558,14 +557,23 @@ int rate_i_term_calc_interval=800;
 int angle_i_term_calc_interval=50;
 float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
-int angle_i_prev_calc_time=0;
-int rate_i_prev_calc_time=0;
+long angle_i_prev_calc_time=0;
+long rate_i_prev_calc_time=0;
 float angle_kp[3] = {60.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
 float rate_kp[3]={0.035f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 int prev_angle[3]={0,0,0};
 int prev_rate[3]={0,0,0};
 int angle_d_term[3]={0,0,0};
 int rate_d_term[3]={0,0,0};
+
+int height_i_term_calc_time=0;
+int height_i_term_calc_interval=100;
+int height_i_term=0;
+int height_d_term=0;
+int height_pid_result=0;
+int prev_height=0;
+int height_pid_constraint=50;
+int height_kp=0,height_ki=0,height_kd=0;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
@@ -624,6 +632,20 @@ inline void pid_update(){
     rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
     rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
 
+    if(alt_hold){
+        if(millis()-height_i_term_calc_time>height_i_term_calc_interval){
+            height_i_term+=height_ki*(desired_height-cur_height);
+            height_d_term=height_kd*(cur_height-prev_height);
+            prev_height=cur_height;
+            height_i_term_calc_time=millis();
+        }
+        height_pid_result=height_kp*(desired_height-cur_height)+height_i_term+height_d_term;
+        height_pid_result=constrain(height_pid_result,-height_pid_constraint,height_pid_constraint);
+    }else{
+        height_pid_result=0;
+        height_i_term=0;
+    }
+
 }
 
 
@@ -635,10 +657,10 @@ inline void esc_update()
     //Reference is +ve extra rate
     //if extra rate is +ve which all speeds should gain from it and which all will loose from it
 
-    m1_speed = base_speed - rate_pid_result[0] + rate_pid_result[1] - rate_pid_result[2];
-	m2_speed = base_speed + rate_pid_result[0] + rate_pid_result[1] + rate_pid_result[2];
-	m3_speed = base_speed - rate_pid_result[0] - rate_pid_result[1] + rate_pid_result[2];
-	m4_speed = base_speed + rate_pid_result[0] - rate_pid_result[1] - rate_pid_result[2];
+    m1_speed = base_speed + height_pid_result - rate_pid_result[0] + rate_pid_result[1] - rate_pid_result[2];
+	m2_speed = base_speed + height_pid_result + rate_pid_result[0] + rate_pid_result[1] + rate_pid_result[2];
+	m3_speed = base_speed + height_pid_result - rate_pid_result[0] - rate_pid_result[1] + rate_pid_result[2];
+	m4_speed = base_speed + height_pid_result + rate_pid_result[0] - rate_pid_result[1] - rate_pid_result[2];
 
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
@@ -746,10 +768,10 @@ void rc_update(){
         desired_angle[1]=0-ch2;
         desired_angle[2]=0-ch4;
 
-
         if(ch6>0){
             desired_yaw_got=false;
             if(ch5>CH5_EFFECT/2){
+                alt_hold=false;
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
                     if(base_speed>take_down_cutoff){
@@ -760,15 +782,19 @@ void rc_update(){
                     }
                 }
             }else if(ch5<-CH5_EFFECT/2){
-                //for startup
-                clear_i_terms(0);
+                if(!alt_hold)
+                    desired_height=cur_height;
+                alt_hold=true;
+                enable_motors=true;
             }else{
+                alt_hold=false;
                 enable_motors=true;
                 take_down_count=0;
                 base_speed=ch3;
                 take_down_start=millis();
             }
         }else{
+            alt_hold=false;
             enable_motors=false;
             //SO the error do not accumulate while sitting
             clear_i_terms(0);
