@@ -84,7 +84,6 @@ const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
-int take_down_count=0;
 unsigned long take_down_start=0;
 const int take_down_cutoff=1300;
 const int take_down_gradient=15;
@@ -573,7 +572,7 @@ int height_d_term=0;
 int height_pid_result=0;
 int prev_height=0;
 int height_pid_constraint=50;
-float height_kp=0,height_ki=0,height_kd=0;
+float height_kp=0.5f,height_ki=0,height_kd=0;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
@@ -786,12 +785,11 @@ void rc_update(){
                     desired_height=cur_height;
                 alt_hold=true;
                 enable_motors=true;
+                base_speed=ch3;
             }else{
                 alt_hold=false;
                 enable_motors=true;
-                take_down_count=0;
                 base_speed=ch3;
-                take_down_start=millis();
             }
         }else{
             alt_hold=false;
