@@ -33,7 +33,9 @@
             <series name="m2 speed" color="ffFFD700" prefix="m2"></series>
             <series name="m3 speed" color="ff000000" prefix="m3"></series>
             <series name="m4 speed" color="ff00FFFF" prefix="m4"></series>
+
             <series name="height" color="ff008000" prefix="h"></series>
+            <series name="height_pid" color="ffDEB887" prefix="h_pid"></series>
         </graph>
     </tab>
     <tab name="PR constants" num_cols="6" num_rows="1">

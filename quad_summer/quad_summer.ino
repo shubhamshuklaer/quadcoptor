@@ -146,7 +146,7 @@ int num_loops_for_ping=0;
 int cur_height=0;
 int desired_height=0;
 boolean alt_hold=false;
-
+int height_pid_result=0;
 
 
 volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
@@ -204,7 +204,7 @@ void loop(){
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
     }else if(count_serial ==480){
-        sprintf(buf,"m3 %d\r\nm4 %d\r\nh %d\r\n",m3_speed,m4_speed,cur_height);
+        sprintf(buf,"m3 %d\r\nm4 %d\r\nh %d\r\nh_pid %d\r\n",m3_speed,m4_speed,cur_height,height_pid_result);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial ==400){
@@ -521,10 +521,6 @@ void ping_update(){
         cur_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
-        // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-        // The ping travels out and back, so to find the distance of the
-        // object we take half of the distance travelled.
-        cur_height=cur_height/29/2;//cur_height in cm
     }
 
     //we cannot read every loop we need some delay between each read
@@ -569,10 +565,9 @@ int height_i_term_calc_time=0;
 int height_i_term_calc_interval=100;
 int height_i_term=0;
 int height_d_term=0;
-int height_pid_result=0;
 int prev_height=0;
 int height_pid_constraint=50;
-float height_kp=0.5f,height_ki=0,height_kd=0;
+float height_kp=0.008f,height_ki=0,height_kd=0;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
