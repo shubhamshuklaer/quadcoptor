@@ -22,7 +22,8 @@ for file_name in temp/*; do
     base_file_name=$(basename $file_name) #will get something.something
     if [[ $base_file_name =~ ^$prefix.* ]]
     then
-        merge_cmd=$merge_cmd" "$file_name
+        # %q quotes the string i.e escapes it
+        merge_cmd=$merge_cmd" "$(printf '%q' "$file_name")
     fi
 done
 
