@@ -138,6 +138,17 @@ int ESC_4=7;
 int ESC_MIN=1000;
 int ESC_MAX=2000;
 
+const int PING_PIN=53;
+volatile int ping_prev=0,ping_val=0;
+boolean height_changed=false;
+volatile boolean read_ping_pulse=false;
+int num_loops_for_ping_read=50;
+int num_loops_for_ping=0;
+int cur_height=0;
+int desired_height=0;
+
+
+
 volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
 void dmp_data_ready() {
     mpu_interrupt = true;
@@ -149,11 +160,13 @@ void esc_init();
 void rc_init();
 void pid_init();
 void reset_motor();
+void ping_init();
 
 //Loop functions
 void rc_update();
 void ypr_update();
 void check_serial();
+void ping_update();
 
 void ch1_change();
 void ch2_change();
@@ -161,6 +174,7 @@ void ch3_change();
 void ch4_change();
 void ch5_change();
 void ch6_change();
+void ping_change();
 
 void setup(){
     ApplicationMonitor.DisableWatchdog();
@@ -172,6 +186,7 @@ void setup(){
     mpu_init();
     esc_init();
     rc_init();
+    ping_init();
     pid_init();
 
     ApplicationMonitor.Dump(Serial);
@@ -226,6 +241,7 @@ void loop(){
 
     ypr_update();
     rc_update();
+    ping_update();
     pid_update();
     esc_update();
     ApplicationMonitor.IAmAlive();
@@ -270,7 +286,7 @@ void ch2_change(){
     }
 }
 void ch3_change(){
-    if(digitalRead(CH3_PIN) == HIGH){ 
+    if(digitalRead(CH3_PIN) == HIGH){
         ch3_prev = micros();
     }else{
         ch3_val=micros()-ch3_prev;
@@ -279,7 +295,7 @@ void ch3_change(){
     }
 }
 void ch4_change(){
-    if(digitalRead(CH4_PIN) == HIGH){ 
+    if(digitalRead(CH4_PIN) == HIGH){
         ch4_prev = micros();
     }else{
         ch4_val=micros()-ch4_prev;
@@ -288,7 +304,7 @@ void ch4_change(){
     }
 }
 void ch5_change(){
-    if(digitalRead(CH5_PIN) == HIGH){ 
+    if(digitalRead(CH5_PIN) == HIGH){
         ch5_prev = micros();
     }else{
         ch5_val=micros()-ch5_prev;
@@ -297,12 +313,23 @@ void ch5_change(){
     }
 }
 void ch6_change(){
-    if(digitalRead(CH6_PIN) == HIGH){ 
+    if(digitalRead(CH6_PIN) == HIGH){
         ch6_prev = micros();
     }else{
         ch6_val=micros()-ch6_prev;
         ch_changed=true;
         prev_ch_update=millis();
+    }
+}
+
+void ping_change(){
+    if(read_ping_pulse){
+        if(digitalRead(PING_PIN) == HIGH){
+            ping_prev = micros();
+        }else{
+            ping_val=micros()-ping_prev;
+            height_changed=true;
+        }
     }
 }
 
@@ -395,6 +422,9 @@ void rc_init(){
     enableInterrupt(CH6_PIN, ch6_change,CHANGE);
 }
 
+void ping_init(){
+    enableInterrupt(PING_PIN, ping_change,CHANGE);
+}
 
 float epsilon=0.2f;
 boolean close_by(float a,float b){
@@ -485,6 +515,43 @@ void ypr_update(){
 }
 
 
+void ping_update(){
+    if(height_changed){
+        sregRestore = SREG;
+        cur_height = ping_val;
+        SREG=sregRestore ;
+        height_changed=false;
+        // According to Parallax's datasheet for the PING))), there are
+        // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per
+        // second).  This gives the distance travelled by the ping, outbound
+        // and return, so we divide by 2 to get the distance of the obstacle.
+        // See: http://www.parallax.com/dl/docs/prod/acc/28015-PING-v1.3.pdf
+        cur_height=cur_height/74/2;
+    }
+
+    //we cannot read every loop we need some delay between each read
+    //see manual https://www.parallax.com/sites/default/files/downloads/28015-PING-Sensor-Product-Guide-v2.0.pdf
+    if(num_loops_for_ping==50){
+        read_ping_pulse=false;
+        // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
+        // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+        pinMode(PING_PIN, OUTPUT);
+        digitalWrite(PING_PIN, LOW);
+        delayMicroseconds(2);
+        digitalWrite(PING_PIN, HIGH);
+        delayMicroseconds(5);
+        digitalWrite(PING_PIN, LOW);
+
+        //Now get ready to read the pulse
+        pinMode(PING_PIN, INPUT);
+        read_ping_pulse=true;
+        num_loops_for_ping=0;
+    }else{
+        num_loops_for_ping++;
+    }
+}
+
+
 int angle_pid_constraint[3]={4000,3000,3000};
 int rate_pid_constraint[3]={100,100,100};
 int rate_i_term_calc_interval=800;
@@ -572,7 +639,7 @@ inline void esc_update()
 	m2_speed = base_speed + rate_pid_result[0] + rate_pid_result[1] + rate_pid_result[2];
 	m3_speed = base_speed - rate_pid_result[0] - rate_pid_result[1] + rate_pid_result[2];
 	m4_speed = base_speed + rate_pid_result[0] - rate_pid_result[1] - rate_pid_result[2];
-	
+
 	//constrain to to the pulse width limit we can give to the motor
 	m1_speed = constrain(m1_speed, min_speed, max_speed);
 	m2_speed = constrain(m2_speed, min_speed, max_speed);
@@ -588,7 +655,7 @@ inline void esc_update()
 		m1.writeMicroseconds(1000);
 		m3.writeMicroseconds(1000);
 	}
-	
+
 	if(enable_motors && enable_roll){
 		m4.writeMicroseconds(m4_speed);
 		m2.writeMicroseconds(m2_speed);
@@ -833,7 +900,7 @@ inline void check_serial(){
 }
 
 
-								/* 
+								/*
 								     up [*] -ve pitch
 
 								     M 1
@@ -854,7 +921,7 @@ down [X] +ve roll    M 2 ============||============  M 4     up [*] -ve roll
 
 
 
-                               _______\     
+                               _______\
                                       /
                                (  yaw  )     clockwise +ve
                                /______
