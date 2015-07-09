@@ -34,6 +34,5 @@ then
     eval $merge_cmd
 fi
 
-rm -rf temp
 echo "output graphs are stored in output dir you can use pdf viewer to open"
 echo "file prefix is "$prefix

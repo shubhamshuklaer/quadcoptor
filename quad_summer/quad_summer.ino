@@ -2,7 +2,7 @@
 #include <EEPROM.h>
 #include <EnableInterrupt.h>
 #include <I2Cdev.h>
-#include <MPU6050_6Axis_MotionApps20.h>
+#include <MPU9150_9Axis_MotionApps41.h>
 #include <PID_v1.h>
 #include <Servo.h>
 #include <avr/pgmspace.h>
@@ -36,7 +36,7 @@ boolean enable_motors = false,	enable_pitch = false, enable_roll = false;
 
 int count_check_serial=0,count_serial=0;
 
-MPU6050 mpu;
+MPU9150 mpu;
 // orientation/motion vars
 Quaternion q;           // [w, x, y, z]         quaternion container
 VectorFloat gravity;    // [x, y, z]            gravity vector
@@ -74,9 +74,9 @@ const int CH5_MIN=1000;
 const int CH6_MAX=2000;
 const int CH6_MIN=1000;
 
-float CH1_EFFECT=0.40f;
+float CH1_EFFECT=1.5f;
 float CH2_EFFECT=0.40f;
-float CH4_EFFECT=1.5f;
+float CH4_EFFECT=0.40f;
 
 int CH3_MIN_EFFECT=1400;
 int CH3_MAX_EFFECT=1700;
@@ -85,9 +85,8 @@ const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
 unsigned long take_down_start=0;
-const int take_down_cutoff=1300;
+const int take_down_cutoff=500;
 const int take_down_gradient=15;
-const int take_down_diff=20;
 
 byte sregRestore;
 
@@ -521,6 +520,7 @@ void ping_update(){
         cur_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
+        cur_height=cur_height*cos(ypr[1])*cos(ypr[2]);
     }
 
     //we cannot read every loop we need some delay between each read
@@ -765,12 +765,13 @@ void rc_update(){
         if(ch6>0){
             desired_yaw_got=false;
             if(ch5>CH5_EFFECT/2){
-                alt_hold=false;
+                alt_hold=true;
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
-                    if(base_speed>take_down_cutoff){
-                        base_speed--;
+                    if(cur_height>take_down_cutoff){
+                        desired_height=cur_height-1;
                     }else{
+                        alt_hold=false;
                         base_speed=ESC_MIN;
                         enable_motors=false;
                     }
