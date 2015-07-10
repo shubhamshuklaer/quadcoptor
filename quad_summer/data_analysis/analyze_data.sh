@@ -18,15 +18,17 @@ mkdir -p output
 prefix=$(basename $1)"_"
 matlab -nodesktop -nosplash -nodisplay -r "process_data('"$prefix"','"$2"');exit;"
 
-for file_name in temp/*; do
-    #file_name will be of forrmat temp/something.something
-    base_file_name=$(basename $file_name) #will get something.something
-    if [[ $base_file_name =~ ^$prefix.* ]]
+# IFS='' (or IFS=) prevents leading/trailing whitespace from being trimmed.
+# -r prevents backslash escapes from being interpreted.
+# || [[ -n $line ]] prevents the last line from being ignored if it doesn't
+# end with a \n (since read returns a non-zero exit code when it encounters EOF).
+while read -r line || [[ -n $line ]]; do
+    if [[ ! -z "$line" ]] && [[ ${line:0:1} != "#" ]]
     then
-        # %q quotes the string i.e escapes it
+        file_name="temp/"$prefix$line".pdf"
         merge_cmd=$merge_cmd" "$(printf '%q' "$file_name")
     fi
-done
+done < "$2"
 
 if [ "$merge_cmd" != "" ]
 then

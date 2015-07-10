@@ -6,7 +6,7 @@ function process_data(prefix,config_file_name)
             if numel(config_line)~=0 && not(strncmp(config_line,'#',1)) %checks for first character is it a comment
                 series = regexp(config_line, ',', 'split');
                 figure('Visible','off');
-                color_map=hsv(numel(series)); % creating a HSC colormap
+                color_map=lines(numel(series)); % creating a colormap
                 hold on
                 for k=1:numel(series)
                     file_name=fullfile('temp',series{k});
