@@ -146,6 +146,7 @@ int cur_height=0;
 int desired_height=0;
 boolean alt_hold=false;
 int height_pid_result=0;
+int height_d_term=0;
 
 
 volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
@@ -198,31 +199,35 @@ char buf[200];
 void loop(){
     unsigned long loop_start=micros();
 
-    if(count_serial ==560){
+    if(count_serial ==480){
         count_serial = 0;
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
-    }else if(count_serial ==480){
-        sprintf(buf,"m3 %d\r\nm4 %d\r\nh %d\r\nh_pid %d\r\n",m3_speed,m4_speed,cur_height,height_pid_result);
+    }else if(count_serial ==420){
+        sprintf(buf,"m3 %d\r\nm4 %d\r\n",m3_speed,m4_speed);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial ==400){
+    }else if(count_serial ==360){
+        sprintf(buf,"h %d\r\nh_pid %d\r\nh_d_t %d\r\n",cur_height,height_pid_result,height_d_term);
+        Serial1.print(buf);
+        count_serial=count_serial+1;
+    }else if(count_serial ==300){
         sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==320){
+    }else if(count_serial==240){
         sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==240){
+    }else if(count_serial==180){
         sprintf(buf,"chp %d\r\nchr %d\r\nchy %d\r\n",ch2,ch4,ch1);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==160){
+    }else if(count_serial==120){
         sprintf(buf,"ay %d\r\nap %d\r\nar %d\r\n",angle_pid_result[0],angle_pid_result[1],angle_pid_result[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==80){
+    }else if(count_serial==60){
         unsigned long cur_milli=millis();
         sprintf(buf,"cm %lu\r\nry %d\r\nrp %d\r\nrr %d\r\n",cur_milli,rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
         Serial1.print(buf);
@@ -244,6 +249,7 @@ void loop(){
     pid_update();
     esc_update();
     ApplicationMonitor.IAmAlive();
+    /* Serial.println(micros()-loop_start); */
 }
 
 
@@ -564,7 +570,6 @@ int rate_d_term[3]={0,0,0};
 int height_i_term_calc_time=0;
 int height_i_term_calc_interval=1000;
 int height_i_term=0;
-int height_d_term=0;
 int prev_height=0;
 int height_pid_constraint=50;
 float height_kp=0.008f,height_ki=0,height_kd=0;
