@@ -47,13 +47,14 @@
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="r_kd" command="r_kd=%;"></slider>
         <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="r_ki" command="r_ki=%;"></slider>
     </tab>
-    <tab name="Y constants" num_cols="6" num_rows="1">
+    <tab name="Y constants" num_cols="7" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="y_a_kp" command="y_a_kp=%;"></slider>
         <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="y_a_kd" command="y_a_kd=%;"></slider>
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="y_a_ki" command="y_a_ki=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kp" command="y_r_kp=%;"></slider>
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kd" command="y_r_kd=%;"></slider>
         <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="y_r_ki" command="y_r_ki=%;"></slider>
+        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="thld." command="y_th=%;"></slider>
     </tab>
     <tab name="PID constraints" num_cols="6" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_c" command="a_c=%;"></slider>
@@ -76,12 +77,13 @@
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="yaw_average" command="yar=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="gyro" command="g_r=%;"></slider>
     </tab>
-    <tab name="height" num_cols="6" num_rows="1">
+    <tab name="height" num_cols="7" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="kp" command="h_kp=%;"></slider>
         <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="kd" command="h_kd=%;"></slider>
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ki" command="h_ki=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="milli" command="h_m=%;"></slider>
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="constraint" command="h_c=%;"></slider>
         <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="diff" command="h_d=%;"></slider>
+        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="thld." command="h_th=%;"></slider>
     </tab>
 </root>

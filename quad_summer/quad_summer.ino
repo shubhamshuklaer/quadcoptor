@@ -431,9 +431,10 @@ void ping_init(){
     enableInterrupt(PING_PIN, ping_change,CHANGE);
 }
 
-float epsilon=0.2f;
-boolean close_by(float a,float b){
-    return abs(a-b)<epsilon;
+float yaw_threashold=0.2f;
+int height_threashold=5000;
+boolean close_by(float a,float b,float threashold_val){
+    return abs(a-b)<threashold_val;
 }
 
 void ypr_update(){
@@ -496,9 +497,9 @@ void ypr_update(){
     //this yaw is still wrong cause we are asked to maintain yaw at around 2*PI then
     //the yaw jumps from 2*Pi to 0 here
     if(yaw_prev!=-infinity){
-        if(close_by(yaw_prev,2*pi)&&close_by(ypr[0],0))
+        if(close_by(yaw_prev,2*pi,yaw_threashold)&&close_by(ypr[0],0,yaw_threashold))
             num_rounds++;
-        else if(close_by(yaw_prev,0)&&close_by(ypr[0],2*pi))
+        else if(close_by(yaw_prev,0,yaw_threashold)&&close_by(ypr[0],2*pi,yaw_threashold))
             num_rounds--;
     }
 
@@ -521,12 +522,14 @@ void ypr_update(){
 
 
 void ping_update(){
+    int temp_height;
     if(height_changed){
         sregRestore = SREG;
-        cur_height = ping_val;
+        temp_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
-        /* cur_height=cur_height*cos(ypr[1])*cos(ypr[2]); */
+        if(close_by(temp_height,cur_height,height_threashold))//Ignoring spikes in ping values
+            cur_height=temp_height;
     }
 
     //we cannot read every loop we need some delay between each read
@@ -927,6 +930,10 @@ inline void check_serial(){
                 height_pid_constraint=val;
 			}else if(in_key == "h_d"){
                 take_down_gradient=val;
+			}else if(in_key == "h_th"){
+                height_threashold=val;
+			}else if(in_key == "y_th"){
+                yaw_threashold=val;
 			}else{
                 wrong_command=true;
             }
