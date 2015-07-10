@@ -1,4 +1,4 @@
-arduino quad_final.ino --upload && picocom /dev/ttyUSB0 -b 115200 -r -l 
+arduino quad_summer.ino --upload && picocom /dev/ttyUSB0 -b 9600 -r -l
 
 **********************************************using bootloader optiboot because of bootloader problem
 hg clone https://code.google.com/p/optiboot/
