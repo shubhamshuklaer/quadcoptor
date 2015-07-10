@@ -12,3 +12,7 @@ BEGIN {
         printf "%s,%s\r\n",x_val,$2 >> "temp/"$1;
     }
 }
+
+END {
+    exit 0;
+}
