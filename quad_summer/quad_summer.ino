@@ -86,7 +86,7 @@ const int CH3_MIN_CUTOFF=50;
 
 unsigned long take_down_start=0;
 const int take_down_cutoff=500;
-const int take_down_gradient=15;
+int take_down_gradient=15;
 
 byte sregRestore;
 
@@ -520,7 +520,7 @@ void ping_update(){
         cur_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
-        cur_height=cur_height*cos(ypr[1])*cos(ypr[2]);
+        /* cur_height=cur_height*cos(ypr[1])*cos(ypr[2]); */
     }
 
     //we cannot read every loop we need some delay between each read
@@ -562,7 +562,7 @@ int angle_d_term[3]={0,0,0};
 int rate_d_term[3]={0,0,0};
 
 int height_i_term_calc_time=0;
-int height_i_term_calc_interval=100;
+int height_i_term_calc_interval=1000;
 int height_i_term=0;
 int height_d_term=0;
 int prev_height=0;
@@ -578,14 +578,22 @@ void pid_init(){
 }
 
 inline void pid_update(){
-    if(millis()-angle_i_prev_calc_time>angle_i_term_calc_interval){
-        angle_i_term[0]+=-angle_ki[0]*(desired_angle[0]-int_angle[0]);
-        angle_i_term[1]+=angle_ki[1]*(desired_angle[1]-int_angle[1]);
-        angle_i_term[2]+=-angle_ki[2]*(desired_angle[2]-int_angle[2]);
+    // pid equation is ( + / - ){kp*(desired_val - cur_val) + i_term - d_term}
+    // where i_term = i_term + ki*(desired_val - cur_val)
+    // and d_term = kd*(cur_val - prev_val)
+    // notice the opposite sign of d_term in the PID equation...dont forget it
+    // the forward ( + / - ) depends on how the result of PID is used
+    // P depends on the present error, I on the accumulation of past errors, and
+    // D is a prediction of future errors, based on current rate of change.
 
-        angle_d_term[0]=-angle_kd[0]*(int_angle[0]-prev_angle[0]);
-        angle_d_term[1]=angle_kd[1]*(int_angle[1]-prev_angle[1]);
-        angle_d_term[2]=-angle_kd[2]*(int_angle[2]-prev_angle[2]);
+    if(millis() - angle_i_prev_calc_time>angle_i_term_calc_interval){
+        angle_i_term[0] += - angle_ki[0]*(desired_angle[0] - int_angle[0]);
+        angle_i_term[1] +=angle_ki[1]*(desired_angle[1] - int_angle[1]);
+        angle_i_term[2] += - angle_ki[2]*(desired_angle[2] - int_angle[2]);
+
+        angle_d_term[0]= - angle_kd[0]*(int_angle[0] - prev_angle[0]);
+        angle_d_term[1]=angle_kd[1]*(int_angle[1] - prev_angle[1]);
+        angle_d_term[2]= - angle_kd[2]*(int_angle[2] - prev_angle[2]);
 
         prev_angle[0]=int_angle[0];
         prev_angle[1]=int_angle[1];
@@ -594,22 +602,22 @@ inline void pid_update(){
         angle_i_prev_calc_time=millis();
     }
 
-    angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0] + angle_d_term[0];
-    angle_pid_result[1]=angle_kp[1]*(desired_angle[1]-int_angle[1]) + angle_i_term[1] + angle_d_term[1];
-    angle_pid_result[2]=-angle_kp[2]*(desired_angle[2]-int_angle[2]) + angle_i_term[2] + angle_d_term[2];
+    angle_pid_result[0]=-angle_kp[0]*(desired_angle[0]-int_angle[0]) + angle_i_term[0] - angle_d_term[0];
+    angle_pid_result[1]=angle_kp[1]*(desired_angle[1]-int_angle[1]) + angle_i_term[1] - angle_d_term[1];
+    angle_pid_result[2]=-angle_kp[2]*(desired_angle[2]-int_angle[2]) + angle_i_term[2] - angle_d_term[2];
 
-    angle_pid_result[0]=constrain(angle_pid_result[0],-angle_pid_constraint[0],angle_pid_constraint[0]);
-    angle_pid_result[1]=constrain(angle_pid_result[1],-angle_pid_constraint[1],angle_pid_constraint[1]);
-    angle_pid_result[2]=constrain(angle_pid_result[2],-angle_pid_constraint[2],angle_pid_constraint[2]);
+    angle_pid_result[0]=constrain(angle_pid_result[0], - angle_pid_constraint[0],angle_pid_constraint[0]);
+    angle_pid_result[1]=constrain(angle_pid_result[1], - angle_pid_constraint[1],angle_pid_constraint[1]);
+    angle_pid_result[2]=constrain(angle_pid_result[2], - angle_pid_constraint[2],angle_pid_constraint[2]);
 
     if(millis()-rate_i_prev_calc_time>rate_i_term_calc_interval){
-        rate_i_term[0]+=rate_ki[0]*(angle_pid_result[0]-int_rate[0]);
-        rate_i_term[1]+=rate_ki[1]*(angle_pid_result[1]-int_rate[1]);
-        rate_i_term[2]+=rate_ki[2]*(angle_pid_result[2]-int_rate[2]);
+        rate_i_term[0] +=rate_ki[0]*(angle_pid_result[0] - int_rate[0]);
+        rate_i_term[1] +=rate_ki[1]*(angle_pid_result[1] - int_rate[1]);
+        rate_i_term[2] +=rate_ki[2]*(angle_pid_result[2] - int_rate[2]);
 
-        rate_d_term[0]=rate_kd[0]*(int_rate[0]-prev_rate[0]);
-        rate_d_term[1]=rate_kd[1]*(int_rate[1]-prev_rate[1]);
-        rate_d_term[2]=rate_kd[2]*(int_rate[2]-prev_rate[2]);
+        rate_d_term[0]=rate_kd[0]*(int_rate[0] - prev_rate[0]);
+        rate_d_term[1]=rate_kd[1]*(int_rate[1] - prev_rate[1]);
+        rate_d_term[2]=rate_kd[2]*(int_rate[2] - prev_rate[2]);
 
         prev_rate[0]=int_rate[0];
         prev_rate[1]=int_rate[1];
@@ -618,23 +626,23 @@ inline void pid_update(){
         rate_i_prev_calc_time=millis();
     }
 
-    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0] + rate_d_term[0];
-    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1] + rate_d_term[1];
-    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2] + rate_d_term[2];
+    rate_pid_result[0]=rate_kp[0]*(angle_pid_result[0]-int_rate[0]) + rate_i_term[0] - rate_d_term[0];
+    rate_pid_result[1]=rate_kp[1]*(angle_pid_result[1]-int_rate[1]) + rate_i_term[1] - rate_d_term[1];
+    rate_pid_result[2]=rate_kp[2]*(angle_pid_result[2]-int_rate[2]) + rate_i_term[2] - rate_d_term[2];
 
-    rate_pid_result[0]=constrain(rate_pid_result[0],-rate_pid_constraint[0],rate_pid_constraint[0]);
-    rate_pid_result[1]=constrain(rate_pid_result[1],-rate_pid_constraint[1],rate_pid_constraint[1]);
-    rate_pid_result[2]=constrain(rate_pid_result[2],-rate_pid_constraint[2],rate_pid_constraint[2]);
+    rate_pid_result[0]=constrain(rate_pid_result[0], - rate_pid_constraint[0],rate_pid_constraint[0]);
+    rate_pid_result[1]=constrain(rate_pid_result[1], - rate_pid_constraint[1],rate_pid_constraint[1]);
+    rate_pid_result[2]=constrain(rate_pid_result[2], - rate_pid_constraint[2],rate_pid_constraint[2]);
 
     if(alt_hold){
         if(millis()-height_i_term_calc_time>height_i_term_calc_interval){
-            height_i_term+=height_ki*(desired_height-cur_height);
-            height_d_term=height_kd*(cur_height-prev_height);
+            height_i_term +=height_ki*(desired_height - cur_height);
+            height_d_term=height_kd*(cur_height - prev_height);
             prev_height=cur_height;
             height_i_term_calc_time=millis();
         }
-        height_pid_result=height_kp*(desired_height-cur_height)+height_i_term+height_d_term;
-        height_pid_result=constrain(height_pid_result,-height_pid_constraint,height_pid_constraint);
+        height_pid_result=height_kp*(desired_height - cur_height) + height_i_term - height_d_term;
+        height_pid_result=constrain(height_pid_result, - height_pid_constraint,height_pid_constraint);
     }else{
         height_pid_result=0;
         height_i_term=0;
@@ -770,6 +778,7 @@ void rc_update(){
                     take_down_start=millis();
                     if(cur_height>take_down_cutoff){
                         desired_height=cur_height-1;
+                        base_speed=base_speed + height_pid_result;
                     }else{
                         alt_hold=false;
                         base_speed=ESC_MIN;
@@ -911,6 +920,8 @@ inline void check_serial(){
                 height_i_term_calc_interval=val;
 			}else if(in_key == "h_c"){
                 height_pid_constraint=val;
+			}else if(in_key == "h_d"){
+                take_down_gradient=val;
 			}else{
                 wrong_command=true;
             }
