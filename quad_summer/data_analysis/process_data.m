@@ -8,7 +8,7 @@ function process_data(prefix)
             data=textscan(fid,'%f,%f');
             figure('Visible','off');
             plot(data{1},data{2});
-            title(d(n).name);
+            title(d(n).name,'interpreter','none');
             print('-dpdf','-r300',fullfile('temp',strcat(prefix,d(n).name,'.pdf')));
             fclose(fid);
         else
