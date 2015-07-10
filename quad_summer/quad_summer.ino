@@ -50,7 +50,7 @@ volatile int ch1_val=0,ch2_val=0,ch3_val=0,ch4_val=0,ch5_val=0,ch6_val=0;
 volatile unsigned long prev_ch_update;
 unsigned long prev_ch_update_copy;
 int receiver_lost_threashold=100;//in ms
-volatile int ch1_prev=0,ch2_prev=0,ch3_prev=0,ch4_prev=0,ch5_prev=0,ch6_prev=0;
+volatile unsigned long ch1_prev=0,ch2_prev=0,ch3_prev=0,ch4_prev=0,ch5_prev=0,ch6_prev=0;
 boolean ch_changed=false;
 
 const int CH1_PIN=13;
@@ -137,13 +137,13 @@ int ESC_MIN=1000;
 int ESC_MAX=2000;
 
 const int PING_PIN=53;
-volatile int ping_prev=0,ping_val=0;
+volatile unsigned long ping_prev=0,ping_val=0;
 boolean height_changed=false;
 volatile boolean read_ping_pulse=false;
 int num_loops_for_ping_read=50;
 int num_loops_for_ping=0;
-int cur_height=0;
-int desired_height=0;
+long cur_height=0;
+long desired_height=0;
 boolean alt_hold=false;
 int height_pid_result=0;
 int height_d_term=0;
@@ -208,7 +208,7 @@ void loop(){
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial ==360){
-        sprintf(buf,"h %d\r\nh_pid %d\r\nh_d_t %d\r\n",cur_height,height_pid_result,height_d_term);
+        sprintf(buf,"h %ld\r\nh_pid %d\r\nh_d_t %d\r\n",cur_height,height_pid_result,height_d_term);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial ==300){
@@ -522,7 +522,7 @@ void ypr_update(){
 
 
 void ping_update(){
-    int temp_height;
+    long temp_height;
     if(height_changed){
         sregRestore = SREG;
         temp_height = ping_val;
@@ -561,8 +561,8 @@ int rate_i_term_calc_interval=800;
 int angle_i_term_calc_interval=50;
 float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
-long angle_i_prev_calc_time=0;
-long rate_i_prev_calc_time=0;
+unsigned long angle_i_prev_calc_time=0;
+unsigned long rate_i_prev_calc_time=0;
 float angle_kp[3] = {60.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
 float rate_kp[3]={0.035f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 int prev_angle[3]={0,0,0};
@@ -570,10 +570,10 @@ int prev_rate[3]={0,0,0};
 int angle_d_term[3]={0,0,0};
 int rate_d_term[3]={0,0,0};
 
-int height_i_term_calc_time=0;
+unsigned long height_i_term_calc_time=0;
 int height_i_term_calc_interval=1000;
 int height_i_term=0;
-int prev_height=0;
+long prev_height=0;
 int height_pid_constraint=50;
 float height_kp=0.008f,height_ki=0,height_kd=0;
 
@@ -654,6 +654,7 @@ inline void pid_update(){
     }else{
         height_pid_result=0;
         height_i_term=0;
+        height_d_term=0;
     }
 
 }

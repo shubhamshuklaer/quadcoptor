@@ -54,7 +54,7 @@
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kp" command="y_r_kp=%;"></slider>
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="y_r_kd" command="y_r_kd=%;"></slider>
         <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="y_r_ki" command="y_r_ki=%;"></slider>
-        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="thld." command="y_th=%;"></slider>
+        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="y_thld" command="y_th=%;"></slider>
     </tab>
     <tab name="PID constraints" num_cols="6" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="a_c" command="a_c=%;"></slider>
@@ -72,18 +72,18 @@
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="throttle_max" command="th=%;"></slider>
     </tab>
     <tab name="Retains" num_cols="4" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="ch_angle" command="car=%;"></slider>
-        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="ch_throttle" command="ctr=%;"></slider>
-        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="yaw_average" command="yar=%;"></slider>
-        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="gyro" command="g_r=%;"></slider>
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="ret_ch_angle" command="car=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="ret_ch_throttle" command="ctr=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ret_yaw_average" command="yar=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="ret_gyro" command="g_r=%;"></slider>
     </tab>
     <tab name="height" num_cols="7" num_rows="1">
-        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="kp" command="h_kp=%;"></slider>
-        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="kd" command="h_kd=%;"></slider>
-        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ki" command="h_ki=%;"></slider>
-        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="milli" command="h_m=%;"></slider>
-        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="constraint" command="h_c=%;"></slider>
-        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="diff" command="h_d=%;"></slider>
-        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="thld." command="h_th=%;"></slider>
+        <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="h_kp" command="h_kp=%;"></slider>
+        <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="h_kd" command="h_kd=%;"></slider>
+        <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="h_ki" command="h_ki=%;"></slider>
+        <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="h_milli" command="h_m=%;"></slider>
+        <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="h_constraint" command="h_c=%;"></slider>
+        <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="h_diff" command="h_d=%;"></slider>
+        <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="h_thld" command="h_th=%;"></slider>
     </tab>
 </root>
