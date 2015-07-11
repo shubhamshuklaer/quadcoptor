@@ -13,7 +13,7 @@ function process_data(prefix,config_file_name)
                     fid=fopen(file_name);
                     if fid~=-1
                         data=textscan(fid,'%f,%f');
-                        plot(data{1},data{2},'color',color_map(k,:));
+                        plot(data{1},data{2},'color',color_map(k,:),'LineWidth',0.1);
                         fclose(fid);
                     else
                         fprintf('cannot open file %s\n',series{k});
@@ -22,7 +22,7 @@ function process_data(prefix,config_file_name)
                 legend(series,'interpreter','none'); %otherwise it interprets string as latex and '_' gives subscript
                 hold off
                 title(config_line,'interpreter','none');
-                print('-dpdf','-r300',fullfile('temp',strcat(prefix,config_line,'.pdf')));
+                print('-dpdf','-r600',fullfile('temp',strcat(prefix,config_line,'.pdf')));
             end
         end
         fclose(config_fid);

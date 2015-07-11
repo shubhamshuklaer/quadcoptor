@@ -3,7 +3,6 @@
 #include <EnableInterrupt.h>
 #include <I2Cdev.h>
 #include <MPU9150_9Axis_MotionApps41.h>
-#include <PID_v1.h>
 #include <Servo.h>
 #include <avr/pgmspace.h>
 #include <MemoryFree.h>
@@ -433,6 +432,7 @@ void ping_init(){
 
 float yaw_threashold=0.2f;
 int height_threashold=5000;
+int ch_threashold=30;
 boolean close_by(float a,float b,float threashold_val){
     return abs(a-b)<threashold_val;
 }
@@ -720,18 +720,32 @@ void clear_i_terms(int which){
 
 void rc_update(){
     boolean receiver_lost=millis()-prev_ch_update_copy>receiver_lost_threashold;
+    int ch1_temp=0,ch2_temp=0,ch3_temp=0,ch4_temp=0;
     if(ch_changed || receiver_lost){
         ch_changed=false;
         sregRestore = SREG;
         cli(); // clear the global interrupt enable flag
-        ch1=ch1_val;
-        ch2=ch2_val;
-        ch3=ch3_val;
-        ch4=ch4_val;
+        ch1_temp=ch1_val;
+        ch2_temp=ch2_val;
+        ch3_temp=ch3_val;
+        ch4_temp=ch4_val;
         ch5=ch5_val;
         ch6=ch6_val;
         prev_ch_update_copy=prev_ch_update;
         SREG = sregRestore; // restore the status register to its previous value
+
+        boolean landing_condition=ch5>CH5_EFFECT/2;
+        //in the case the when transmitter signal is lost... failsafe values
+        //needs to be loaded which might be far away from current values
+
+        if(close_by(ch1_temp,ch1,ch_threashold)||landing_condition)
+            ch1=ch1_temp;
+        if(close_by(ch2_temp,ch2,ch_threashold)||landing_condition)
+            ch2=ch2_temp;
+        if(close_by(ch3_temp,ch3,ch_threashold)||landing_condition)
+            ch3=ch3_temp;
+        if(close_by(ch4_temp,ch4,ch_threashold)||landing_condition)
+            ch4=ch4_temp;
 
         ch1 = (ch1==0)?(CH1_MAX+CH1_MIN)/2:ch1;
         ch2 = (ch2==0)?(CH2_MAX+CH2_MIN)/2:ch2;
@@ -935,6 +949,8 @@ inline void check_serial(){
                 height_threashold=val;
 			}else if(in_key == "y_th"){
                 yaw_threashold=val;
+			}else if(in_key == "ch_th"){
+                ch_threashold=val;
 			}else{
                 wrong_command=true;
             }
