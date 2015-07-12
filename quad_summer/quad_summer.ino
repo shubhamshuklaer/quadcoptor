@@ -130,15 +130,15 @@ void get_data(void);
 
 int ESC_1=4;
 int ESC_2=5;
-int ESC_3=6;
+int ESC_3=3;//pin 6 is damaged
 int ESC_4=7;
 int ESC_MIN=1000;
 int ESC_MAX=2000;
 
-const int PING_PIN=53;
+const int PING_ECHO_PIN=53;
+const int PING_TRIG_PIN=28;
 volatile unsigned long ping_prev=0,ping_val=0;
 boolean height_changed=false;
-volatile boolean read_ping_pulse=false;
 int num_loops_for_ping_read=50;
 int num_loops_for_ping=0;
 long cur_height=0;
@@ -194,6 +194,7 @@ void setup(){
 
 
 char buf[200];
+int ch_diff,height_diff;
 
 void loop(){
     unsigned long loop_start=micros();
@@ -203,7 +204,7 @@ void loop(){
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
     }else if(count_serial ==420){
-        sprintf(buf,"m3 %d\r\nm4 %d\r\n",m3_speed,m4_speed);
+        sprintf(buf,"m3 %d\r\nm4 %d\r\nchd %d\r\nhd %d\r\n",m3_speed,m4_speed,ch_diff,height_diff);
         Serial1.print(buf);
         count_serial=count_serial+1;
     }else if(count_serial ==360){
@@ -327,13 +328,11 @@ void ch6_change(){
 }
 
 void ping_change(){
-    if(read_ping_pulse){
-        if(digitalRead(PING_PIN) == HIGH){
-            ping_prev = micros();
-        }else{
-            ping_val=micros()-ping_prev;
-            height_changed=true;
-        }
+    if(digitalRead(PING_ECHO_PIN) == HIGH){
+        ping_prev = micros();
+    }else{
+        ping_val=micros()-ping_prev;
+        height_changed=true;
     }
 }
 
@@ -427,11 +426,12 @@ void rc_init(){
 }
 
 void ping_init(){
-    enableInterrupt(PING_PIN, ping_change,CHANGE);
+    enableInterrupt(PING_ECHO_PIN, ping_change,CHANGE);
+    pinMode(PING_TRIG_PIN, OUTPUT);
 }
 
 float yaw_threashold=0.2f;
-int height_threashold=5000;
+int height_threashold=1000;
 int ch_threashold=30;
 boolean close_by(float a,float b,float threashold_val){
     return abs(a-b)<threashold_val;
@@ -521,6 +521,7 @@ void ypr_update(){
 }
 
 
+int temp_height_old=0;
 void ping_update(){
     long temp_height;
     if(height_changed){
@@ -528,6 +529,8 @@ void ping_update(){
         temp_height = ping_val;
         SREG=sregRestore ;
         height_changed=false;
+        height_diff=abs(temp_height_old-temp_height);
+        temp_height_old=temp_height;
         if(close_by(temp_height,cur_height,height_threashold))//Ignoring spikes in ping values
             cur_height=temp_height;
     }
@@ -535,19 +538,15 @@ void ping_update(){
     //we cannot read every loop we need some delay between each read
     //see manual https://www.parallax.com/sites/default/files/downloads/28015-PING-Sensor-Product-Guide-v2.0.pdf
     if(num_loops_for_ping==50){
-        read_ping_pulse=false;
         // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
         // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-        pinMode(PING_PIN, OUTPUT);
-        digitalWrite(PING_PIN, LOW);
+        digitalWrite(PING_TRIG_PIN, LOW);
         delayMicroseconds(2);
-        digitalWrite(PING_PIN, HIGH);
-        delayMicroseconds(5);
-        digitalWrite(PING_PIN, LOW);
+        digitalWrite(PING_TRIG_PIN, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(PING_TRIG_PIN, LOW);
 
         //Now get ready to read the pulse
-        pinMode(PING_PIN, INPUT);
-        read_ping_pulse=true;
         num_loops_for_ping=0;
     }else{
         num_loops_for_ping++;
@@ -571,11 +570,11 @@ int angle_d_term[3]={0,0,0};
 int rate_d_term[3]={0,0,0};
 
 unsigned long height_i_term_calc_time=0;
-int height_i_term_calc_interval=1000;
+int height_i_term_calc_interval=500;
 int height_i_term=0;
 long prev_height=0;
 int height_pid_constraint=50;
-float height_kp=0.008f,height_ki=0,height_kd=0;
+float height_kp=0.015f,height_ki=0,height_kd=0.004f;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
@@ -718,6 +717,8 @@ void clear_i_terms(int which){
     }
 }
 
+int ch1_temp_old,ch2_temp_old,ch3_temp_old,ch4_temp_old;
+
 void rc_update(){
     boolean receiver_lost=millis()-prev_ch_update_copy>receiver_lost_threashold;
     int ch1_temp=0,ch2_temp=0,ch3_temp=0,ch4_temp=0;
@@ -737,15 +738,38 @@ void rc_update(){
         boolean landing_condition=ch5>CH5_EFFECT/2;
         //in the case the when transmitter signal is lost... failsafe values
         //needs to be loaded which might be far away from current values
+        boolean motors_off=ch6<0;
+        boolean exception=motors_off || landing_condition;
 
-        if(close_by(ch1_temp,ch1,ch_threashold)||landing_condition)
+        int ch1_diff,ch2_diff,ch3_diff,ch4_diff;
+
+        ch1_diff=abs(ch1_temp-ch1_temp_old);
+        ch2_diff=abs(ch2_temp-ch2_temp_old);
+        ch3_diff=abs(ch3_temp-ch3_temp_old);
+        ch4_diff=abs(ch4_temp-ch4_temp_old);
+
+        ch1_temp_old=ch1_temp;
+        ch2_temp_old=ch2_temp;
+        ch3_temp_old=ch3_temp;
+        ch4_temp_old=ch4_temp;
+
+        ch_diff=max(max(ch1_diff,ch2_diff),max(ch3_diff,ch4_diff));
+
+        if(close_by(ch1_temp,ch1,ch_threashold)||exception){
             ch1=ch1_temp;
-        if(close_by(ch2_temp,ch2,ch_threashold)||landing_condition)
+        }
+
+        if(close_by(ch2_temp,ch2,ch_threashold)||exception){
             ch2=ch2_temp;
-        if(close_by(ch3_temp,ch3,ch_threashold)||landing_condition)
+        }
+
+        if(close_by(ch3_temp,ch3,ch_threashold)||exception){
             ch3=ch3_temp;
-        if(close_by(ch4_temp,ch4,ch_threashold)||landing_condition)
+        }
+
+        if(close_by(ch4_temp,ch4,ch_threashold)||exception){
             ch4=ch4_temp;
+        }
 
         ch1 = (ch1==0)?(CH1_MAX+CH1_MIN)/2:ch1;
         ch2 = (ch2==0)?(CH2_MAX+CH2_MIN)/2:ch2;
@@ -801,7 +825,6 @@ void rc_update(){
                     take_down_start=millis();
                     if(cur_height>take_down_cutoff){
                         desired_height=cur_height-1;
-                        base_speed=base_speed + height_pid_result;
                     }else{
                         alt_hold=false;
                         base_speed=ESC_MIN;
