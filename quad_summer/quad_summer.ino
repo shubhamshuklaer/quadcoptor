@@ -146,6 +146,7 @@ long desired_height=0;
 boolean alt_hold=false;
 int height_pid_result=0;
 int height_d_term=0;
+boolean bypass_height_filter=false;//for calibration
 
 
 volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
@@ -532,7 +533,7 @@ void ping_update(){
         height_changed=false;
         height_diff=abs(temp_height_old-temp_height);
         temp_height_old=temp_height;
-        if(close_by(temp_height,cur_height,height_threashold))//Ignoring spikes in ping values
+        if(close_by(temp_height,cur_height,height_threashold) || bypass_height_filter)//Ignoring spikes in ping values
             cur_height=temp_height;
     }
 
@@ -817,6 +818,7 @@ void rc_update(){
         desired_angle[2]=0-ch4;
 
         if(ch6>0){
+            bypass_height_filter=false;
             desired_yaw_got=false;
             if(ch5>CH5_EFFECT/2){
                 alt_hold=true;
@@ -842,6 +844,7 @@ void rc_update(){
                 base_speed=ch3;
             }
         }else{
+            bypass_height_filter=true;//for calibration
             alt_hold=false;
             enable_motors=false;
             //SO the error do not accumulate while sitting
