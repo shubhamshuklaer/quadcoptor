@@ -78,7 +78,7 @@
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="ret_yaw_average" command="yar=%;"></slider>
         <slider start_col="3" start_row="0" num_rows="1" num_cols="1" param_name="ret_gyro" command="g_r=%;"></slider>
     </tab>
-    <tab name="height" num_cols="7" num_rows="1">
+    <tab name="height" num_cols="8" num_rows="1">
         <slider start_col="0" start_row="0" num_rows="1" num_cols="1" param_name="h_kp" command="h_kp=%;"></slider>
         <slider start_col="1" start_row="0" num_rows="1" num_cols="1" param_name="h_kd" command="h_kd=%;"></slider>
         <slider start_col="2" start_row="0" num_rows="1" num_cols="1" param_name="h_ki" command="h_ki=%;"></slider>
@@ -86,5 +86,6 @@
         <slider start_col="4" start_row="0" num_rows="1" num_cols="1" param_name="h_constraint" command="h_c=%;"></slider>
         <slider start_col="5" start_row="0" num_rows="1" num_cols="1" param_name="h_diff" command="h_d=%;"></slider>
         <slider start_col="6" start_row="0" num_rows="1" num_cols="1" param_name="h_thld" command="h_th=%;"></slider>
+        <slider start_col="7" start_row="0" num_rows="1" num_cols="1" param_name="t_d_c" command="t_d_c=%;"></slider>
     </tab>
 </root>

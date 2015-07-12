@@ -84,8 +84,8 @@ const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
 unsigned long take_down_start=0;
-const int take_down_cutoff=500;
-int take_down_gradient=15;
+int take_down_cutoff=1000;
+int take_down_gradient=5;
 
 byte sregRestore;
 
@@ -573,8 +573,8 @@ unsigned long height_i_term_calc_time=0;
 int height_i_term_calc_interval=500;
 int height_i_term=0;
 long prev_height=0;
-int height_pid_constraint=50;
-float height_kp=0.015f,height_ki=0,height_kd=0.004f;
+int height_pid_constraint=100;
+float height_kp=0.016f,height_ki=0,height_kd=0.004f;
 
 void pid_init(){
     unsigned long yaw_tune_start=millis();
@@ -976,6 +976,8 @@ inline void check_serial(){
                 yaw_threashold=val;
 			}else if(in_key == "ch_th"){
                 ch_threashold=val;
+			}else if(in_key == "t_d_c"){
+                take_down_cutoff=val;
 			}else{
                 wrong_command=true;
             }
