@@ -147,6 +147,7 @@ boolean alt_hold=false;
 int height_pid_result=0;
 int height_d_term=0;
 boolean bypass_height_filter=false;//for calibration
+boolean started_landing=false;
 
 
 volatile boolean mpu_interrupt = false;     // indicates whether MPU interrupt pin has gone high
@@ -706,6 +707,7 @@ void clear_i_terms(int which){
         rate_i_term[0]=0;
         rate_i_term[1]=0;
         rate_i_term[2]=0;
+        height_i_term=0;
     }else if(which==1){//clear pitch/roll
         angle_i_term[1]=0;
         angle_i_term[2]=0;
@@ -821,24 +823,32 @@ void rc_update(){
             bypass_height_filter=false;
             desired_yaw_got=false;
             if(ch5>CH5_EFFECT/2){
+                if(!started_landing){
+                    desired_height=cur_height;
+                    started_landing=true;
+                }
                 alt_hold=true;
                 if(millis()-take_down_start>=take_down_gradient){
                     take_down_start=millis();
                     if(cur_height>take_down_cutoff){
-                        desired_height=cur_height-1;
+                        desired_height--;
                     }else{
                         alt_hold=false;
                         base_speed=ESC_MIN;
                         enable_motors=false;
+                        clear_i_terms(0);
+                        bypass_height_filter=true;//for calibration
                     }
                 }
             }else if(ch5<-CH5_EFFECT/2){
+                started_landing=false;
                 if(!alt_hold)
                     desired_height=cur_height;
                 alt_hold=true;
                 enable_motors=true;
                 base_speed=ch3;
             }else{
+                started_landing=false;
                 alt_hold=false;
                 enable_motors=true;
                 base_speed=ch3;
@@ -847,6 +857,7 @@ void rc_update(){
             bypass_height_filter=true;//for calibration
             alt_hold=false;
             enable_motors=false;
+            started_landing=false;
             //SO the error do not accumulate while sitting
             clear_i_terms(0);
             if(ch5>CH5_EFFECT/2){//down

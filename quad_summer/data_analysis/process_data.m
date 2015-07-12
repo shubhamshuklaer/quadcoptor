@@ -20,6 +20,8 @@ function process_data(prefix,config_file_name)
                     end
                 end
                 legend(series,'interpreter','none'); %otherwise it interprets string as latex and '_' gives subscript
+                grid minor
+                set(gca,'XMinorTick','on','YMinorTick','on')
                 hold off
                 title(config_line,'interpreter','none');
                 print('-dpdf','-r600',fullfile('temp',strcat(prefix,config_line,'.pdf')));
