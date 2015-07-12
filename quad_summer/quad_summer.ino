@@ -139,8 +139,8 @@ const int PING_ECHO_PIN=53;
 const int PING_TRIG_PIN=28;
 volatile unsigned long ping_prev=0,ping_val=0;
 boolean height_changed=false;
-int num_loops_for_ping_read=50;
-int num_loops_for_ping=0;
+int ping_interval=50;
+unsigned long prev_ping_time=0;
 long cur_height=0;
 long desired_height=0;
 boolean alt_hold=false;
@@ -256,7 +256,7 @@ void loop(){
 void desired_yaw_update(){
     if(!desired_yaw_got){
         int num_samples_for_yaw_average_copy=NUM_SAMPLES_FOR_YAW_AVERAGE;
-        desired_yaw=0;
+        desired_yaw=int_angle[0];
 
         while(num_samples_for_yaw_average_copy>0){
             delay(2);//ms delay to get freash values
@@ -428,10 +428,11 @@ void rc_init(){
 void ping_init(){
     enableInterrupt(PING_ECHO_PIN, ping_change,CHANGE);
     pinMode(PING_TRIG_PIN, OUTPUT);
+    pinMode(PING_ECHO_PIN, INPUT);
 }
 
 float yaw_threashold=0.2f;
-int height_threashold=1000;
+int height_threashold=5000;
 int ch_threashold=30;
 boolean close_by(float a,float b,float threashold_val){
     return abs(a-b)<threashold_val;
@@ -537,7 +538,7 @@ void ping_update(){
 
     //we cannot read every loop we need some delay between each read
     //see manual https://www.parallax.com/sites/default/files/downloads/28015-PING-Sensor-Product-Guide-v2.0.pdf
-    if(num_loops_for_ping==50){
+    if(millis()-prev_ping_time>=ping_interval){
         // The PING))) is triggered by a HIGH pulse of 2 or more microseconds.
         // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
         digitalWrite(PING_TRIG_PIN, LOW);
@@ -547,9 +548,7 @@ void ping_update(){
         digitalWrite(PING_TRIG_PIN, LOW);
 
         //Now get ready to read the pulse
-        num_loops_for_ping=0;
-    }else{
-        num_loops_for_ping++;
+        prev_ping_time=millis();
     }
 }
 
@@ -562,7 +561,7 @@ float angle_i_term[3]={0,0,0};
 float rate_i_term[3]={0,0,0};
 unsigned long angle_i_prev_calc_time=0;
 unsigned long rate_i_prev_calc_time=0;
-float angle_kp[3] = {60.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
+float angle_kp[3] = {58.0f, 50.0f, 50.0f}, angle_kd[3] = {0.0f, 0.0f, 0.0f}, angle_ki[3] = {0.1f,0.4f,0.4f};
 float rate_kp[3]={0.035f,0.03f,0.03f}, rate_kd[3]={0.0f,0.0f,0.0f}, rate_ki[3]={0.0f,0.0f,0.0f};
 int prev_angle[3]={0,0,0};
 int prev_rate[3]={0,0,0};

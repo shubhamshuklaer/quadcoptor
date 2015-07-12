@@ -37,3 +37,7 @@ avr-objdump -d -S -j .text quad_summer.cpp.elf > Disassembly.txt
 **************************************MPU9150
 https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU9150
 replace prog_uchar with unsigned char in MPU9150_9.....41.h
+
+**************************************IP camera
+All features works only in IE7 or IE8...!! In other browsers recording won't work..!!
+and nothing works in IE8+
