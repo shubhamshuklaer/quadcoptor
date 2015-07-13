@@ -83,8 +83,7 @@ const int CH5_EFFECT=100;
 const int CH6_EFFECT=100;
 const int CH3_MIN_CUTOFF=50;
 
-unsigned long take_down_start=0;
-int take_down_cutoff=1000;
+int take_down_cutoff=1500;
 int take_down_gradient=5;
 
 byte sregRestore;
@@ -434,7 +433,7 @@ void ping_init(){
 }
 
 float yaw_threashold=0.2f;
-int height_threashold=5000;
+int height_threashold=2000;
 int ch_threashold=30;
 boolean close_by(float a,float b,float threashold_val){
     return abs(a-b)<threashold_val;
@@ -828,17 +827,14 @@ void rc_update(){
                     started_landing=true;
                 }
                 alt_hold=true;
-                if(millis()-take_down_start>=take_down_gradient){
-                    take_down_start=millis();
-                    if(cur_height>take_down_cutoff){
-                        desired_height--;
-                    }else{
-                        alt_hold=false;
-                        base_speed=ESC_MIN;
-                        enable_motors=false;
-                        clear_i_terms(0);
-                        bypass_height_filter=true;//for calibration
-                    }
+                if(cur_height>take_down_cutoff){
+                    desired_height-=take_down_gradient;
+                }else{
+                    alt_hold=false;
+                    base_speed=ESC_MIN;
+                    enable_motors=false;
+                    clear_i_terms(0);
+                    bypass_height_filter=true;//for calibration
                 }
             }else if(ch5<-CH5_EFFECT/2){
                 started_landing=false;
