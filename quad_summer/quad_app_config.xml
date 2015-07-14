@@ -37,6 +37,7 @@
             <series name="height" color="ff008000" prefix="h"></series>
             <series name="height_pid" color="ffDEB887" prefix="h_pid"></series>
             <series name="height_d_t" color="ff7FFF00" prefix="h_d_t"></series>
+            <series name="height_i_t" color="ffFF7F50" prefix="h_i_t"></series>
         </graph>
     </tab>
     <tab name="PR constants" num_cols="6" num_rows="1">

@@ -145,6 +145,7 @@ long desired_height=0;
 boolean alt_hold=false;
 int height_pid_result=0;
 int height_d_term=0;
+int height_i_term=0;
 boolean bypass_height_filter=false;//for calibration
 boolean started_landing=false;
 
@@ -196,39 +197,43 @@ void setup(){
 
 char buf[200];
 int ch_diff,height_diff;
+int bluetooth_send_interval=30;//increase this if the live graph in the app is lagging
+unsigned long bluetooth_send_start=0;
 
 void loop(){
     unsigned long loop_start=micros();
 
-    if(count_serial ==480){
+    if(count_serial ==8*bluetooth_send_interval){
         count_serial = 0;
         sprintf(buf,"bs %d\r\nm1 %d\r\nm2 %d\r\n",base_speed,m1_speed,m2_speed);
         Serial1.print(buf);
-    }else if(count_serial ==420){
+        /* Serial.println(millis()-bluetooth_send_start); */
+        /* bluetooth_send_start=millis(); */
+    }else if(count_serial ==7*bluetooth_send_interval){
         sprintf(buf,"m3 %d\r\nm4 %d\r\nchd %d\r\nhd %d\r\n",m3_speed,m4_speed,ch_diff,height_diff);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial ==360){
-        sprintf(buf,"h %ld\r\nh_pid %d\r\nh_d_t %d\r\n",cur_height,height_pid_result,height_d_term);
+    }else if(count_serial ==6*bluetooth_send_interval){
+        sprintf(buf,"h %ld\r\nh_pid %d\r\nh_d_t %d\r\nh_i_t %d\r\n",cur_height,height_pid_result,height_d_term,height_i_term);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial ==300){
+    }else if(count_serial==5*bluetooth_send_interval){
         sprintf(buf,"y %d\r\np %d\r\nr %d\r\n",int_angle[0],int_angle[1],int_angle[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==240){
+    }else if(count_serial==4*bluetooth_send_interval){
         sprintf(buf,"gy %d\r\ngp %d\r\ngr %d\r\n",int_rate[0],int_rate[1],int_rate[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==180){
+    }else if(count_serial==3*bluetooth_send_interval){
         sprintf(buf,"chp %d\r\nchr %d\r\nchy %d\r\n",ch2,ch4,ch1);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==120){
+    }else if(count_serial==2*bluetooth_send_interval){
         sprintf(buf,"ay %d\r\nap %d\r\nar %d\r\n",angle_pid_result[0],angle_pid_result[1],angle_pid_result[2]);
         Serial1.print(buf);
         count_serial=count_serial+1;
-    }else if(count_serial==60){
+    }else if(count_serial==bluetooth_send_interval){
         unsigned long cur_milli=millis();
         sprintf(buf,"cm %lu\r\nry %d\r\nrp %d\r\nrr %d\r\n",cur_milli,rate_pid_result[0],rate_pid_result[1],rate_pid_result[2]);
         Serial1.print(buf);
@@ -433,7 +438,7 @@ void ping_init(){
 }
 
 float yaw_threashold=0.2f;
-int height_threashold=2000;
+int height_threashold=5000;
 int ch_threashold=30;
 boolean close_by(float a,float b,float threashold_val){
     return abs(a-b)<threashold_val;
@@ -571,7 +576,6 @@ int rate_d_term[3]={0,0,0};
 
 unsigned long height_i_term_calc_time=0;
 int height_i_term_calc_interval=500;
-int height_i_term=0;
 long prev_height=0;
 int height_pid_constraint=100;
 float height_kp=0.016f,height_ki=0,height_kd=0.004f;
