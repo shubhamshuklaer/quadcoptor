@@ -33,10 +33,11 @@ chy
 #height
 h
 h_d_t
+h_i_t
 h_pid
 
 #Combined
-h_d_t,h_pid
+h_d_t,h_i_t,h_pid
 y,chy
 
 #diff

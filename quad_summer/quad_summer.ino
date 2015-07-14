@@ -719,6 +719,8 @@ void clear_i_terms(int which){
     }else if(which==2){//clear yaw
         angle_i_term[0]=0;
         rate_i_term[0]=0;
+    }else if(which==3){
+        height_i_term=0;
     }
 }
 
@@ -975,6 +977,7 @@ inline void check_serial(){
                 height_kd=val;
 			}else if(in_key == "h_ki"){
                 height_ki=val;
+                clear_i_terms(3);
 			}else if(in_key == "h_m"){
                 height_i_term_calc_interval=val;
 			}else if(in_key == "h_c"){
