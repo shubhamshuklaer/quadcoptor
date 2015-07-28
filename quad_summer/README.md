@@ -1,7 +1,7 @@
 arduino quad_summer.ino --upload && picocom /dev/ttyUSB0 -b 9600 -r -l
 
 ###using bootloader optiboot
-because of bootloader problem
+because of bootloader problem <br/>
 hg clone https://code.google.com/p/optiboot/ <br/>
 if problem with hg export it to github and clone from there <br/>
 Now place the folder inside bootloaders folder of clone inside arduino-1.6.1/hardware/arduino/avr/bootloaders <br/>
